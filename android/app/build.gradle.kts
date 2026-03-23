@@ -5,7 +5,7 @@ repositories {
     maven { url = uri("https://maven.aliyun.com/repository/public") }
     maven { url = uri("https://maven.aliyun.com/repository/google") }
     google()
-    mavenCentral() // FIXED: This must be 'mavenCentral()' in Kotlin DSL
+    mavenCentral() 
     maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
 }
 
@@ -45,8 +45,12 @@ flutter {
 
 dependencies {
     // --- FIREBASE 2026 CONFIGURATION ---
+    // 1. Import the Firebase BoM (Bill of Materials)
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
+
+    // 2. Add the specific Firebase Services you need
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth") // <--- THIS LINE FIXES THE "AUTH NOT FOUND" ERROR
 
     // --- KOTLIN & ANDROIDX ---
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
@@ -54,6 +58,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
 
     // --- YOUR CUSTOM ENGINE FIX ---
+    // Ensure this path is still correct on your D: drive
     implementation(files("D:/flutter/bin/cache/artifacts/engine/android-arm64/flutter.jar"))
 
     // --- PLUGIN RESOLUTION FIX ---

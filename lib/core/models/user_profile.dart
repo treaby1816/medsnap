@@ -4,6 +4,7 @@ class UserProfile {
   final String uid;
   final String email;
   final String name;
+  final String? phone;
   final String role; // 'patient' or 'pharmacy'
   final bool isVerified;
   final String? licenseNumber;
@@ -20,6 +21,7 @@ class UserProfile {
     required this.uid,
     required this.email,
     required this.name,
+    this.phone,
     required this.role,
     this.isVerified = false,
     this.licenseNumber,
@@ -36,6 +38,7 @@ class UserProfile {
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
       name: map['name'] ?? '',
+      phone: map['phone'],
       role: map['role'] ?? 'patient',
       isVerified: map['isVerified'] ?? false,
       licenseNumber: map['licenseNumber'],
@@ -55,6 +58,7 @@ class UserProfile {
       'uid': uid,
       'email': email,
       'name': name,
+      'phone': phone,
       'role': role,
       'isVerified': isVerified,
       'licenseNumber': licenseNumber,
@@ -71,6 +75,7 @@ class UserProfile {
     String? uid,
     String? email,
     String? name,
+    String? phone,
     String? role,
     bool? isVerified,
     String? licenseNumber,
@@ -85,6 +90,7 @@ class UserProfile {
       uid: uid ?? this.uid,
       email: email ?? this.email,
       name: name ?? this.name,
+      phone: phone ?? this.phone,
       role: role ?? this.role,
       isVerified: isVerified ?? this.isVerified,
       licenseNumber: licenseNumber ?? this.licenseNumber,

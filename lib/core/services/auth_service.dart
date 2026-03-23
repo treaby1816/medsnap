@@ -53,7 +53,7 @@ class AuthService {
     }
   }
 
-  Future<User?> registerWithEmail(String email, String password, String name, String role) async {
+  Future<User?> registerWithEmail(String email, String password, String name, String phone, String role) async {
     try {
       final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -69,6 +69,7 @@ class AuthService {
           uid: userCredential.user!.uid,
           email: email,
           name: name,
+          phone: phone,
           role: role,
           isVerified: role == 'patient', // Patients are verified by default for now
         );

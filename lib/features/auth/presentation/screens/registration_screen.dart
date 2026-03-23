@@ -46,6 +46,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         _emailController.text.trim(),
         _passwordController.text.trim(),
         _nameController.text.trim(),
+        _phoneController.text.trim(),
         role,
       );
 
@@ -59,8 +60,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = e.toString().replaceAll('Exception: ', '');
+        if (errorMessage.contains('configuration-not-found')) {
+          errorMessage = 'Email/Password sign-in is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed: ${e.toString().replaceAll('Exception: ', '')}')),
+          SnackBar(content: Text('Registration failed: $errorMessage')),
         );
       }
     } finally {
