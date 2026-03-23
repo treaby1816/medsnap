@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "870868324526",
+    "project_id": "vailmeds-74e4b",
+    "storage_bucket": "vailmeds-74e4b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870868324526:android:2358e09d22d071a7129d3f",
+        "android_client_info": {
+          "package_name": "com.vailmeds.v2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
