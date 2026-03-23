@@ -15,7 +15,8 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   int _currentStep = 0;
   final _addressController = TextEditingController(text: '123 Lekki Phase 1, Lagos');
-  // Payment processing state reserved for Paystack integration
+  
+  // Field is now used to control UI loading states
   bool _isProcessing = false;
 
   @override
@@ -36,6 +37,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         type: StepperType.horizontal,
         currentStep: _currentStep,
         onStepContinue: () {
+          // Prevent interaction if already processing
+          if (_isProcessing) return;
+
           if (_currentStep < 2) {
             setState(() => _currentStep++);
           } else {
@@ -43,7 +47,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           }
         },
         onStepCancel: () {
-          if (_currentStep > 0) setState(() => _currentStep--);
+          if (_currentStep > 0 && !_isProcessing) setState(() => _currentStep--);
         },
         controlsBuilder: (context, details) {
           return Padding(
@@ -52,19 +56,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: details.onStepContinue,
+                    // Disable button visually and functionally during processing
+                    onPressed: _isProcessing ? null : details.onStepContinue,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      disabledBackgroundColor: AppTheme.primaryColor.withValues(alpha: 0.6),
                     ),
-                    child: Text(
-                      _currentStep == 2 ? 'Pay Now' : 'Continue',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
+                    child: _isProcessing 
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text(
+                          _currentStep == 2 ? 'Pay Now' : 'Continue',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                   ),
                 ),
-                if (_currentStep > 0) ...[
+                if (_currentStep > 0 && !_isProcessing) ...[
                   const SizedBox(width: 16),
                   TextButton(onPressed: details.onStepCancel, child: const Text('Back')),
                 ],
@@ -91,6 +103,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _addressController,
+                    enabled: !_isProcessing, // Disable input during processing
                     maxLines: 3,
                     decoration: InputDecoration(
                       filled: true,
@@ -157,7 +170,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: GoogleFonts.inter(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: GoogleFonts.inter(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: isBold ? AppTheme.primaryColor : null)),
+          Text(value, style: GoogleFonts.inter(
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal, 
+            color: isBold ? AppTheme.primaryColor : null
+          )),
         ],
       ),
     );
@@ -165,6 +181,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   Future<void> _handlePayment() async {
     setState(() => _isProcessing = true);
+    
     // Simulate Paystack processing
     await Future.delayed(const Duration(seconds: 2));
     

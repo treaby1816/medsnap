@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
 
-class PharmacySupportScreen extends StatefulWidget {
+class PharmacySupportScreen extends StatelessWidget {
   const PharmacySupportScreen({super.key});
 
-  @override
-  State<PharmacySupportScreen> createState() => _PharmacySupportScreenState();
-}
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
 
-class _PharmacySupportScreenState extends State<PharmacySupportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           'Help & Support',
           style: GoogleFonts.inter(
@@ -54,7 +61,7 @@ class _PharmacySupportScreenState extends State<PharmacySupportScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Our team is available to assist you with any pharmacy-related queries.',
+                    'Our pharmacy support team is available to assist with inventory, orders, and verification queries.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 14,
@@ -80,16 +87,36 @@ class _PharmacySupportScreenState extends State<PharmacySupportScreen> {
               children: [
                 _buildContactCard(
                   icon: Icons.chat_bubble_outline_rounded,
-                  label: 'Live Chat',
-                  color: const Color(0xFF3B82F6),
-                  onTap: () {},
+                  label: 'WhatsApp',
+                  color: const Color(0xFF25D366),
+                  onTap: () => _launchUrl(
+                      'https://wa.me/2348012345678?text=Hello%20VailMeds%20Pharmacy%20Support'),
                 ),
                 const SizedBox(width: 12),
                 _buildContactCard(
                   icon: Icons.email_outlined,
                   label: 'Email Us',
                   color: const Color(0xFFF59E0B),
-                  onTap: () {},
+                  onTap: () => _launchUrl(
+                      'mailto:pharmacy-support@vailmeds.com?subject=Pharmacy%20Support%20Request'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildContactCard(
+                  icon: Icons.phone_outlined,
+                  label: 'Call Us',
+                  color: const Color(0xFF3B82F6),
+                  onTap: () => _launchUrl('tel:+2348012345678'),
+                ),
+                const SizedBox(width: 12),
+                _buildContactCard(
+                  icon: Icons.language,
+                  label: 'Help Center',
+                  color: const Color(0xFF8B5CF6),
+                  onTap: () => _launchUrl('https://vailmeds.com/help'),
                 ),
               ],
             ),
@@ -105,10 +132,26 @@ class _PharmacySupportScreenState extends State<PharmacySupportScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildFaqItem('How do I manage low stock alerts?'),
-            _buildFaqItem('Can I export my monthly revenue logs?'),
-            _buildFaqItem('How to update pharmacy business hours?'),
-            _buildFaqItem('Adding new staff to the dashboard'),
+            _buildFaqItem(
+              'How do I manage low stock alerts?',
+              'Navigate to your Inventory screen and enable notifications for items below a set threshold. You\'ll receive push alerts when stock runs low.',
+            ),
+            _buildFaqItem(
+              'Can I export my monthly revenue logs?',
+              'Yes! Go to the Logs tab in your dashboard and tap the export button. We support CSV and PDF formats for your records.',
+            ),
+            _buildFaqItem(
+              'How to update pharmacy business hours?',
+              'Go to your Pharmacy Profile from the dashboard sidebar and tap "Edit Hours." Changes are reflected immediately on the marketplace.',
+            ),
+            _buildFaqItem(
+              'Adding new staff to the dashboard',
+              'Currently, each pharmacy has a single admin login. Multi-staff access with role management is coming in a future update.',
+            ),
+            _buildFaqItem(
+              'How is my verification reviewed?',
+              'Our team verifies your PCN license number and access token within 24–48 hours. You\'ll receive an in-app notification once approved.',
+            ),
             const SizedBox(height: AppTheme.pagePadding),
           ],
         ),
@@ -152,7 +195,7 @@ class _PharmacySupportScreenState extends State<PharmacySupportScreen> {
     );
   }
 
-  Widget _buildFaqItem(String question) {
+  Widget _buildFaqItem(String question, String answer) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -160,7 +203,10 @@ class _PharmacySupportScreenState extends State<PharmacySupportScreen> {
         borderRadius: BorderRadius.circular(AppTheme.inputRadius),
         boxShadow: AppTheme.floatingShadow,
       ),
-      child: ListTile(
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+        childrenPadding:
+            const EdgeInsets.only(left: 16, right: 16, bottom: 16),
         title: Text(
           question,
           style: GoogleFonts.inter(
@@ -169,9 +215,16 @@ class _PharmacySupportScreenState extends State<PharmacySupportScreen> {
             color: AppTheme.textSecondaryColor,
           ),
         ),
-        trailing: const Icon(Icons.add,
-            size: 18, color: AppTheme.textTertiaryColor),
-        onTap: () {},
+        children: [
+          Text(
+            answer,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: AppTheme.textTertiaryColor,
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }

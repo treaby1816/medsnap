@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserProfile {
   final String uid;
   final String email;
+  final String name;
   final String role; // 'patient' or 'pharmacy'
   final bool isVerified;
   final String? licenseNumber;
@@ -18,6 +19,7 @@ class UserProfile {
   UserProfile({
     required this.uid,
     required this.email,
+    required this.name,
     required this.role,
     this.isVerified = false,
     this.licenseNumber,
@@ -33,6 +35,7 @@ class UserProfile {
     return UserProfile(
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
+      name: map['name'] ?? '',
       role: map['role'] ?? 'patient',
       isVerified: map['isVerified'] ?? false,
       licenseNumber: map['licenseNumber'],
@@ -51,6 +54,7 @@ class UserProfile {
     return {
       'uid': uid,
       'email': email,
+      'name': name,
       'role': role,
       'isVerified': isVerified,
       'licenseNumber': licenseNumber,
@@ -66,6 +70,7 @@ class UserProfile {
   UserProfile copyWith({
     String? uid,
     String? email,
+    String? name,
     String? role,
     bool? isVerified,
     String? licenseNumber,
@@ -79,6 +84,7 @@ class UserProfile {
     return UserProfile(
       uid: uid ?? this.uid,
       email: email ?? this.email,
+      name: name ?? this.name,
       role: role ?? this.role,
       isVerified: isVerified ?? this.isVerified,
       licenseNumber: licenseNumber ?? this.licenseNumber,

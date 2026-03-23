@@ -61,10 +61,14 @@ class AuthService {
       );
       
       if (userCredential.user != null) {
+        // Update auth profile
+        await userCredential.user!.updateDisplayName(name);
+
         // Create Firestore profile
         final profile = UserProfile(
           uid: userCredential.user!.uid,
           email: email,
+          name: name,
           role: role,
           isVerified: role == 'patient', // Patients are verified by default for now
         );

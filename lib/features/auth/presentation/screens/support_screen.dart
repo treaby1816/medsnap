@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,40 +37,77 @@ class SupportScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 20),
-            _buildSupportOption(
-              icon: Icons.chat_bubble_outline,
-              title: 'Live Chat',
-              subtitle: 'Average response time: 5 mins',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Live Chat feature coming soon!')),
-                );
-              },
+            // Hero Banner
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor,
+                    AppTheme.primaryColor.withValues(alpha: 0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.support_agent_rounded,
+                      size: 56, color: Colors.white),
+                  const SizedBox(height: 12),
+                  Text(
+                    'We\'re Here to Help',
+                    style: GoogleFonts.inter(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Available Mon–Sat, 8AM – 8PM WAT',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 28),
+
+            // Contact Options
             _buildSupportOption(
               icon: Icons.email_outlined,
               title: 'Email Support',
               subtitle: 'support@vailmeds.com',
-              onTap: () {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Opening email client...')),
-                );
-              },
+              onTap: () => _launchUrl('mailto:support@vailmeds.com?subject=VailMeds%20Support%20Request'),
             ),
             const SizedBox(height: 16),
             _buildSupportOption(
               icon: Icons.phone_outlined,
               title: 'Phone Support',
-              subtitle: '+1 (800) VAIL-MEDS',
-              onTap: () {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Calling support...')),
-                );
-              },
+              subtitle: '+234 801 234 5678',
+              onTap: () => _launchUrl('tel:+2348012345678'),
+            ),
+            const SizedBox(height: 16),
+            _buildSupportOption(
+              icon: Icons.chat_bubble_outline,
+              title: 'WhatsApp',
+              subtitle: 'Chat with us instantly',
+              onTap: () => _launchUrl('https://wa.me/2348012345678?text=Hello%20VailMeds%20Support'),
             ),
             const SizedBox(height: 32),
+
+            // FAQ Section
             Text(
               'Frequently Asked Questions',
               style: GoogleFonts.inter(
@@ -74,12 +119,25 @@ class SupportScreen extends StatelessWidget {
             const SizedBox(height: 16),
             _buildFAQItem(
               'How do I reset my password?',
-              'You can reset your password from the login screen by clicking "Forgot Password".',
+              'Go to the Login screen and tap "Forgot Password." Enter your registered email and we\'ll send a reset link within minutes.',
             ),
             _buildFAQItem(
               'Is my health data secure?',
-              'Yes, all data is encrypted with 256-bit encryption and is HIPAA compliant.',
+              'Absolutely. All data is encrypted at rest and in transit using industry-standard 256-bit AES encryption. We comply with Nigerian NDPR regulations and international HIPAA guidelines.',
             ),
+            _buildFAQItem(
+              'How do I track my order?',
+              'Go to your Orders tab to see real-time status of your medication deliveries. You\'ll also receive push notifications at every step.',
+            ),
+            _buildFAQItem(
+              'Can I cancel or modify an order?',
+              'You can cancel within 30 minutes of placing the order. After that, contact our support team via WhatsApp or phone for assistance.',
+            ),
+            _buildFAQItem(
+              'How are pharmacies verified?',
+              'Every pharmacy on VailMeds must submit a valid PCN license number and complete our access-token verification before they can list products.',
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -150,30 +208,27 @@ class SupportScreen extends StatelessWidget {
   }
 
   Widget _buildFAQItem(String question, String answer) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            question,
-            style: GoogleFonts.inter(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimaryColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            answer,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppTheme.textSecondaryColor,
-            ),
-          ),
-          const Divider(height: 24),
-        ],
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+      childrenPadding: const EdgeInsets.only(left: 4, right: 4, bottom: 12),
+      title: Text(
+        question,
+        style: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textPrimaryColor,
+        ),
       ),
+      children: [
+        Text(
+          answer,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppTheme.textSecondaryColor,
+            height: 1.5,
+          ),
+        ),
+      ],
     );
   }
 }
