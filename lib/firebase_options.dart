@@ -74,4 +74,5 @@ class DefaultFirebaseOptions {
     authDomain: 'vail-meds.firebaseapp.com',
     storageBucket: 'vail-meds.firebasestorage.app',
   );
+
 }

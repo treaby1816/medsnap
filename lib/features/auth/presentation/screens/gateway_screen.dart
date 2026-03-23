@@ -31,6 +31,7 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
           profile = UserProfile(
             uid: user.uid,
             email: user.email ?? '',
+            name: user.displayName ?? 'New User',
             role: role,
             isVerified: false,
           );

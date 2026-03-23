@@ -1,36 +1,45 @@
 {
   "project_info": {
-    "project_number": "870868324526",
-    "project_id": "vailmeds-74e4b",
-    "storage_bucket": "vailmeds-74e4b.firebasestorage.app"
+    "project_number": "119669105875",
+    "project_id": "vail-meds",
+    "storage_bucket": "vail-meds.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:870868324526:android:2358e09d22d071a7129d3f",
+        "mobilesdk_app_id": "1:119669105875:android:c5e395a7801220e4056026",
         "android_client_info": {
-          "package_name": "com.vailmeds.v2"
+          "package_name": "com.example.vail_meds"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc"
+          "current_key": "AIzaSyBgXkksw0t5AvFJ4ZjKI-eOtArqQ12XEqA"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:119669105875:android:bdafcd4b5177e3a4056026",
+        "android_client_info": {
+          "package_name": "com.vailmeds.v2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgXkksw0t5AvFJ4ZjKI-eOtArqQ12XEqA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
         }
       }
     }
