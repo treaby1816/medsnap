@@ -81,7 +81,7 @@ class PatientProfileScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right, size: 20),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Navigate to edit profile screen
+                _showEditProfileDialog(context, ref);
               },
             ),
             ListTile(
@@ -116,6 +116,69 @@ class PatientProfileScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditProfileDialog(BuildContext context, WidgetRef ref) {
+    final profile = ref.read(userProfileProvider).value;
+    if (profile == null) return;
+
+    final nameController = TextEditingController(text: profile.name);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Edit Profile', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Full Name',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isNotEmpty) {
+                try {
+                  await ref.read(authServiceProvider).updateProfile(
+                    profile.uid,
+                    {'name': newName},
+                  );
+                  ref.invalidate(userProfileProvider);
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to update profile')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
