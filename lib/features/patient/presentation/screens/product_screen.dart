@@ -114,7 +114,6 @@ class ProductScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                Text(
                                   '₦${product.price.toStringAsFixed(0)}',
                                   style: textTheme.headlineMedium?.copyWith(
                                     color: AppTheme.textPrimaryColor,

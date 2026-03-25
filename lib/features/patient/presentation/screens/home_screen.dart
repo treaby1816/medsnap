@@ -4,6 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/models/product_model.dart';
 import 'product_screen.dart';
 import '../../../../core/models/user_profile.dart';
 import '../../../../core/providers.dart';
@@ -16,6 +17,8 @@ class HomeScreen extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final userProfile = ref.watch(userProfileProvider).value;
     final verifiedPharmacies = ref.watch(verifiedPharmaciesProvider).value ?? [];
+    final cartItems = ref.watch(cartProvider);
+    final healthNews = ref.watch(healthNewsProvider);
     final allProducts = ref.watch(allProductsProvider);
     final searchProducts = ref.watch(filteredDrugsProvider);
     final searchQuery = ref.watch(drugSearchQueryProvider);
@@ -637,7 +640,7 @@ class HomeScreen extends ConsumerWidget {
     // Find the pharmacy for this product to get the name
     final pharmacy = pharmacies.firstWhere(
       (p) => p.uid == product.pharmacyId,
-      orElse: () => UserProfile(uid: product.pharmacyId, email: '', displayName: 'Verified Pharmacy', role: 'pharmacy'),
+      orElse: () => UserProfile(uid: product.pharmacyId, email: '', name: 'Verified Pharmacy', displayName: 'Verified Pharmacy', role: 'pharmacy'),
     );
 
     return GestureDetector(

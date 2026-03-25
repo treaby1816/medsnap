@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 // Core & Enums
 import 'package:vail_meds_v2/core/constants/enums.dart';
+import 'package:vail_meds_v2/core/models/product_model.dart';
 
 // Features - Auth
 import 'package:vail_meds_v2/features/auth/presentation/screens/login_screen.dart'; 
@@ -114,9 +115,9 @@ class AppRouter {
       
       // --- Dynamic Routes ---
       case product:
-        final medData = settings.arguments as Map<String, dynamic>? ?? {};
+        final productArg = settings.arguments as Product;
         return MaterialPageRoute(
-          builder: (_) => ProductScreen(productData: medData),
+          builder: (_) => ProductScreen(product: productArg),
         );
 
       case success:
