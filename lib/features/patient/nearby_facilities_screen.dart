@@ -73,10 +73,6 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
         title: Text(
           'Nearby Facilities',
           style: GoogleFonts.inter(
