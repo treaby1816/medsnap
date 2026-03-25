@@ -28,12 +28,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc',
-    appId: '1:870868324526:web:80c44c52e09d22d071a712', // Placeholder derived from project number
+    apiKey: 'AIzaSyA3QEDfhQUHreISRyxqDlStT6Eq1RcA-Mg',
+    appId: '1:870868324526:web:0a5c8a728f38d91a129d3f',
     messagingSenderId: '870868324526',
     projectId: 'vailmeds-74e4b',
     authDomain: 'vailmeds-74e4b.firebaseapp.com',
     storageBucket: 'vailmeds-74e4b.firebasestorage.app',
+    measurementId: 'G-2YL2TJHKPH',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
