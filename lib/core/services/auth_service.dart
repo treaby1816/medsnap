@@ -63,13 +63,14 @@ class AuthService {
       debugPrint('Error signing in with Google: $e');
       debugPrint('Stack trace: $stack');
       
-      // Specifically catch 403 / People API Permission Errors
+      // Only catch the very specific People API permission error
       final errorStr = e.toString();
-      if (errorStr.contains('403') || errorStr.contains('People API')) {
+      if (errorStr.contains('People API has not been used') || 
+          errorStr.contains('people.googleapis.com')) {
         throw Exception('Service temporarily unavailable. Please try again in a few minutes.');
       }
       
-      rethrow; // Rethrow to allow UI to show the error
+      rethrow;
     }
   }
 

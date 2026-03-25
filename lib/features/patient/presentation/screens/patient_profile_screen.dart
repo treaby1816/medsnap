@@ -46,7 +46,7 @@ class PatientProfileScreen extends ConsumerWidget {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.settings, color: AppTheme.primaryColor),
-                  onPressed: () {},
+                  onPressed: () => _showSettingsSheet(context, ref),
                 ),
               ],
             ),
@@ -57,6 +57,65 @@ class PatientProfileScreen extends ConsumerWidget {
         data: (profile) => _buildProfileContent(context, ref, profile!),
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
         error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+    );
+  }
+
+  void _showSettingsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Settings', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.person_outline, color: AppTheme.primaryColor),
+              title: const Text('Edit Profile'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Navigate to edit profile screen
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined, color: AppTheme.primaryColor),
+              title: const Text('Notifications'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline, color: AppTheme.primaryColor),
+              title: const Text('Help & Support'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, AppRouter.support);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(context);
+                await ref.read(authServiceProvider).signOut();
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    AppRouter.welcome,
+                    (route) => false,
+                  );
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -33,37 +33,40 @@ class OrdersScreen extends ConsumerWidget {
           ),
           
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('orders')
-                  .where('userId', isEqualTo: ref.watch(authProvider)?.uid)
-                  .orderBy('orderDate', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  debugPrint('Firestore Error: ${snapshot.error}');
-                  // If orderBy fails due to missing index, fallback to simple query
-                  if (snapshot.error.toString().contains('requires an index')) {
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('orders')
-                          .where('userId', isEqualTo: ref.watch(authProvider)?.uid)
-                          .snapshots(),
-                      builder: (context, fallbackSnapshot) {
-                        if (fallbackSnapshot.hasData) {
-                          final docs = fallbackSnapshot.data!.docs;
-                          return ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                            itemCount: docs.length,
-                            itemBuilder: (context, index) => _buildOrderHistoryCard(docs[index].data() as Map<String, dynamic>),
-                          );
-                        }
-                        return const Center(child: CircularProgressIndicator());
-                      },
-                    );
-                  }
-                  return const Center(child: Text('Error loading history'));
+            child: Builder(
+              builder: (context) {
+                final currentUser = ref.watch(authProvider);
+                if (currentUser == null) {
+                  return const Center(
+                    child: Text('Please sign in to view your orders.',
+                      style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  );
                 }
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('userId', isEqualTo: currentUser.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      debugPrint('Firestore Error: ${snapshot.error}');
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.cloud_off, size: 48, color: Colors.grey.shade300),
+                            const SizedBox(height: 12),
+                            const Text('Could not load orders.',
+                              style: TextStyle(color: Colors.grey, fontSize: 14)),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => ref.invalidate(authProvider),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                 
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -83,6 +86,8 @@ class OrdersScreen extends ConsumerWidget {
                     return _buildOrderHistoryCard(order);
                   },
                 );
+              },
+            );
               },
             ),
           ),

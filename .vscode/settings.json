@@ -1,3 +1,5 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "dart.flutterSdkPath": "D:\\flutter",
+    "dart.sdkPath": "D:\\flutter\\bin\\cache\\dart-sdk"
 }

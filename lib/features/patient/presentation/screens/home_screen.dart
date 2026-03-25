@@ -215,6 +215,176 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
 
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+            // --- LIVE MARKETPLACE PRODUCT GRID ---
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Marketplace', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const Icon(Icons.storefront, color: AppTheme.primaryColor, size: 20),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            allProducts.when(
+              data: (products) {
+                // If a search query is active, show filtered results instead
+                final displayProducts = searchQuery.isNotEmpty ? searchProducts : products;
+                
+                if (displayProducts.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.inventory_2_outlined, size: 48, color: AppTheme.primaryColor.withValues(alpha: 0.4)),
+                            const SizedBox(height: 16),
+                            Text(
+                              searchQuery.isNotEmpty 
+                                ? 'No results for "$searchQuery"' 
+                                : 'Marketplace is being stocked',
+                              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              searchQuery.isNotEmpty 
+                                ? 'Try a different search term.' 
+                                : 'Verified pharmacies will list their inventory here soon. Check back shortly!',
+                              style: textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryColor),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.72,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final product = displayProducts[index];
+                        // Find the source pharmacy name
+                        final pharmacyName = verifiedPharmacies
+                            .where((p) => p.uid == product.pharmacyId)
+                            .map((p) => p.displayName ?? p.name)
+                            .firstOrNull ?? 'Verified Pharmacy';
+                        
+                        return GestureDetector(
+                          onTap: () => Navigator.pushNamed(context, '/product', arguments: product),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Product Image
+                                Expanded(
+                                  flex: 3,
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                    child: product.imageUrl.isNotEmpty
+                                      ? Image.network(product.imageUrl, width: double.infinity, fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                            child: const Center(child: Icon(Icons.medication, color: AppTheme.primaryColor, size: 32)),
+                                          ),
+                                        )
+                                      : Container(
+                                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                          child: const Center(child: Icon(Icons.medication, color: AppTheme.primaryColor, size: 32)),
+                                        ),
+                                  ),
+                                ),
+                                // Product Info
+                                Expanded(
+                                  flex: 2,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.storefront, size: 10, color: AppTheme.primaryColor),
+                                            const SizedBox(width: 4),
+                                            Expanded(child: Text(pharmacyName, style: const TextStyle(fontSize: 10, color: AppTheme.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                          ],
+                                        ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text('\u20a6${product.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimaryColor)),
+                                            GestureDetector(
+                                              onTap: () {
+                                                ref.read(cartProvider.notifier).addItem({
+                                                  'id': product.id,
+                                                  'name': product.name,
+                                                  'price': product.price,
+                                                  'imageUrl': product.imageUrl,
+                                                  'pharmacyId': product.pharmacyId,
+                                                  'pharmacyName': pharmacyName,
+                                                });
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(content: Text('${product.name} added to cart!'), backgroundColor: AppTheme.primaryColor, behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1)),
+                                                );
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(color: AppTheme.primaryColor, borderRadius: BorderRadius.circular(8)),
+                                                child: const Icon(Icons.add, color: Colors.white, size: 14),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: displayProducts.length,
+                    ),
+                  ),
+                );
+              },
+              loading: () => const SliverToBoxAdapter(
+                child: Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: AppTheme.primaryColor))),
+              ),
+              error: (_, __) => const SliverToBoxAdapter(
+                child: Center(child: Padding(padding: EdgeInsets.all(32), child: Text('Could not load marketplace.'))),
+              ),
+            ),
+
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
             // Prescription Scanning (Request Restored)
