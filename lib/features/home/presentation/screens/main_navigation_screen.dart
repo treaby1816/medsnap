@@ -4,8 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 // --- THE ONLY EXPORT YOU NEED ---
 // This now provides access to PatientSearchScreen, OrdersScreen, PatientProfileScreen, etc.
-import 'screens.dart';
-import 'patient/patient_home_screen.dart';
+import 'package:vail_meds_v2/features/screens.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -19,10 +18,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   // The list of screens your BottomNavigationBar will toggle through
   final List<Widget> _pages = [
-    const PatientHomeScreen(),
+    const HomeScreen(), // NEW: Uses the stabilized version
     const NearbyFacilitiesScreen(),
     const OrdersScreen(),
-    const PatientProfileScreen(), // <-- It lives here as Index 3
+    const PatientProfileScreen(), // NEW: Uses the stabilized version
   ];
 
   void _onItemTapped(int index) {

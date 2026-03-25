@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 // --- AUTH & ONBOARDING ---
 export 'auth/presentation/screens/splash_screen.dart';
 export 'auth/presentation/screens/welcome_screen.dart';
@@ -19,29 +17,17 @@ export 'pharmacy/presentation/screens/pharmacy_logs_screen.dart';
 export 'pharmacy/presentation/screens/pharmacy_support_screen.dart';
 export 'pharmacy/presentation/screens/pharmacy_profile_screen.dart';
 
-// --- PATIENT & FEATURE SCREENS ---
-export 'patient/presentation/screens/home_screen.dart'; // Exporting HomeScreen
+// --- PATIENT & FEATURE SCREENS (UNIFIED PATH) ---
+export 'patient/presentation/screens/home_screen.dart';
 export 'patient/presentation/screens/product_screen.dart';
-export 'patient/patient_search_screen.dart'; // Added Search export
-export 'patient/presentation/screens/patient_profile_screen.dart'; // Added Profile export
-export 'patient/orders_screen.dart'; // Added Orders export
-export 'scan/scan_prescription_screen.dart';
-
-// --- UPDATED NEARBY PATH ---
+export 'patient/presentation/screens/checkout_screen.dart';
+export 'patient/presentation/screens/patient_profile_screen.dart';
+export 'patient/job_board_screen.dart'; 
+export 'patient/orders_screen.dart';
+export 'patient/order_history_screen.dart';
 export 'patient/nearby_facilities_screen.dart'; 
 export 'patient/chat_screen.dart';
+export 'patient/patient_search_screen.dart';
 
-// --- GLOBAL PLACEHOLDERS (Keep these only if the actual files aren't ready) ---
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Dashboard Screen')));
-}
-
-// Note: I'm keeping this here, but your 'PatientProfileScreen' export above will take priority 
-// if you've created that file.
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Profile Screen')));
-}
+// --- SHARED COMPONENTS ---
+export 'scan/scan_prescription_screen.dart';

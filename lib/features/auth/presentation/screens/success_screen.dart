@@ -196,8 +196,8 @@ class _SuccessScreenState extends State<SuccessScreen>
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
                                         colors: [
-                                          Colors.white.withValues(alpha: 0.1),
-                                          AppTheme.primaryColor.withValues(alpha: 0.2),
+                                           Colors.white.withValues(alpha: 0.1),
+                                           AppTheme.primaryColor.withValues(alpha: 0.2),
                                         ],
                                       ),
                                     ),
@@ -220,7 +220,7 @@ class _SuccessScreenState extends State<SuccessScreen>
                                     child: LinearProgressIndicator(
                                       value: _progressAnimation.value,
                                       minHeight: 6,
-                                      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                       backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                                       valueColor: const AlwaysStoppedAnimation<Color>(
                                         AppTheme.primaryColor,
                                       ),

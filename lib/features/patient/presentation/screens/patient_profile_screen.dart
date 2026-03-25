@@ -85,8 +85,9 @@ class PatientProfileScreen extends ConsumerWidget {
                         offset: const Offset(0, 4),
                       ),
                     ],
-                    image: const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200'),
+                    image: DecorationImage(
+                      image: NetworkImage(profile.photoUrl ??
+                          'https://ui-avatars.com/api/?name=${profile.displayName ?? profile.email}&background=random'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -95,7 +96,10 @@ class PatientProfileScreen extends ConsumerWidget {
                   bottom: 0,
                   right: 0,
                   child: GestureDetector(
-                    onTap: () => HapticFeedback.lightImpact(),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _editProfile(context, ref, profile);
+                    },
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
@@ -112,8 +116,11 @@ class PatientProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            profile.email.split('@')[0], // Fallback name
-            style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+            profile.displayName ?? profile.email.split('@')[0],
+            style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A)),
           ),
           const SizedBox(height: 4),
           Text(
@@ -219,6 +226,48 @@ class PatientProfileScreen extends ConsumerWidget {
   }
 
   // --- Handlers ---
+  void _editProfile(BuildContext context, WidgetRef ref, UserProfile profile) {
+    final nameController = TextEditingController(text: profile.displayName);
+    final photoController = TextEditingController(text: profile.photoUrl);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Basic Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Full Name')),
+            const SizedBox(height: 12),
+            TextField(
+                controller: photoController,
+                decoration: const InputDecoration(
+                    labelText: 'Profile Photo URL',
+                    hintText: 'Enter https://...')),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              await ref.read(authServiceProvider).updateProfile(profile.uid, {
+                'displayName': nameController.text,
+                'photoUrl': photoController.text,
+              });
+              ref.invalidate(userProfileProvider);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editHealthRecords(BuildContext context, WidgetRef ref, UserProfile profile) {
     final bloodController = TextEditingController(text: profile.healthRecords?['blood_type']);
     final heightController = TextEditingController(text: profile.healthRecords?['height']);

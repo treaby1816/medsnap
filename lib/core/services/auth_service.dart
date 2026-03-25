@@ -4,27 +4,35 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user_profile.dart';
 
+class AuthResult {
+  final User? user;
+  final bool isNewUser;
+  AuthResult({required this.user, this.isNewUser = false});
+}
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com',
+    scopes: [
+      'email',
+      'openid',
+    ],
   );
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
 
-  Future<User?> signInWithGoogle() async {
+  Future<AuthResult> signInWithGoogle({String role = 'patient'}) async {
     try {
       debugPrint('Google Sign-In initiated...');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         debugPrint('Google Sign-In cancelled by user.');
-        return null;
+        return AuthResult(user: null);
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -32,28 +40,53 @@ class AuthService {
 
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
       debugPrint('Google Sign-In successful: ${userCredential.user?.email}');
-      return userCredential.user;
+      
+      if (userCredential.user != null) {
+        // Sync Firestore
+        final doc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
+        if (!doc.exists) {
+          final profile = UserProfile(
+            uid: userCredential.user!.uid,
+            email: userCredential.user!.email ?? '',
+            name: userCredential.user!.displayName ?? 'New User',
+            phone: userCredential.user!.phoneNumber,
+            role: role,
+            isVerified: role == 'patient',
+          );
+          await createUserProfile(profile);
+          return AuthResult(user: userCredential.user, isNewUser: true);
+        }
+      }
+      
+      return AuthResult(user: userCredential.user, isNewUser: false);
     } catch (e, stack) {
       debugPrint('Error signing in with Google: $e');
       debugPrint('Stack trace: $stack');
-      return null;
+      
+      // Specifically catch 403 / People API Permission Errors
+      final errorStr = e.toString();
+      if (errorStr.contains('403') || errorStr.contains('People API')) {
+        throw Exception('Service temporarily unavailable. Please try again in a few minutes.');
+      }
+      
+      rethrow; // Rethrow to allow UI to show the error
     }
   }
 
-  Future<User?> signInWithEmail(String email, String password) async {
+  Future<AuthResult> signInWithEmail(String email, String password) async {
     try {
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return userCredential.user;
+      return AuthResult(user: userCredential.user, isNewUser: false);
     } catch (e) {
       debugPrint('Error signing in with email: $e');
       rethrow;
     }
   }
 
-  Future<User?> registerWithEmail(String email, String password, String name, String phone, String role) async {
+  Future<AuthResult> registerWithEmail(String email, String password, String name, String phone, String role) async {
     try {
       final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -76,7 +109,7 @@ class AuthService {
         await createUserProfile(profile);
       }
       
-      return userCredential.user;
+      return AuthResult(user: userCredential.user, isNewUser: true);
     } catch (e) {
       debugPrint('Error registering with email: $e');
       rethrow;

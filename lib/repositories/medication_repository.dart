@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/medication_model.dart';
+import 'package:vail_meds_v2/core/models/medication_model.dart';
 
 /// Real-time Firestore NoSQL connection for medications.
 class MedicationRepository {

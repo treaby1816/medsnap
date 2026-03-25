@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
 import 'pharmacy_dashboard_screen.dart';
 import 'pharmacy_logs_screen.dart';
@@ -114,11 +115,14 @@ class _PlaceholderTab extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-class _SettingsTab extends StatelessWidget {
+class _SettingsTab extends ConsumerWidget {
   const _SettingsTab();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userProfile = ref.watch(userProfileProvider).value;
+    final displayName = userProfile?.displayName ?? 
+                      (userProfile?.email.split('@')[0] ?? 'Pharmacist');
     return Container(
       color: AppTheme.backgroundColor,
       child: SafeArea(
@@ -163,7 +167,7 @@ class _SettingsTab extends StatelessWidget {
                       context,
                       icon: Icons.person_outline,
                       title: 'Profile',
-                      subtitle: 'Sarah Jenkins — Pharmacist',
+                      subtitle: '$displayName — Pharmacist',
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
@@ -35,14 +36,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
-      // For now, we default registration from this screen to 'patient'
-      // unless we add a toggle. The Gateway ensures pharmacies go through verification.
       const role = 'patient'; 
       
-      final user = await authService.registerWithEmail(
+      final authResult = await authService.registerWithEmail(
         _emailController.text.trim(),
         _passwordController.text.trim(),
         _nameController.text.trim(),
@@ -50,28 +51,77 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         role,
       );
 
-      if (user != null && mounted) {
+      if (authResult.user != null) {
         ref.read(userRoleProvider.notifier).setRole(role);
-        Navigator.of(context).pushReplacement(
+        navigator.pushReplacement(
           MaterialPageRoute(
             builder: (_) => const SuccessScreen(userType: UserType.patient),
           ),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        String errorMessage = e.toString().replaceAll('Exception: ', '');
-        if (errorMessage.contains('configuration-not-found')) {
-          errorMessage = 'Email/Password sign-in is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.';
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed: $errorMessage')),
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        _showExistingUserPrompt(messenger);
+      } else {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Registration failed: ${e.message ?? e.code}')),
         );
       }
+    } catch (e) {
+      String errorMessage = e.toString().replaceAll('Exception: ', '');
+      if (errorMessage.contains('configuration-not-found')) {
+        errorMessage = 'Email/Password sign-in is not enabled in Firebase Console.';
+      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Registration failed: $errorMessage')),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  void _showExistingUserPrompt(ScaffoldMessengerState messenger) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('This email is already registered.'),
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: 'SIGN IN NOW',
+          textColor: AppTheme.primaryColor,
+          onPressed: _handleExistingUserSignIn,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleExistingUserSignIn() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _isLoading = true);
+    try {
+      final authService = ref.read(authServiceProvider);
+      final authResult = await authService.signInWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
+      if (authResult.user != null) {
+        // Fetch role to ensure proper routing
+        final profile = await authService.getUserProfile(authResult.user!.uid);
+        if (profile != null) {
+          ref.read(userRoleProvider.notifier).setRole(profile.role);
+          final route = profile.role == 'pharmacy' ? '/pharmacy-dashboard' : '/main';
+          navigator.pushNamedAndRemoveUntil(route, (r) => false);
+        }
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Sign in failed: ${e.toString().replaceAll('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -133,7 +183,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       boxShadow: [
                         BoxShadow(
                           color:
-                              AppTheme.primaryColor.withValues(alpha: 0.10),
+                              AppTheme.primaryColor.withValues(alpha: 0.1),
                           blurRadius: 30,
                           spreadRadius: 4,
                         ),
@@ -168,14 +218,27 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   height: 52,
                   child: OutlinedButton.icon(
                     onPressed: _isLoading ? null : () async {
+                      final messenger = ScaffoldMessenger.of(context);
                       final navigator = Navigator.of(context);
                       setState(() => _isLoading = true);
                       try {
-                        final user = await ref.read(authServiceProvider).signInWithGoogle();
-                        if (user != null) {
+                        final authResult = await ref.read(authServiceProvider).signInWithGoogle(role: 'patient');
+                        if (authResult.user != null) {
                           ref.read(userRoleProvider.notifier).setRole('patient');
-                          navigator.pushReplacementNamed('/success', arguments: 'patient');
+                          if (authResult.isNewUser) {
+                            navigator.pushReplacementNamed('/success', arguments: 'patient');
+                          } else {
+                            navigator.popUntil((route) => route.isFirst);
+                          }
                         }
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(e.toString().replaceAll('Exception: ', '')),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
                       } finally {
                         if (mounted) setState(() => _isLoading = false);
                       }

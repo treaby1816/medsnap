@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/models/product_model.dart';
 
-class ProductScreen extends StatelessWidget {
-  const ProductScreen({super.key});
+class ProductScreen extends ConsumerWidget {
+  final Product product;
+  const ProductScreen({super.key, required this.product});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final size = MediaQuery.of(context).size;
     final padding = MediaQuery.of(context).padding;
@@ -20,10 +24,19 @@ class ProductScreen extends StatelessWidget {
             left: 0,
             right: 0,
             height: size.height * 0.45,
-            child: Image.asset(
-              'assets/images/pharmacist_patient2.jpg',
-              fit: BoxFit.cover,
-            ),
+            child: product.imageUrl.isNotEmpty
+              ? Image.network(
+                  product.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Image.asset(
+                    'assets/images/pharmacist_patient2.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : Image.asset(
+                  'assets/images/pharmacist_patient2.jpg',
+                  fit: BoxFit.cover,
+                ),
           ),
           
           // 2. Image Gradient Overlay
@@ -87,17 +100,9 @@ class ProductScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 32),
                             
-                            // Brand and Title
+                            // Title
                             Text(
-                              'Health Plus Pharmacy',
-                              style: textTheme.labelLarge?.copyWith(
-                                color: AppTheme.primaryColor,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Vitamin C 1000mg',
+                              product.name,
                               style: textTheme.displaySmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -109,7 +114,8 @@ class ProductScreen extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '₦4,500',
+                                Text(
+                                  '₦${product.price.toStringAsFixed(0)}',
                                   style: textTheme.headlineMedium?.copyWith(
                                     color: AppTheme.textPrimaryColor,
                                     fontWeight: FontWeight.bold,
@@ -147,7 +153,9 @@ class ProductScreen extends StatelessWidget {
                             // This is the text that caused the 199k pixel overflow. 
                             // It is now safely bounded by the Positioned.fill parent.
                             Text(
-                              'High-dose Vitamin C supplement to support a healthy immune system and provide antioxidant protection. This extended-release formula ensures steady nutrient delivery throughout the day. Suitable for adults looking to boost daily vitality.',
+                              product.description.isNotEmpty 
+                                ? product.description 
+                                : 'No description available for this medication.',
                               style: textTheme.bodyMedium?.copyWith(
                                 height: 1.6,
                               ),
@@ -167,7 +175,7 @@ class ProductScreen extends StatelessWidget {
             top: padding.top + 16,
             left: 24,
             child: GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () => Navigator.of(context).maybePop(),
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -222,7 +230,24 @@ class ProductScreen extends StatelessWidget {
                   // Add to Cart Button
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        ref.read(cartProvider.notifier).addItem({
+                          'id': product.id,
+                          'name': product.name,
+                          'price': product.price,
+                          'imageUrl': product.imageUrl,
+                          'pharmacyId': product.pharmacyId,
+                          // Use a fallback for now, though ideally we'd pass pharmacyName here too
+                          'pharmacyName': 'Verified Pharmacy', 
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${product.name} added to cart!'),
+                            backgroundColor: AppTheme.primaryColor,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryColor,
                         shadowColor: AppTheme.primaryGlow.first.color,

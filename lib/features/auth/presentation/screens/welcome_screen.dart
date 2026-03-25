@@ -1,17 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme.dart';
+import 'package:vail_meds_v2/core/providers.dart';
+import 'package:vail_meds_v2/core/theme.dart';
 
-class WelcomeScreen extends StatefulWidget {
+class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
+  ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
@@ -68,7 +70,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             child: Image.asset(
               'assets/images/pharmacist_patient2.jpg',
               fit: BoxFit.cover,
-              // UPDATED: Used withValues to satisfy Flutter 3.41+
               color: Colors.black.withValues(alpha: 0.2), 
               colorBlendMode: BlendMode.darken,
               errorBuilder: (context, error, stackTrace) {
@@ -90,7 +91,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    // UPDATED: Fixed all deprecations here
                     Colors.black.withValues(alpha: 0.2),
                     Colors.black.withValues(alpha: 0.7),
                     Colors.black.withValues(alpha: 0.95),
@@ -201,7 +201,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ElevatedButton(
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          Navigator.pushNamed(context, '/gateway');
+                          // UPDATED: Triggers AuthGate to show Login or Home
+                          ref.read(onboardingStageProvider.notifier).state = 'auth';
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
@@ -221,7 +222,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       TextButton(
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          Navigator.pushNamed(context, '/login');
+                          // UPDATED: Also triggers AuthGate
+                          ref.read(onboardingStageProvider.notifier).state = 'auth';
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 18),

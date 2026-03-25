@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'core/theme_provider.dart';
 import 'core/app_router.dart';
+import 'core/auth_gate.dart'; // <--- NEW: Added AuthGate import
 
 void main() async {
   // Ensure Flutter is ready before initializing Firebase
@@ -98,7 +99,8 @@ class VailMedsApp extends ConsumerWidget {
       themeMode: themeMode,
       
       // Routing Setup
-      initialRoute: AppRouter.splash, 
+      // initialRoute is removed so the AuthGate can control the first screen
+      home: const AuthGate(), 
       onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }

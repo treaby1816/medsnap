@@ -4,18 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
 
-class PharmacyProfileScreen extends ConsumerStatefulWidget {
+import '../../../../core/providers.dart';
+import '../../../../core/models/user_profile.dart';
+
+class PharmacyProfileScreen extends ConsumerWidget {
   const PharmacyProfileScreen({super.key});
 
   @override
-  ConsumerState<PharmacyProfileScreen> createState() =>
-      _PharmacyProfileScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userProfileAsync = ref.watch(userProfileProvider);
+    
+    return userProfileAsync.when(
+      data: (profile) => _buildContent(context, ref, profile!),
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
+    );
+  }
 
-class _PharmacyProfileScreenState
-    extends ConsumerState<PharmacyProfileScreen> {
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, UserProfile profile) {
+    final displayName = profile.displayName ?? profile.email.split('@')[0];
+    
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
@@ -49,27 +57,18 @@ class _PharmacyProfileScreenState
                         radius: 50,
                         backgroundColor:
                             AppTheme.primaryColor.withValues(alpha: 0.1),
-                        child: const Icon(Icons.person,
-                            size: 50, color: AppTheme.primaryColor),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt,
-                              color: Colors.white, size: 18),
-                        ),
+                        backgroundImage: profile.photoUrl != null 
+                            ? NetworkImage(profile.photoUrl!) 
+                            : null,
+                        child: profile.photoUrl == null 
+                            ? const Icon(Icons.person, size: 50, color: AppTheme.primaryColor)
+                            : null,
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Adewole Felix Bamidele',
+                    displayName,
                     style: GoogleFonts.inter(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -133,7 +132,15 @@ class _PharmacyProfileScreenState
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () async {
+                  await ref.read(authServiceProvider).signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/gateway',
+                      (route) => false,
+                    );
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       const Color(0xFFEF4444).withValues(alpha: 0.1),

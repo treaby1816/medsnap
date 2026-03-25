@@ -1,4 +1,4 @@
-import '../models/facility_model.dart';
+import 'package:vail_meds_v2/core/models/facility_model.dart';
 
 class HealthcareRepository {
   Future<List<MedicalFacility>> fetchNearby() async {

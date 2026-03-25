@@ -3,7 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserProfile {
   final String uid;
   final String email;
-  final String name;
+  final String name; 
+  final String? displayName; // Prefer this over 'name'
+  final String? photoUrl;
+  final String? bio;
   final String? phone;
   final String role; // 'patient' or 'pharmacy'
   final bool isVerified;
@@ -21,6 +24,9 @@ class UserProfile {
     required this.uid,
     required this.email,
     required this.name,
+    this.displayName,
+    this.photoUrl,
+    this.bio,
     this.phone,
     required this.role,
     this.isVerified = false,
@@ -33,11 +39,14 @@ class UserProfile {
     this.connectedDevices,
   });
 
-  factory UserProfile.fromMap(Map<String, dynamic> map) {
+  factory UserProfile.fromMap(Map<String, dynamic> map, [String? uid]) {
     return UserProfile(
-      uid: map['uid'] ?? '',
+      uid: uid ?? map['uid'] ?? '',
       email: map['email'] ?? '',
-      name: map['name'] ?? '',
+      name: map['name'] ?? map['displayName'] ?? '',
+      displayName: map['displayName'] ?? map['name'],
+      photoUrl: map['photoUrl'],
+      bio: map['bio'],
       phone: map['phone'],
       role: map['role'] ?? 'patient',
       isVerified: map['isVerified'] ?? false,
@@ -58,6 +67,9 @@ class UserProfile {
       'uid': uid,
       'email': email,
       'name': name,
+      'displayName': displayName ?? name,
+      'photoUrl': photoUrl,
+      'bio': bio,
       'phone': phone,
       'role': role,
       'isVerified': isVerified,
@@ -75,6 +87,9 @@ class UserProfile {
     String? uid,
     String? email,
     String? name,
+    String? displayName,
+    String? photoUrl,
+    String? bio,
     String? phone,
     String? role,
     bool? isVerified,
@@ -90,6 +105,9 @@ class UserProfile {
       uid: uid ?? this.uid,
       email: email ?? this.email,
       name: name ?? this.name,
+      displayName: displayName ?? this.displayName,
+      photoUrl: photoUrl ?? this.photoUrl,
+      bio: bio ?? this.bio,
       phone: phone ?? this.phone,
       role: role ?? this.role,
       isVerified: isVerified ?? this.isVerified,

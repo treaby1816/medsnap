@@ -1,25 +1,17 @@
 import 'package:flutter/material.dart';
 
 // Core & Enums
-import '../core/constants/enums.dart';
+import 'package:vail_meds_v2/core/constants/enums.dart';
 
 // Features - Auth
-import '../features/auth/login_screen.dart'; 
+import 'package:vail_meds_v2/features/auth/presentation/screens/login_screen.dart'; 
 
 // Features - Navigation
-import '../features/main_navigation_screen.dart';
-
-// Features - Barrel File (Make sure your screens are exported here)
-import '../features/screens.dart' hide ProductScreen, OrdersScreen; 
-
-// Features - Patient (Direct Imports to avoid conflicts)
-import '../features/patient/job_board_screen.dart';
-import '../features/patient/product_screen.dart'; 
-import '../features/patient/orders_screen.dart';
-import '../features/patient/order_history_screen.dart';
+import 'package:vail_meds_v2/features/home/presentation/screens/main_navigation_screen.dart';
+import 'package:vail_meds_v2/features/screens.dart';
 
 // Features - Pharmacy
-import '../features/pharmacy/pharmacy_orders_screen.dart';
+import 'package:vail_meds_v2/features/pharmacy/pharmacy_orders_screen.dart';
 
 class AppRouter {
   // --- AUTH & CORE ROUTES ---
@@ -49,6 +41,7 @@ class AppRouter {
   static const String jobBoard = '/job-board';
   static const String orderHistory = '/order-history';
   static const String chat = '/chat';
+  static const String checkout = '/checkout';
 
   // --- PHARMACY ROUTES ---
   static const String pharmacyDashboard = '/pharmacy-dashboard';
@@ -116,6 +109,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const OrderHistoryScreen());
       case chat:
         return MaterialPageRoute(builder: (_) => const ChatScreen());
+      case checkout:
+        return MaterialPageRoute(builder: (_) => const CheckoutScreen());
       
       // --- Dynamic Routes ---
       case product:
@@ -125,7 +120,13 @@ class AppRouter {
         );
 
       case success:
-        final userType = settings.arguments as UserType? ?? UserType.patient;
+        var userType = UserType.patient;
+        if (settings.arguments is String) {
+          userType = (settings.arguments as String).toLowerCase() == 'pharmacy' ? UserType.pharmacy : UserType.patient;
+        } else if (settings.arguments is UserType) {
+          userType = settings.arguments as UserType;
+        }
+        
         return MaterialPageRoute(
           builder: (_) => SuccessScreen(userType: userType),
         );

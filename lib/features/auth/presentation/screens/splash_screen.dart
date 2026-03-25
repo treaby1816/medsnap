@@ -1,19 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; 
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../core/theme.dart';
-import '../../../../core/app_router.dart';
+import 'package:vail_meds_v2/core/theme.dart';
+import 'package:vail_meds_v2/core/providers.dart'; 
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget { 
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -35,34 +34,19 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-
-    _initializeApp();
+    _handleNavigation();
   }
-  
-  Future<void> _initializeApp() async {
-    // Wait for the minimum splash animation duration
-    await Future.delayed(const Duration(seconds: 2));
-    
+
+  Future<void> _handleNavigation() async {
+    // 1. Show the beautiful animation for at least 3 seconds
+    await Future.delayed(const Duration(seconds: 3));
+
     if (!mounted) return;
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      // User is logged in, check role
-      try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (doc.exists && doc.data()?['role'] == 'pharmacy') {
-          if (mounted) Navigator.pushReplacementNamed(context, AppRouter.pharmacyDashboard);
-        } else {
-          // Default to Patient
-          if (mounted) Navigator.pushReplacementNamed(context, AppRouter.patientDashboard);
-        }
-      } catch (e) {
-        // Fallback to welcome screen on error
-        if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
-      }
-    } else {
-      if (mounted) Navigator.pushReplacementNamed(context, '/welcome');
-    }
+    // 2. STATE TRANSITION: We update the onboarding stage to 'welcome'.
+    // The AuthGate (watching this provider) will automatically swap 
+    // this SplashScreen for the WelcomeScreen.
+    ref.read(onboardingStageProvider.notifier).state = 'welcome';
   }
 
   @override
@@ -77,30 +61,16 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: AppTheme.primaryColor,
       body: Stack(
         children: [
-          // Background decorative rings (subtle white)
+          // Background decorative rings
           Positioned(
             top: -120,
             right: -80,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 2),
-              ),
-            ),
+            child: _buildRing(300),
           ),
           Positioned(
             bottom: -100,
             left: -60,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 2),
-              ),
-            ),
+            child: _buildRing(250),
           ),
 
           Center(
@@ -111,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Clean White Logo
+                    // Clean White Logo Container
                     Container(
                       width: 120,
                       height: 120,
@@ -143,12 +113,37 @@ class _SplashScreenState extends State<SplashScreen>
                         letterSpacing: -1.0,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    // Optional: Loading indicator to signal progress
+                    const SizedBox(
+                      width: 40,
+                      child: LinearProgressIndicator(
+                        backgroundColor: Colors.white24,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        minHeight: 2,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRing(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          // UPDATED: Using withValues for Flutter 3.41+ compatibility
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 2,
+        ),
       ),
     );
   }

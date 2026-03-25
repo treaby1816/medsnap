@@ -75,7 +75,7 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
       appBar: GlassAppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
           'Nearby Facilities',

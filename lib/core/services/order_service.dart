@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../providers/cart_provider.dart'; // Fixed path
+import '../providers.dart';
 
 class OrderService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -9,6 +9,7 @@ class OrderService {
   Future<void> placeOrder({
     required List<CartItem> items,
     required double totalAmount,
+    required String deliveryAddress,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User must be logged in to place an order.");
@@ -25,12 +26,15 @@ class OrderService {
         'price': item.price,
         'quantity': item.quantity,
         'imageUrl': item.imageUrl,
+        'pharmacyId': item.pharmacyId,
+        'pharmacyName': item.pharmacyName,
       }).toList(),
       'totalAmount': totalAmount,
+      'deliveryAddress': deliveryAddress,
       'status': 'Pending',
       'orderDate': FieldValue.serverTimestamp(),
       'createdAt': FieldValue.serverTimestamp(),
-      'pharmacyId': 'vail_main_branch', 
+      'globalPharmacyId': items.isNotEmpty ? items[0].pharmacyId : 'multiple', 
     };
 
     await orderRef.set(orderData);

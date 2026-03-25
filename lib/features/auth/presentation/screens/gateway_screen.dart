@@ -21,32 +21,38 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
-      final user = await authService.signInWithGoogle();
+      final authResult = await authService.signInWithGoogle(role: role);
 
-      if (user != null && mounted) {
-        // 1. Fetch or create profile
-        UserProfile? profile = await authService.getUserProfile(user.uid);
+      if (authResult.user != null && mounted) {
+        // Find existing profile
+        UserProfile? profile = await authService.getUserProfile(authResult.user!.uid);
         
         if (profile == null) {
+          // Fallback if sync failed internally
           profile = UserProfile(
-            uid: user.uid,
-            email: user.email ?? '',
-            name: user.displayName ?? 'New User',
+            uid: authResult.user!.uid,
+            email: authResult.user!.email ?? '',
+            name: authResult.user!.displayName ?? 'New User',
             role: role,
             isVerified: false,
           );
           await authService.createUserProfile(profile);
         }
 
-        // 2. Navigation logic
         if (mounted) {
           ref.read(userRoleProvider.notifier).setRole(profile.role);
           
           if (profile.role == 'pharmacy' && !profile.isVerified) {
-            // Force verification for pharmacies
             Navigator.of(context).pushReplacementNamed('/pharmacy-verification');
           } else {
-            Navigator.of(context).pushReplacementNamed('/success', arguments: profile.role);
+            // If new user, push to success, otherwise go straight to dash or let AuthGate do it
+            if (authResult.isNewUser) {
+               Navigator.of(context).pushReplacementNamed('/success', arguments: profile.role);
+            } else {
+               // AuthGate automatically handles the navigation if not a new user
+               // BUT just to be perfectly seamless without flashing, we can do nothing here
+               // and let AuthGate replace the GatewayScreen entirely.
+            }
           }
         }
       }

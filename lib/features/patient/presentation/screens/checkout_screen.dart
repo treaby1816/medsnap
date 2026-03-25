@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
-  final Map<String, dynamic> cartData; // Simple mock cart
-  const CheckoutScreen({super.key, required this.cartData});
+  const CheckoutScreen({super.key});
 
   @override
   ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -18,15 +18,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   
   // Field is now used to control UI loading states
   bool _isProcessing = false;
+  String _selectedPayment = 'paystack';
 
   @override
   Widget build(BuildContext context) {
+    final cart = ref.watch(cartProvider);
+    final total = ref.read(cartProvider.notifier).total;
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
           'Checkout',
@@ -129,11 +132,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Items Total', '₦4,500'),
+                  ...cart.values.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSummaryRow(
+                          '${item.name} (x${item.quantity})', 
+                          '₦${(item.price * item.quantity).toInt()}'
+                        ),
+                        Text(
+                          'Source: ${item.pharmacyName}',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppTheme.textSecondaryColor,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                  const Divider(height: 32, thickness: 1.5),
+                  _buildSummaryRow('Items Total', '₦${total.toInt()}'),
                   const SizedBox(height: 12),
                   _buildSummaryRow('Delivery Fee', '₦1,000'),
                   const Divider(height: 32, thickness: 1.5),
-                  _buildSummaryRow('Total', '₦5,500', isBold: true),
+                  _buildSummaryRow('Total', '₦${(total + 1000).toInt()}', isBold: true),
                 ],
               ),
             ),
@@ -148,17 +172,43 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: AppTheme.floatingShadow,
               ),
-              child: ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                tileColor: AppTheme.primaryColor.withValues(alpha: 0.05),
-                leading: const Icon(Icons.credit_card, color: AppTheme.primaryColor),
-                title: Text('Paystack Gateway', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Secure payment via Card or Transfer'),
-                trailing: const Icon(Icons.radio_button_checked, color: AppTheme.primaryColor),
+              child: Column(
+                children: [
+                  _buildPaymentOption(
+                    'Paystack',
+                    'Secure payment via Card or Transfer',
+                    Icons.credit_card,
+                    _selectedPayment == 'paystack',
+                    () => setState(() => _selectedPayment = 'paystack'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPaymentOption(
+                    'Flutterwave',
+                    'Pay with Cards, Bank, or USSD',
+                    Icons.payments_outlined,
+                    _selectedPayment == 'flutterwave',
+                    () => setState(() => _selectedPayment = 'flutterwave'),
+                  ),
+                ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentOption(String title, String subtitle, IconData icon, bool isSelected, VoidCallback onTap) {
+    return ListTile(
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      tileColor: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : AppTheme.primaryColor.withValues(alpha: 0.05),
+      leading: Icon(icon, color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondaryColor),
+      title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: isSelected ? AppTheme.primaryColor : AppTheme.textPrimaryColor)),
+      subtitle: Text(subtitle, style: GoogleFonts.inter(fontSize: 12)),
+      trailing: Icon(
+        isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+        color: isSelected ? AppTheme.primaryColor : AppTheme.textTertiaryColor,
       ),
     );
   }
@@ -182,12 +232,28 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _handlePayment() async {
     setState(() => _isProcessing = true);
     
-    // Simulate Paystack processing
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (mounted) {
-      setState(() => _isProcessing = false);
-      _showSuccessDialog();
+    try {
+      final cart = ref.read(cartProvider);
+      final total = ref.read(cartProvider.notifier).total;
+      
+      // PERSIST ORDER TO FIRESTORE
+      await ref.read(orderServiceProvider).placeOrder(
+        items: cart.values.toList(),
+        totalAmount: total,
+        deliveryAddress: _addressController.text,
+      );
+
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        _showSuccessDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment/Order Failed: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -214,6 +280,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
+                  ref.read(cartProvider.notifier).clearCart();
                   Navigator.pop(context); // Close dialog
                   Navigator.pop(context); // Close checkout
                 },

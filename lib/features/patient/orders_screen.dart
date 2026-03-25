@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
-import '../../core/providers/cart_provider.dart';
+import '../../core/providers.dart';
 
 class OrdersScreen extends ConsumerWidget {
   const OrdersScreen({super.key});
@@ -36,22 +36,45 @@ class OrdersScreen extends ConsumerWidget {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('orders')
+                  .where('userId', isEqualTo: ref.watch(authProvider)?.uid)
                   .orderBy('orderDate', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
+                  debugPrint('Firestore Error: ${snapshot.error}');
+                  // If orderBy fails due to missing index, fallback to simple query
+                  if (snapshot.error.toString().contains('requires an index')) {
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('orders')
+                          .where('userId', isEqualTo: ref.watch(authProvider)?.uid)
+                          .snapshots(),
+                      builder: (context, fallbackSnapshot) {
+                        if (fallbackSnapshot.hasData) {
+                          final docs = fallbackSnapshot.data!.docs;
+                          return ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            itemCount: docs.length,
+                            itemBuilder: (context, index) => _buildOrderHistoryCard(docs[index].data() as Map<String, dynamic>),
+                          );
+                        }
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                    );
+                  }
                   return const Center(child: Text('Error loading history'));
                 }
+                
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                       child: CircularProgressIndicator(color: AppTheme.primaryColor));
                 }
 
-                final orders = snapshot.data!.docs;
-                if (orders.isEmpty && cartItems.isEmpty) {
-                  return _buildEmptyState();
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return cartItems.isEmpty ? _buildEmptyState() : const SizedBox.shrink();
                 }
 
+                final orders = snapshot.data!.docs;
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   itemCount: orders.length,
@@ -69,7 +92,7 @@ class OrdersScreen extends ConsumerWidget {
   }
 
   Widget _buildActiveCartSection(BuildContext context, WidgetRef ref, List<CartItem> items) {
-    final total = ref.watch(cartProvider.notifier).totalAmount;
+    final total = ref.watch(cartProvider.notifier).total;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -91,6 +114,28 @@ class OrdersScreen extends ConsumerWidget {
                       color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
             ],
           ),
+          const SizedBox(height: 12),
+          // Show items with pharmacy name
+          ...items.map((item) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    "${item.name} (${item.pharmacyName})",
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  "x${item.quantity}",
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          )),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -207,11 +252,21 @@ class OrdersScreen extends ConsumerWidget {
           items.length > 1 ? "$medName + ${items.length - 1} more" : medName,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
         ),
-        subtitle: Text(
-          date != null
-              ? "${date.toDate().day}/${date.toDate().month}/${date.toDate().year}"
-              : "Processing...",
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              date != null
+                  ? "${date.toDate().day}/${date.toDate().month}/${date.toDate().year}"
+                  : "Processing...",
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+            if (items.isNotEmpty)
+              Text(
+                "Source: ${items[0]['pharmacyName'] ?? 'Verified Pharmacy'}",
+                style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+          ],
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,

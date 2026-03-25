@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "VailMeds Web (Port 61721)",
+      "request": "launch",
+      "type": "flutter",
+      "args": [
+        "--web-port=61721"
+      ]
+    },
+    {
+      "name": "VailMeds (Debug)",
+      "request": "launch",
+      "type": "flutter"
+    }
+  ]
+}
