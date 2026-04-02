@@ -36,7 +36,7 @@ dependencies:
   # Medical Intelligence & Maps
   google_mlkit_text_recognition: ^0.13.0 
   flutter_map: ^7.0.2
-  latlong2: ^0.9.1  
+  latlong2: ^0.9.1
   # Payments (Modern Nigeria 2026)
   flutter_paystack_plus: ^2.5.0 # FIXED: Modern replacement for flutter_paystack
   
