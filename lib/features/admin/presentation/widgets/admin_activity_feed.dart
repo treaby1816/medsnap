@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/providers/admin_providers.dart';
 
 /// Vertical activity feed showing recent support tickets.
 /// Currently uses mock data; structured for Firestore stream.
-class AdminActivityFeed extends StatelessWidget {
+class AdminActivityFeed extends ConsumerWidget {
   final VoidCallback? onViewAll;
 
   const AdminActivityFeed({super.key, this.onViewAll});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activityAsync = ref.watch(adminActivityProvider);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -28,39 +33,47 @@ class AdminActivityFeed extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Support Activity',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimaryColor,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Activity',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimaryColor,
+                ),
+              ),
+              const Icon(Icons.history_rounded, size: 18, color: AppTheme.textTertiaryColor),
+            ],
           ),
           const SizedBox(height: 16),
-          _buildActivityItem(
-            name: 'Sarah Jenkins',
-            role: 'Pharmacist',
-            description: 'Inquiry regarding batch verification for Schedule II...',
-            timeAgo: '2 mins ago',
-            avatarColor: const Color(0xFF3B82F6),
+          
+          activityAsync.when(
+            data: (logs) => logs.isEmpty 
+              ? _buildEmptyState()
+              : Column(
+                  children: logs.take(3).map((log) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _buildActivityItem(
+                      name: log['action'] ?? 'System',
+                      role: log['type']?.toString().split('_').last ?? 'EVENT',
+                      description: log['details'] ?? 'No details available',
+                      timeAgo: _formatTimestamp(log['timestamp']),
+                      avatarColor: _getColorForType(log['type']),
+                    ),
+                  )).toList(),
+                ),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            error: (e, _) => Text('Error loading activity: $e', style: const TextStyle(fontSize: 11)),
           ),
-          const SizedBox(height: 14),
-          _buildActivityItem(
-            name: 'Unknown Patient',
-            role: 'Patient',
-            description: 'App crashing on prescription upload screen...',
-            timeAgo: '14 mins ago',
-            avatarColor: const Color(0xFF94A3B8),
-          ),
-          const SizedBox(height: 14),
-          _buildActivityItem(
-            name: 'David Miller',
-            role: 'Admin',
-            description: 'New pharmacy registration request: Alpine Wellness Center',
-            timeAgo: '1 hour ago',
-            avatarColor: AppTheme.primaryColor,
-          ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
@@ -71,7 +84,7 @@ class AdminActivityFeed extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: Text(
-                'View All Tickets',
+                'View Detailed Audit',
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -83,6 +96,39 @@ class AdminActivityFeed extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildEmptyState() {
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 20),
+       child: Center(
+         child: Text(
+           'No recent admin activity',
+           style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiaryColor),
+         ),
+       ),
+     );
+  }
+
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'Just now';
+    if (timestamp is Timestamp) {
+      final dt = timestamp.toDate();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${diff.inDays}d ago';
+    }
+    return 'Recently';
+  }
+
+  Color _getColorForType(dynamic type) {
+    switch (type?.toString()) {
+      case 'PHARMACY_APPROVAL': return const Color(0xFF22C55E);
+      case 'STAFF_INVITE': return const Color(0xFF3B82F6);
+      case 'SYSTEM_CONFIG': return const Color(0xFFF59E0B);
+      default: return AppTheme.primaryColor;
+    }
   }
 
   Widget _buildActivityItem({

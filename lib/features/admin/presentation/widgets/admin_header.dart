@@ -125,6 +125,12 @@ class AdminHeader extends StatelessWidget {
                   ),
                 ),
               ),
+
+              const SizedBox(width: 8),
+              // ── Clear Exit (Standardized) ──
+              _buildIconButton(Icons.close_rounded, () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/gateway', (route) => false);
+              }),
             ],
           ),
         ),

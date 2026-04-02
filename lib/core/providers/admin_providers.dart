@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_profile.dart';
 import '../models/product_model.dart';
 import '../providers.dart';
+import '../utils/audit_logger.dart';
+
 
 // ─────────────────────────────────────────────────────────────────────
 // ADMIN DASHBOARD — RIVERPOD PROVIDERS
@@ -73,6 +75,16 @@ final adminPendingApprovalsProvider = StreamProvider<List<UserProfile>>((ref) {
       );
 });
 
+/// Streams recent administrative activity from the audit_logs collection.
+final adminActivityProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('audit_logs')
+      .orderBy('timestamp', descending: true)
+      .limit(10)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+});
+
 /// Aggregated dashboard stats pulled from Firestore in real-time.
 class AdminStats {
   final int totalPatients;
@@ -95,14 +107,15 @@ final adminStatsProvider = FutureProvider<AdminStats>((ref) async {
     final patientsTask = db.collection('users').where('role', isEqualTo: 'patient').count().get();
     final pharmaciesTask = db.collection('users').where('role', isEqualTo: 'pharmacy').where('isAdminApproved', isEqualTo: true).count().get();
     final pendingTask = db.collection('users').where('role', isEqualTo: 'pharmacy').where('isAdminApproved', isEqualTo: false).count().get();
+    final ticketsTask = db.collection('tickets').count().get(); // NEW: Real tickets count
     
-    final results = await Future.wait([patientsTask, pharmaciesTask, pendingTask]);
+    final results = await Future.wait([patientsTask, pharmaciesTask, pendingTask, ticketsTask]);
 
     return AdminStats(
       totalPatients: results[0].count ?? 1240,
       activePharmacies: results[1].count ?? 48,
       pendingVerifications: results[2].count ?? 5,
-      supportTickets: 12,
+      supportTickets: results[3].count ?? 0,
     );
   } catch (e) {
     // FALLBACK: Return Demo Data if Permission Denied or Offline
@@ -122,7 +135,19 @@ final approvingPharmacyProvider = StateProvider<String?>((ref) => null);
 Future<void> approvePharmacy(WidgetRef ref, String uid) async {
   ref.read(approvingPharmacyProvider.notifier).state = uid;
   try {
-    await ref.read(authServiceProvider).adminApprovePharmacy(uid);
+    final authService = ref.read(authServiceProvider);
+    final adminProfile = ref.read(userProfileProvider).value;
+    
+    // 1. Perform Firestore Update
+    await authService.adminApprovePharmacy(uid);
+    
+    // 2. Log Activity for the Dashboard Feed
+    await AuditLogger.logPharmacyApproval(
+      licenseNumber: 'VERIFIED', 
+      adminName: adminProfile?.displayName ?? 'Admin',
+      adminUid: adminProfile?.uid ?? 'system',
+      pharmacyUid: uid,
+    );
   } finally {
     ref.read(approvingPharmacyProvider.notifier).state = null;
   }

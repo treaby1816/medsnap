@@ -27,7 +27,7 @@ class AdminStatsGrid extends ConsumerWidget {
                 iconBg: const Color(0xFF3B82F6),
                 label: 'Total Patients',
                 value: _formatNumber(stats.totalPatients),
-                badge: '+12%',
+                badge: 'STABLE',
                 badgeColor: const Color(0xFF3B82F6),
                 onTap: () => onCardTap?.call(4), // Staff/Patients stub
               ),
@@ -37,7 +37,7 @@ class AdminStatsGrid extends ConsumerWidget {
                 iconBg: AppTheme.primaryColor,
                 label: 'Active Pharmacies',
                 value: _formatNumber(stats.activePharmacies),
-                badge: 'ACTIVE',
+                badge: 'REALTIME',
                 badgeColor: const Color(0xFF22C55E),
                 onTap: () => onCardTap?.call(1), // Approvals/Directory
               ),
@@ -47,7 +47,7 @@ class AdminStatsGrid extends ConsumerWidget {
                 iconBg: const Color(0xFFF59E0B),
                 label: 'Pending Verifications',
                 value: stats.pendingVerifications.toString(),
-                badge: 'URGENT',
+                badge: stats.pendingVerifications > 0 ? 'URGENT' : 'STABLE',
                 badgeColor: const Color(0xFFF59E0B),
                 onTap: () => onCardTap?.call(1), // Approvals
               ),

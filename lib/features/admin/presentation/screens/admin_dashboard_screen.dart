@@ -44,6 +44,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profile = ref.watch(userProfileProvider).value;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: Row(
@@ -67,6 +69,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               children: [
                 // ── Glassmorphism Header ──
                 AdminHeader(
+                  adminName: profile?.displayName ?? 'Dr. Alistair Vail',
+                  adminRole: profile?.role.toUpperCase() ?? 'SUPER ADMIN',
                   onProfileTap: () => _showProfileDialog(context),
                   onSettingsTap: () => _showSettingsDialog(context),
                   onNotificationsTap: () => _showNotificationsDialog(context),
