@@ -6,6 +6,7 @@ import 'package:vail_meds_v2/core/theme.dart';
 import 'package:vail_meds_v2/core/constants/enums.dart';
 import 'package:vail_meds_v2/core/providers.dart';
 import 'package:vail_meds_v2/core/providers/loading_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +19,183 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscureText = true;
+  int _tapCount = 0;
+  DateTime _lastTapTime = DateTime.now();
+  int _failedAttempts = 0;
+  DateTime? _lockUntil;
+
+  void _handleVersionTap() {
+    // Security Lockout Guard
+    if (_lockUntil != null && DateTime.now().isBefore(_lockUntil!)) {
+      final remaining = _lockUntil!.difference(DateTime.now()).inMinutes + 1;
+      _showErrorSnackBar('Security Lockout: System restricted for $remaining mins');
+      return;
+    }
+
+    final profile = ref.read(userProfileProvider).value;
+    if (profile != null && profile.isAdminApproved) return;
+
+    final now = DateTime.now();
+    if (now.difference(_lastTapTime).inSeconds > 2) {
+      _tapCount = 1;
+    } else {
+      _tapCount++;
+    }
+    _lastTapTime = now;
+
+    if (_tapCount >= 5) {
+      _tapCount = 0;
+      HapticFeedback.vibrate(); // Thump on trigger
+      _showAuditorGate();
+    }
+  }
+
+  void _showAuditorGate() {
+    final pinController = TextEditingController();
+    bool isVerifying = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.shield_outlined, color: Color(0xFFEC5B13)),
+              const SizedBox(width: 12),
+              Text(
+                'Auditor Access',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This area is restricted to authorized VailMeds personnel. Enter the dynamic access token.',
+                style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondaryColor),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: pinController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: 'Enter 6-digit Token',
+                  prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFEC5B13), width: 2),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.borderColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 4),
+                autofocus: true,
+                keyboardType: TextInputType.text,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isVerifying ? null : () => Navigator.pop(context),
+              child: Text('ABORT', style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: isVerifying ? null : () async {
+                final inputCode = pinController.text.trim();
+                setDialogState(() => isVerifying = true);
+
+                try {
+                  // 1. Fetch Dynamic Master Secret from Firestore
+                  final configDoc = await FirebaseFirestore.instance
+                      .collection('app_settings')
+                      .doc('admin_config')
+                      .get();
+
+                  if (!configDoc.exists) {
+                    throw Exception('Remote configuration unavailable');
+                  }
+
+                  final masterCode = configDoc.get('master_access_code') as String;
+
+                  // 2. Verification Challenge
+                  if (inputCode == masterCode) {
+                    final user = ref.read(authProvider);
+                    if (user != null) {
+                      // 3. Silent Role Upgrade
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .update({
+                        'role': 'admin',
+                        'isAdminApproved': true,
+                        'verificationStatus': 'approved'
+                      });
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Auditor Credentials Verified. Welcome, Admin.'),
+                            backgroundColor: Color(0xFFEC5B13),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        Navigator.pushReplacementNamed(context, '/admin-dashboard');
+                      }
+                    } else {
+                      throw Exception('No active session. Please sign in first.');
+                    }
+                  } else {
+                    // 4. Failed Attempt Logic
+                    setState(() {
+                      _failedAttempts++;
+                      if (_failedAttempts >= 3) {
+                        _failedAttempts = 0;
+                        _lockUntil = DateTime.now().add(const Duration(minutes: 5));
+                      }
+                    });
+                    HapticFeedback.heavyImpact();
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      _showErrorSnackBar(_lockUntil != null 
+                        ? '3 Failed Attempts. System locked for 5 minutes.'
+                        : 'Invalid Access Token. Access Denied.');
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+                  }
+                } finally {
+                  if (context.mounted) setDialogState(() => isVerifying = false);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEC5B13),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: isVerifying
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('VERIFY & LAUNCH', style: GoogleFonts.inter(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// Handles standard Email and Password login
   Future<void> _handleLogin(UserType role) async {
@@ -37,6 +215,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final authService = ref.read(authServiceProvider);
       
+      final loadingNotifier = ref.read(loadingProvider.notifier);
+      
       // Sequential Transaction: Await Auth result fully
       final authResult = await authService.signInWithEmail(email, password);
 
@@ -45,25 +225,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final profile = await authService.getUserProfile(authResult.user!.uid);
         
         if (profile != null) {
-          final selectedRoleStr = role == UserType.patient ? 'patient' : 'pharmacy';
+          final targetRole = role == UserType.patient ? 'patient' : 'pharmacy';
           
-          if (profile.role != selectedRoleStr) {
+          if (profile.role != targetRole) {
             await authService.signOut();
-            throw Exception('This account is a ${profile.role}, not a $selectedRoleStr.');
+            throw Exception('Account Role Mismatch: This is a ${profile.role} account. Please use the correct portal.');
           }
 
           ref.read(userRoleProvider.notifier).setRole(profile.role);
           
-          if (profile.role == 'pharmacy' && !profile.isVerified) {
-            navigator.pushReplacementNamed('/pharmacy-verification');
-          } else {
-              // FIXED: Ensure proper dashboard redirection using valid AppRouter routes
-              final route = profile.role == 'pharmacy' ? '/pharmacy-dashboard' : '/main';
-              navigator.pushNamedAndRemoveUntil(route, (r) => false);
+          loadingNotifier.hide();
+          if (mounted) {
+            navigator.popUntil((route) => route.isFirst);
           }
         } else {
+          // If profile is missing but Auth succeeded (should not happen with our setup), sign out
           await authService.signOut();
-          throw Exception('User profile not found. Please register first.');
+          throw Exception('Profile context not found. Please re-register.');
         }
       }
     } catch (e) {
@@ -75,7 +253,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       );
     } finally {
-      if (mounted) ref.read(loadingProvider.notifier).hide();
+      ref.read(loadingProvider.notifier).hide();
     }
   }
 
@@ -88,15 +266,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     
     try {
       final authService = ref.read(authServiceProvider);
+      final loadingNotifier = ref.read(loadingProvider.notifier);
+      
       // Sequential Transaction: Await Google Auth and Firestore sync inside Service
       final authResult = await authService.signInWithGoogle();
       
       if (authResult.user != null) {
+        final profile = await authService.getUserProfile(authResult.user!.uid);
+        if (!mounted) return;
+        final roleArg = ModalRoute.of(context)?.settings.arguments as String? ?? 'patient';
+        final targetRole = roleArg == 'pharmacy' ? 'pharmacy' : 'patient';
+
+        if (profile != null && profile.role != targetRole) {
+           await authService.signOut();
+           throw Exception('Google Account Mismatch: This is registered as a ${profile.role}. Use the ${profile.role} portal.');
+        }
+
         if (authResult.isNewUser) {
-          navigator.pushReplacementNamed('/success', arguments: 'patient');
+          loadingNotifier.hide();
+          if (mounted) {
+            navigator.pushReplacementNamed('/success', arguments: targetRole);
+          }
         } else {
-          // FIXED: Redirect existing Google users to correct patient dashboard route
-          navigator.pushNamedAndRemoveUntil('/main', (r) => false);
+          loadingNotifier.hide();
+          if (mounted) {
+            navigator.popUntil((route) => route.isFirst);
+          }
         }
       }
     } catch (e) {
@@ -108,7 +303,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       );
     } finally {
-      if (mounted) ref.read(loadingProvider.notifier).hide();
+      ref.read(loadingProvider.notifier).hide();
     }
   }
 
@@ -132,6 +327,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(loadingProvider);
+    final roleArg = ModalRoute.of(context)?.settings.arguments as String? ?? 'patient';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F6F6),
@@ -168,7 +364,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Welcome Back',
+                  roleArg == 'pharmacy' ? 'Pharmacy Portal' : 'Welcome Back',
                   style: GoogleFonts.inter(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -179,7 +375,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to your VailMeds account',
+                  roleArg == 'pharmacy' ? 'Admin Access & Order Management' : 'Sign in to your VailMeds account',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     color: AppTheme.textSecondaryColor,
@@ -241,13 +437,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 24),
                       _buildButton(
-                        text: 'Sign In as Patient',
+                        text: roleArg == 'pharmacy' ? 'Sign In as Pharmacy' : 'Sign In as Patient',
                         isPrimary: true,
                         isLoading: isLoading,
-                        onPressed: () => _handleLogin(UserType.patient),
+                        onPressed: () => _handleLogin(roleArg == 'pharmacy' ? UserType.pharmacy : UserType.patient),
                       ),
                       const SizedBox(height: 16),
-                      _buildGoogleButton(isLoading: isLoading),
+                      if (roleArg != 'pharmacy') _buildGoogleButton(isLoading: isLoading),
                     ],
                   ),
                 ),
@@ -255,27 +451,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 24),
                 
                 Center(
-                  child: TextButton(
-                    onPressed: isLoading ? null : () => _handleLogin(UserType.pharmacy),
-                    child: Text(
-                      'Sign In as Pharmacy Executive',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  child: Column(
+                    children: [
+                      if (roleArg == 'pharmacy')
+                        TextButton(
+                          onPressed: isLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'pharmacy'),
+                          child: Text(
+                            'Register as Pharmacy Executive',
+                            style: GoogleFonts.inter(
+                              color: AppTheme.primaryColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      else ...[
+                        TextButton(
+                          onPressed: isLoading ? null : () => _handleLogin(UserType.pharmacy),
+                          child: Text(
+                            'Sign In as Pharmacy Executive',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: isLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'pharmacy'),
+                          child: Text(
+                            'Register as Pharmacy Executive',
+                            style: GoogleFonts.inter(
+                              color: AppTheme.primaryColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
+
+                const SizedBox(height: 16),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account? ",
+                      "Patient? ",
                       style: GoogleFonts.inter(color: Colors.grey[600]),
                     ),
                     TextButton(
-                      onPressed: isLoading ? null : () => Navigator.pushNamed(context, '/register'),
+                      onPressed: isLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'patient'),
                       child: const Text(
                         'Create Account',
                         style: TextStyle(
@@ -287,6 +514,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 32),
+                Center(
+                  child: GestureDetector(
+                    onTap: _handleVersionTap,
+                    child: Text(
+                      'v2.0.1+${DateTime.now().year}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

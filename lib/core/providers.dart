@@ -9,6 +9,7 @@ import 'package:vail_meds_v2/core/services/ocr_service.dart';
 import 'package:vail_meds_v2/core/services/chat_service.dart';
 import 'package:vail_meds_v2/core/services/health_service.dart';
 import 'package:vail_meds_v2/core/services/order_service.dart';
+import 'package:vail_meds_v2/core/services/payment_service.dart';
 
 // --- MODELS (UNIFIED PATH) ---
 // Note: Ensure you have deleted the duplicate files in lib/models/ 
@@ -27,6 +28,7 @@ final ocrServiceProvider = Provider<OCRService>((ref) => OCRService());
 final chatServiceProvider = Provider((ref) => ChatService());
 final healthServiceProvider = Provider((ref) => HealthService());
 final orderServiceProvider = Provider((ref) => OrderService());
+final paymentServiceProvider = Provider((ref) => PaymentService());
 
 final healthNewsProvider = FutureProvider<List<HealthArticle>>((ref) async {
   return ref.read(healthServiceProvider).fetchHealthNews();
@@ -42,11 +44,16 @@ final authProvider = Provider<User?>((ref) {
   return authState.value;
 });
 
-// Fixed: Explicitly using the UserProfile from core/models
-final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
-  final user = ref.watch(authProvider);
-  if (user == null) return null;
-  return ref.watch(authServiceProvider).getUserProfile(user.uid);
+// StreamProvider for real-time profile updates (essential for verification status)
+final userProfileProvider = StreamProvider<UserProfile?>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(null);
+  
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) => doc.exists ? UserProfile.fromMap(doc.data()!, doc.id) : null);
 });
 
 // Fixed: Explicitly using the Product from core/models
@@ -73,11 +80,15 @@ final verifiedPharmaciesProvider = StreamProvider<List<UserProfile>>((ref) {
   return FirebaseFirestore.instance
       .collection('users')
       .where('role', isEqualTo: 'pharmacy')
-      .where('isVerified', isEqualTo: true)
+      .where('isAdminApproved', isEqualTo: true)
       .snapshots()
       .map((snapshot) => snapshot.docs
           .map((doc) => UserProfile.fromMap(doc.data(), doc.id))
           .toList());
+});
+
+final pendingPharmaciesProvider = StreamProvider<List<UserProfile>>((ref) {
+  return ref.watch(authServiceProvider).getPendingPharmacies();
 });
 
 class CartItem {
@@ -168,6 +179,7 @@ class CartNotifier extends StateNotifier<Map<String, CartItem>> {
 final cartProvider = StateNotifierProvider<CartNotifier, Map<String, CartItem>>((ref) => CartNotifier());
 
 // --- SEARCH & DRUG DISCOVERY ---
+final selectedCategoryProvider = StateProvider<String>((ref) => 'All Products');
 final drugSearchQueryProvider = StateProvider<String>((ref) => '');
 
 final drugDatabaseProvider = FutureProvider<List<Product>>((ref) async {
@@ -175,17 +187,19 @@ final drugDatabaseProvider = FutureProvider<List<Product>>((ref) async {
   return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
 });
 
-final filteredDrugsProvider = Provider<List<Product>>((ref) {
+final filteredByBrandProductsProvider = Provider<List<Product>>((ref) {
   final query = ref.watch(drugSearchQueryProvider).toLowerCase();
-  final drugAsync = ref.watch(drugDatabaseProvider);
+  final category = ref.watch(selectedCategoryProvider);
+  final drugAsync = ref.watch(allProductsProvider); // Use all products for main marketplace
 
   return drugAsync.when(
     data: (products) {
-      if (query.isEmpty) return []; 
       return products.where((product) {
-        final name = product.name.toLowerCase();
-        final description = product.description.toLowerCase();
-        return name.contains(query) || description.contains(query);
+        final matchesQuery = query.isEmpty || 
+                            product.name.toLowerCase().contains(query) || 
+                            product.description.toLowerCase().contains(query);
+        final matchesCategory = category == 'All Products' || product.category == category;
+        return matchesQuery && matchesCategory;
       }).toList();
     },
     loading: () => [],
@@ -197,11 +211,19 @@ final isUploadingProvider = StateProvider<bool>((ref) => false);
 
 // --- GLOBAL PRODUCT DISCOVERY ---
 final allProductsProvider = StreamProvider<List<Product>>((ref) {
+  // The Clinical Moat: Products must belong to an ADMIN APPROVED pharmacy
+  final verifiedPharmaciesAsync = ref.watch(verifiedPharmaciesProvider);
+  final approvedIds = verifiedPharmaciesAsync.value?.map((p) => p.uid).toSet() ?? {};
+  
   return FirebaseFirestore.instance
       .collection('products')
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => Product.fromMap(doc.data(), doc.id))
-          .toList());
+      .map((snapshot) {
+        // Stream all products, but filter locally against approved IDs to avoid the 30-clause 'whereIn' Firestore limitation
+        final allFetched = snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
+        if (approvedIds.isEmpty) return <Product>[]; // Block everything if no approved pharmacies exist
+        
+        return allFetched.where((product) => approvedIds.contains(product.pharmacyId)).toList();
+      });
 });

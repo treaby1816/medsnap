@@ -1,8 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
+
+import 'pharmacy_notifications_screen.dart';
+import 'pharmacy_security_screen.dart';
 
 import '../../../../core/providers.dart';
 import '../../../../core/models/user_profile.dart';
@@ -27,6 +33,10 @@ class PharmacyProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimaryColor),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           'Profile',
           style: GoogleFonts.inter(
@@ -37,10 +47,18 @@ class PharmacyProfileScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.dark_mode_outlined,
-                color: AppTheme.textPrimaryColor),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Theme is currently locked to Clinical Light Mode.'), behavior: SnackBarBehavior.floating),
+              );
+            },
+            icon: const Icon(Icons.dark_mode_outlined, color: AppTheme.textPrimaryColor),
           ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondaryColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -94,17 +112,25 @@ class PharmacyProfileScreen extends ConsumerWidget {
                 _buildProfileOption(
                   icon: Icons.person_outline,
                   title: 'Personal Information',
-                  onTap: () {},
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Account editing coming in the next update!')),
+                  ),
                 ),
                 _buildProfileOption(
                   icon: Icons.notifications_none_rounded,
                   title: 'Notifications',
-                  onTap: () {},
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PharmacyNotificationsScreen()),
+                  ),
                 ),
                 _buildProfileOption(
                   icon: Icons.shield_outlined,
                   title: 'Security',
-                  onTap: () {},
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PharmacySecurityScreen()),
+                  ),
                 ),
               ],
             ),
@@ -116,13 +142,31 @@ class PharmacyProfileScreen extends ConsumerWidget {
               items: [
                 _buildProfileOption(
                   icon: Icons.storefront_outlined,
-                  title: 'Pharmacy Information',
-                  onTap: () {},
+                  title: 'Pharmacy Name',
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Pharmacy information can be updated via Support.')),
+                  ),
+                ),
+                _ImageUploadTile(
+                  title: 'Store Front Image',
+                  initialImageUrl: profile.storeFrontImageUrl,
+                  storagePath: 'store_fronts',
+                  fieldName: 'storeFrontImageUrl',
+                ),
+                _ImageUploadTile(
+                  title: 'Store Inside Image',
+                  initialImageUrl: profile.storeInsideImageUrl,
+                  storagePath: 'store_insides',
+                  fieldName: 'storeInsideImageUrl',
                 ),
                 _buildProfileOption(
                   icon: Icons.inventory_2_outlined,
                   title: 'Inventory Settings',
-                  onTap: () {},
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Inventory threshold settings are centralized in the Admin Portal.'), behavior: SnackBarBehavior.floating),
+                    );
+                  },
                 ),
               ],
             ),
@@ -209,6 +253,90 @@ class PharmacyProfileScreen extends ConsumerWidget {
       ),
       trailing: const Icon(Icons.chevron_right,
           color: AppTheme.textTertiaryColor, size: 20),
+    );
+  }
+}
+
+class _ImageUploadTile extends ConsumerStatefulWidget {
+  final String title;
+  final String? initialImageUrl;
+  final String storagePath;
+  final String fieldName;
+
+  const _ImageUploadTile({
+    required this.title,
+    this.initialImageUrl,
+    required this.storagePath,
+    required this.fieldName,
+  });
+
+  @override
+  ConsumerState<_ImageUploadTile> createState() => _ImageUploadTileState();
+}
+
+class _ImageUploadTileState extends ConsumerState<_ImageUploadTile> {
+  bool _isUploading = false;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickAndUpload() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image == null) return;
+
+    if (!mounted) return;
+    setState(() => _isUploading = true);
+
+    try {
+      final user = ref.read(authProvider);
+      if (user == null) throw Exception('User not logged in');
+
+      final refStorage = FirebaseStorage.instance.ref().child('${widget.storagePath}/${user.uid}.jpg');
+      await refStorage.putFile(File(image.path));
+      final url = await refStorage.getDownloadURL();
+
+      await ref.read(authServiceProvider).updateProfile(user.uid, {
+        widget.fieldName: url,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image uploaded successfully')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error uploading image: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.image_outlined, color: AppTheme.primaryColor, size: 20),
+      ),
+      title: Text(
+        widget.title,
+        style: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: AppTheme.textPrimaryColor,
+        ),
+      ),
+      subtitle: widget.initialImageUrl != null 
+          ? Text('Image uploaded', style: GoogleFonts.inter(color: Colors.green, fontSize: 12)) 
+          : Text('No image uploaded yet', style: GoogleFonts.inter(color: AppTheme.textTertiaryColor, fontSize: 12)),
+      trailing: _isUploading 
+        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+        : IconButton(
+            icon: const Icon(Icons.upload_rounded, color: AppTheme.primaryColor),
+            onPressed: _pickAndUpload,
+          ),
     );
   }
 }

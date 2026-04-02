@@ -23,21 +23,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty) return;
+    final user = ref.read(authProvider);
+    if (user == null) return;
+
     HapticFeedback.lightImpact();
     
-    // In a real app, get current user ID from authState
-    const currentUserId = 'patient_123'; 
     ref.read(chatServiceProvider).sendMessage(
-      currentUserId,
+      user.uid,
       widget.receiverId,
       _messageController.text.trim(),
     );
     _messageController.clear();
   }
-
   @override
   Widget build(BuildContext context) {
-    const currentUserId = 'patient_123';
+    final user = ref.watch(authProvider);
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text('Please log in to chat.')));
+    }
+    
+    final currentUserId = user.uid;
     final messagesStream = ref.watch(chatServiceProvider).getMessages(currentUserId, widget.receiverId);
 
     return Scaffold(
@@ -68,6 +73,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
                 }
                 final messages = snapshot.data ?? [];
+                
+                if (messages.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.withValues(alpha: 0.3)),
+                        const SizedBox(height: 16),
+                        Text('No messages yet', style: TextStyle(color: Colors.grey.withValues(alpha: 0.5))),
+                      ],
+                    ),
+                  );
+                }
+
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true,

@@ -11,40 +11,95 @@ class PharmacyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // 1. Image Compression & Upload
+  // 1a. Web-Compatible Image Upload (Uses raw bytes instead of dart:io File)
+  Future<String?> uploadProductImageBytes(Uint8List imageBytes, String pharmacyId, String fileExtension) async {
+    try {
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+      final ref = _storage.ref()
+          .child('pharmacy_products')
+          .child(pharmacyId)
+          .child(fileName);
+      
+      debugPrint('Uploading to: ${ref.fullPath}');
+      
+      final uploadTask = await ref.putData(
+        imageBytes,
+        SettableMetadata(contentType: 'image/$fileExtension'),
+      );
+      
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      debugPrint('Upload successful: $downloadUrl');
+      return downloadUrl;
+    } on FirebaseException catch (e) {
+      debugPrint('Firebase Storage Error: [${e.code}] ${e.message}');
+      throw Exception('Upload failed: [${e.code}] ${e.message}');
+    } catch (e) {
+      debugPrint('General Error uploading image: $e');
+      throw Exception('Failed to upload: $e');
+    }
+  }
+
+  // 1b. Image Compression & Upload (For Native iOS/Android/Desktop)
   Future<String?> uploadProductImage(File imageFile, String pharmacyId) async {
     try {
       final tempDir = await path_provider.getTemporaryDirectory();
-      final targetPath = p.join(tempDir.path, '${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final targetPath = p.join(tempDir.path, 'comp_${DateTime.now().millisecondsSinceEpoch}.jpg');
 
+      debugPrint('Starting compression for: ${imageFile.path}');
+      
       // Compress image to under 500KB if possible
-      var result = await FlutterImageCompress.compressAndGetFile(
+      XFile? result = await FlutterImageCompress.compressAndGetFile(
         imageFile.absolute.path,
         targetPath,
-        quality: 70, // Start with 70% quality
+        quality: 70,
         minWidth: 1024,
         minHeight: 1024,
       );
 
-      if (result == null) return null;
+      if (result == null) {
+        debugPrint('Compression returned null, using original file');
+        result = XFile(imageFile.path);
+      }
 
       final fileToUpload = File(result.path);
+      final fileSize = await fileToUpload.length();
+      debugPrint('File size after compression: ${fileSize / 1024} KB');
       
       // If file is still over 500KB, compress further (aggressive)
-      if (await fileToUpload.length() > 500 * 1024) {
-         result = await FlutterImageCompress.compressAndGetFile(
+      if (fileSize > 500 * 1024) {
+         debugPrint('File too large, compressing further...');
+         final secondResult = await FlutterImageCompress.compressAndGetFile(
           imageFile.absolute.path,
           targetPath,
           quality: 50,
         );
+        if (secondResult != null) {
+          result = secondResult;
+        }
       }
 
-      final ref = _storage.ref().child('pharmacy_products').child(pharmacyId).child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-      final uploadTask = await ref.putFile(File(result!.path));
-      return await uploadTask.ref.getDownloadURL();
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = _storage.ref()
+          .child('pharmacy_products')
+          .child(pharmacyId)
+          .child(fileName);
+      
+      debugPrint('Uploading to: ${ref.fullPath}');
+      
+      final uploadTask = await ref.putFile(
+        File(result.path),
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      debugPrint('Upload successful: $downloadUrl');
+      return downloadUrl;
+    } on FirebaseException catch (e) {
+      debugPrint('Firebase Storage Error: [${e.code}] ${e.message}');
+      throw Exception('Upload failed: [${e.code}] ${e.message}');
     } catch (e) {
-      debugPrint('Error uploading image: $e');
-      return null;
+      debugPrint('General Error uploading image: $e');
+      throw Exception('Failed to upload: $e');
     }
   }
 
@@ -87,10 +142,14 @@ class PharmacyService {
     return _firestore
         .collection('products')
         .where('pharmacyId', isEqualTo: pharmacyId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          final products = snapshot.docs
             .map((doc) => Product.fromMap(doc.data(), doc.id))
-            .toList());
+            .toList();
+          // Sort client-side to avoid index requirement
+          products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return products;
+        });
   }
 }

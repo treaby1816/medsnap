@@ -48,29 +48,35 @@ class AppRouter {
   static const String pharmacyDashboard = '/pharmacy-dashboard';
   static const String pharmacyOrders = '/pharmacy-orders';
 
+  // --- ADMIN ROUTES ---
+  static const String adminDashboard = '/admin-dashboard';
+  static const String adminApprovals = '/admin-approvals';
+  static const String adminSupport = '/admin-support';
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       // --- Auth & Core ---
       case splash:
-        return MaterialPageRoute(builder: (_) => const SplashScreen());
+        return MaterialPageRoute(builder: (_) => const SplashScreen(), settings: settings);
       case welcome:
-        return MaterialPageRoute(builder: (_) => const WelcomeScreen());
+        return MaterialPageRoute(builder: (_) => const WelcomeScreen(), settings: settings);
       case gateway:
-        return MaterialPageRoute(builder: (_) => const GatewayScreen());
+        return MaterialPageRoute(builder: (_) => const GatewayScreen(), settings: settings);
       case login:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(builder: (_) => const LoginScreen(), settings: settings);
       case registration:
-        return MaterialPageRoute(builder: (_) => const RegistrationScreen());
+        final roleArg = (settings.arguments as String?) ?? 'patient';
+        return MaterialPageRoute(builder: (_) => RegistrationScreen(initialRole: roleArg), settings: settings);
       case verification:
-        return MaterialPageRoute(builder: (_) => const VerificationScreen());
+        return MaterialPageRoute(builder: (_) => const VerificationScreen(), settings: settings);
       case pharmacyVerification:
-        return MaterialPageRoute(builder: (_) => const PharmacyVerificationScreen());
+        return MaterialPageRoute(builder: (_) => const PharmacyVerificationScreen(), settings: settings);
       case onboarding:
-        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+        return MaterialPageRoute(builder: (_) => const OnboardingScreen(), settings: settings);
       case mainNav:
-        return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
+        return MaterialPageRoute(builder: (_) => const MainNavigationScreen(), settings: settings);
       case support:
-        return MaterialPageRoute(builder: (_) => const SupportScreen());
+        return MaterialPageRoute(builder: (_) => const SupportScreen(), settings: settings);
       case privacy:
         return MaterialPageRoute(
           builder: (_) => const PolicyScreen(
@@ -84,40 +90,49 @@ class AppRouter {
             title: 'Terms of Service',
             content: 'By using VailMeds, you agree to our terms and conditions. Our platform provides bridge services between patients and pharmacies. We are not a medical provider but a technology facilitator. Users must provide accurate information and comply with local medical regulations.',
           ),
+          settings: settings,
         );
 
       // --- Patient Features ---
       case home:
-        return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
+        return MaterialPageRoute(builder: (_) => const MainNavigationScreen(), settings: settings);
       case patientDashboard:
-        return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
+        return MaterialPageRoute(builder: (_) => const MainNavigationScreen(), settings: settings);
       case patientSearch:
-        return MaterialPageRoute(builder: (_) => const PatientSearchScreen());
+        return MaterialPageRoute(builder: (_) => const PatientSearchScreen(), settings: settings);
       case scan:
-        return MaterialPageRoute(builder: (_) => const ScanPrescriptionScreen());
+        return MaterialPageRoute(builder: (_) => const ScanPrescriptionScreen(), settings: settings);
       
       // LINKING TO YOUR BEST SCREEN
       case nearby:
-        return MaterialPageRoute(builder: (_) => const NearbyFacilitiesScreen());
+        return MaterialPageRoute(builder: (_) => const NearbyFacilitiesScreen(), settings: settings);
         
       case profile:
-        return MaterialPageRoute(builder: (_) => const PatientProfileScreen());
+        return MaterialPageRoute(builder: (_) => const PatientProfileScreen(), settings: settings);
       case orders:
-        return MaterialPageRoute(builder: (_) => const OrdersScreen());
+        return MaterialPageRoute(builder: (_) => const OrdersScreen(), settings: settings);
       case jobBoard:
-        return MaterialPageRoute(builder: (_) => const JobBoardScreen());
+        return MaterialPageRoute(builder: (_) => const JobBoardScreen(), settings: settings);
       case orderHistory:
-        return MaterialPageRoute(builder: (_) => const OrderHistoryScreen());
+        return MaterialPageRoute(builder: (_) => const OrderHistoryScreen(), settings: settings);
       case chat:
-        return MaterialPageRoute(builder: (_) => const ChatScreen());
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            receiverId: args['receiverId'],
+            receiverName: args['receiverName'],
+          ),
+          settings: settings,
+        );
       case checkout:
-        return MaterialPageRoute(builder: (_) => const CheckoutScreen());
+        return MaterialPageRoute(builder: (_) => const CheckoutScreen(), settings: settings);
       
       // --- Dynamic Routes ---
       case product:
         final productArg = settings.arguments as Product;
         return MaterialPageRoute(
           builder: (_) => ProductScreen(product: productArg),
+          settings: settings,
         );
 
       case success:
@@ -130,12 +145,14 @@ class AppRouter {
         
         return MaterialPageRoute(
           builder: (_) => SuccessScreen(userType: userType),
+          settings: settings,
         );
 
       // --- Pharmacy Features ---
       case pharmacyDashboard:
         return PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const PharmacyDashboardScreen(),
+          settings: settings,
+          pageBuilder: (context, animation, secondaryAnimation) => const PharmacyMainScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const begin = Offset(1.0, 0.0);
             const end = Offset.zero;
@@ -149,7 +166,15 @@ class AppRouter {
           transitionDuration: const Duration(milliseconds: 600),
         );
       case pharmacyOrders:
-        return MaterialPageRoute(builder: (_) => const PharmacyOrdersScreen());
+        return MaterialPageRoute(builder: (_) => const PharmacyOrdersScreen(), settings: settings);
+
+      // --- Admin Features ---
+      case adminDashboard:
+        return MaterialPageRoute(builder: (_) => const AdminDashboardScreen(), settings: settings);
+      case adminApprovals:
+        return MaterialPageRoute(builder: (_) => const PendingApprovalsScreen(), settings: settings);
+      case adminSupport:
+        return MaterialPageRoute(builder: (_) => const AdminSupportScreen(), settings: settings);
 
       default:
         return MaterialPageRoute(
@@ -157,6 +182,7 @@ class AppRouter {
             appBar: AppBar(title: const Text("Navigation Error")),
             body: Center(child: Text('No route defined for ${settings.name}')),
           ),
+          settings: settings,
         );
     }
   }

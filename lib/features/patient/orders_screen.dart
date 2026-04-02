@@ -309,10 +309,20 @@ class OrdersScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          const Text("Your cart and history are empty.",
-              style: TextStyle(color: Colors.grey, fontSize: 16)),
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.shopping_bag_outlined, size: 64, color: AppTheme.primaryColor),
+          ),
+          const SizedBox(height: 24),
+          const Text("Your cart is feeling light.",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textPrimaryColor)),
+          const SizedBox(height: 8),
+          const Text("Explore the marketplace to find your medications.",
+              style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 14)),
         ],
       ),
     );

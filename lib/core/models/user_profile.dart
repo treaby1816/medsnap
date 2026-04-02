@@ -11,6 +11,7 @@ class UserProfile {
   final String role; // 'patient' or 'pharmacy'
   final bool isVerified;
   final String? licenseNumber;
+  final String? licensePhotoUrl;
   final String? accessToken;
   final DateTime? createdAt;
   
@@ -19,6 +20,17 @@ class UserProfile {
   final String? insuranceID;
   final Map<String, dynamic>? healthRecords;
   final List<String>? connectedDevices;
+
+  // Pharmacy specific fields
+  final String? storeName;
+  final String? storeFrontImageUrl;
+  final String? storeInsideImageUrl;
+  final String? npiNumber;
+  final bool isAdminApproved;
+  final String verificationStatus; // 'none', 'pending', 'approved', 'rejected'
+
+  bool get isVerificationPending => verificationStatus == 'pending';
+  bool get isAdmin => role == 'admin';
 
   UserProfile({
     required this.uid,
@@ -31,12 +43,19 @@ class UserProfile {
     required this.role,
     this.isVerified = false,
     this.licenseNumber,
+    this.licensePhotoUrl,
     this.accessToken,
     this.createdAt,
     this.insuranceProvider,
     this.insuranceID,
     this.healthRecords,
     this.connectedDevices,
+    this.storeName,
+    this.storeFrontImageUrl,
+    this.storeInsideImageUrl,
+    this.npiNumber,
+    this.isAdminApproved = false,
+    this.verificationStatus = 'none',
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map, [String? uid]) {
@@ -51,6 +70,7 @@ class UserProfile {
       role: map['role'] ?? 'patient',
       isVerified: map['isVerified'] ?? false,
       licenseNumber: map['licenseNumber'],
+      licensePhotoUrl: map['licensePhotoUrl'],
       accessToken: map['accessToken'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       insuranceProvider: map['insuranceProvider'],
@@ -59,6 +79,12 @@ class UserProfile {
       connectedDevices: map['connectedDevices'] != null 
           ? List<String>.from(map['connectedDevices']) 
           : null,
+      storeName: map['storeName'],
+      storeFrontImageUrl: map['storeFrontImageUrl'],
+      storeInsideImageUrl: map['storeInsideImageUrl'],
+      npiNumber: map['npiNumber'],
+      isAdminApproved: map['isAdminApproved'] ?? false,
+      verificationStatus: map['verificationStatus'] ?? 'none',
     );
   }
 
@@ -74,12 +100,19 @@ class UserProfile {
       'role': role,
       'isVerified': isVerified,
       'licenseNumber': licenseNumber,
+      'licensePhotoUrl': licensePhotoUrl,
       'accessToken': accessToken,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
       'insuranceProvider': insuranceProvider,
       'insuranceID': insuranceID,
       'healthRecords': healthRecords,
       'connectedDevices': connectedDevices,
+      'storeName': storeName,
+      'storeFrontImageUrl': storeFrontImageUrl,
+      'storeInsideImageUrl': storeInsideImageUrl,
+      'npiNumber': npiNumber,
+      'isAdminApproved': isAdminApproved,
+      'verificationStatus': verificationStatus,
     };
   }
 
@@ -94,12 +127,19 @@ class UserProfile {
     String? role,
     bool? isVerified,
     String? licenseNumber,
+    String? licensePhotoUrl,
     String? accessToken,
     DateTime? createdAt,
     String? insuranceProvider,
     String? insuranceID,
     Map<String, dynamic>? healthRecords,
     List<String>? connectedDevices,
+    String? storeName,
+    String? storeFrontImageUrl,
+    String? storeInsideImageUrl,
+    String? npiNumber,
+    bool? isAdminApproved,
+    String? verificationStatus,
   }) {
     return UserProfile(
       uid: uid ?? this.uid,
@@ -112,12 +152,19 @@ class UserProfile {
       role: role ?? this.role,
       isVerified: isVerified ?? this.isVerified,
       licenseNumber: licenseNumber ?? this.licenseNumber,
+      licensePhotoUrl: licensePhotoUrl ?? this.licensePhotoUrl,
       accessToken: accessToken ?? this.accessToken,
       createdAt: createdAt ?? this.createdAt,
       insuranceProvider: insuranceProvider ?? this.insuranceProvider,
       insuranceID: insuranceID ?? this.insuranceID,
       healthRecords: healthRecords ?? this.healthRecords,
       connectedDevices: connectedDevices ?? this.connectedDevices,
+      storeName: storeName ?? this.storeName,
+      storeFrontImageUrl: storeFrontImageUrl ?? this.storeFrontImageUrl,
+      storeInsideImageUrl: storeInsideImageUrl ?? this.storeInsideImageUrl,
+      npiNumber: npiNumber ?? this.npiNumber,
+      isAdminApproved: isAdminApproved ?? this.isAdminApproved,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
     );
   }
 }

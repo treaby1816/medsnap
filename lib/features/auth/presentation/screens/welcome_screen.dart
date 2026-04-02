@@ -17,6 +17,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
+  int _tapCount = 0; 
 
   final List<Map<String, String>> _valueProps = [
     {
@@ -59,18 +60,107 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     super.dispose();
   }
 
+  // --- ADMIN SHORTCUT LOGIC ---
+
+  void _handleSecretTap() {
+    setState(() {
+      _tapCount++;
+    });
+    if (_tapCount >= 5) {
+      _tapCount = 0;
+      HapticFeedback.vibrate();
+      _showAccessCodeDialog();
+    }
+  }
+
+  void _showAccessCodeDialog() {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(Icons.security_rounded, color: AppTheme.primaryColor),
+            const SizedBox(width: 12),
+            Text(
+              'SuperAdmin Access',
+              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Please enter the master verification code to proceed to the Admin Command Center.',
+              style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Enter Code',
+                hintStyle: const TextStyle(color: Colors.white24),
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                prefixIcon: const Icon(Icons.key_rounded, color: Colors.white38),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey.shade400)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Note: Use 'VM-2026-ADMIN' or the code you set in Firestore
+              if (controller.text == 'VM-2026-NGR') {
+                HapticFeedback.mediumImpact();
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/admin-dashboard');
+              } else {
+                HapticFeedback.heavyImpact();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invalid Access Code'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Verify & Enter', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Background image using local assets
           Positioned.fill(
             child: Image.asset(
               'assets/images/pharmacist_patient2.jpg',
               fit: BoxFit.cover,
-              color: Colors.black.withValues(alpha: 0.2), 
+              color: Colors.black.withValues(alpha: 0.2),
               colorBlendMode: BlendMode.darken,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -82,8 +172,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               },
             ),
           ),
-          
-          // Dark Overlay Gradient
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -100,8 +188,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               ),
             ),
           ),
-
-          // Content
           SafeArea(
             child: Column(
               children: [
@@ -122,10 +208,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ),
                   ],
                 ),
-                
                 const Spacer(),
-                
-                // Value Proposition Slider
                 SizedBox(
                   height: 160,
                   child: PageView.builder(
@@ -169,10 +252,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 32),
-                
-                // Dot Indicators
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -189,10 +269,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 48),
-
-                // Action Buttons
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
@@ -201,7 +278,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       ElevatedButton(
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          // UPDATED: Triggers AuthGate to show Login or Home
                           ref.read(onboardingStageProvider.notifier).state = 'auth';
                         },
                         style: ElevatedButton.styleFrom(
@@ -222,7 +298,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       TextButton(
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          // UPDATED: Also triggers AuthGate
                           ref.read(onboardingStageProvider.notifier).state = 'auth';
                         },
                         style: TextButton.styleFrom(
@@ -240,7 +315,21 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                Center(
+                  child: GestureDetector(
+                    onTap: _handleSecretTap,
+                    child: Text(
+                      'v2.0.1+8',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.white38,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
               ],
             ),
           ),

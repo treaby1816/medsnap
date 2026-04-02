@@ -28,47 +28,47 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyA3QEDfhQUHreISRyxqDlStT6Eq1RcA-Mg',
-    appId: '1:870868324526:web:0a5c8a728f38d91a129d3f',
-    messagingSenderId: '870868324526',
-    projectId: 'vailmeds-74e4b',
+    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc', // Updated from json
+    appId: '1:870868324526:web:0a5c8a728f38d91a129d3f', 
+    messagingSenderId: '870868324526', // Updated from json
+    projectId: 'vailmeds-74e4b', // Updated from json
     authDomain: 'vailmeds-74e4b.firebaseapp.com',
-    storageBucket: 'vailmeds-74e4b.firebasestorage.app',
+    storageBucket: 'vailmeds-74e4b.firebasestorage.app', // Updated from json
     measurementId: 'G-2YL2TJHKPH',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc',
-    appId: '1:870868324526:android:2358e09d22d071a7129d3f',
-    messagingSenderId: '870868324526',
-    projectId: 'vailmeds-74e4b',
-    storageBucket: 'vailmeds-74e4b.firebasestorage.app',
+    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc', // Updated from json
+    appId: '1:870868324526:android:2358e09d22d071a7129d3f', // Updated from json
+    messagingSenderId: '870868324526', // Updated from json
+    projectId: 'vailmeds-74e4b', // Updated from json
+    storageBucket: 'vailmeds-74e4b.firebasestorage.app', // Updated from json
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc',
-    appId: '1:870868324526:ios:d299dae5096e3865056026', // Placeholder
-    messagingSenderId: '870868324526',
-    projectId: 'vailmeds-74e4b',
-    storageBucket: 'vailmeds-74e4b.firebasestorage.app',
-    iosBundleId: 'com.com.vailmeds.v2',
+    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc', // Updated from json
+    appId: '1:870868324526:ios:d299dae5096e3865056026', // Updated from json
+    messagingSenderId: '870868324526', // Updated from json
+    projectId: 'vailmeds-74e4b', // Updated from json
+    storageBucket: 'vailmeds-74e4b.firebasestorage.app', // Updated from json
+    iosBundleId: 'com.vailmeds.v2',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc',
-    appId: '1:870868324526:ios:d299dae5096e3865056026', // Placeholder
-    messagingSenderId: '870868324526',
-    projectId: 'vailmeds-74e4b',
-    storageBucket: 'vailmeds-74e4b.firebasestorage.app',
-    iosBundleId: 'com.com.vailmeds.v2',
+    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc', // Updated from json
+    appId: '1:870868324526:ios:d299dae5096e3865056026', // Updated from json
+    messagingSenderId: '870868324526', // Updated from json
+    projectId: 'vailmeds-74e4b', // Updated from json
+    storageBucket: 'vailmeds-74e4b.firebasestorage.app', // Updated from json
+    iosBundleId: 'com.vailmeds.v2',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc',
-    appId: '1:870868324526:web:80c44c52e09d22d071a712', // Placeholder
-    messagingSenderId: '870868324526',
-    projectId: 'vailmeds-74e4b',
+    apiKey: 'AIzaSyAPLmjEA4tjB81avFtAY5VCtK18nP1hHdc', // Updated from json
+    appId: '1:870868324526:web:80c44c52e09d22d071a712', // Updated from json
+    messagingSenderId: '870868324526', // Updated from json
+    projectId: 'vailmeds-74e4b', // Updated from json
     authDomain: 'vailmeds-74e4b.firebaseapp.com',
-    storageBucket: 'vailmeds-74e4b.firebasestorage.app',
+    storageBucket: 'vailmeds-74e4b.firebasestorage.app', // Updated from json
   );
 }

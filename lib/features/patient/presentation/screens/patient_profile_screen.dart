@@ -54,7 +54,17 @@ class PatientProfileScreen extends ConsumerWidget {
         ),
       ),
       body: userProfileAsync.when(
-        data: (profile) => _buildProfileContent(context, ref, profile!),
+        data: (profile) {
+          if (profile == null) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32.0),
+                child: Text('No profile found. Please complete registration.'),
+              ),
+            );
+          }
+          return _buildProfileContent(context, ref, profile);
+        },
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
         error: (err, stack) => Center(child: Text('Error: $err')),
       ),

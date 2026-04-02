@@ -9,7 +9,8 @@ import '../../../../widgets/glass_app_bar.dart';
 import 'add_product_screen.dart';
 
 class PharmacyInventoryScreen extends ConsumerWidget {
-  const PharmacyInventoryScreen({super.key});
+  final bool isEmbedded;
+  const PharmacyInventoryScreen({super.key, this.isEmbedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -23,10 +24,12 @@ class PharmacyInventoryScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: isEmbedded
+            ? null // No back button when embedded in tab
+            : IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: Text(
           'My Inventory',
           style: GoogleFonts.inter(
@@ -43,6 +46,12 @@ class PharmacyInventoryScreen extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const AddProductScreen()),
             ),
           ),
+          if (!isEmbedded)
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondaryColor),
+              onPressed: () => Navigator.pop(context),
+            ),
+          const SizedBox(width: 8),
         ],
       ),
       body: productsAsync.when(

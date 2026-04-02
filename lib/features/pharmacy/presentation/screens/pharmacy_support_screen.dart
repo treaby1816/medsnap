@@ -20,7 +20,7 @@ class PharmacySupportScreen extends StatelessWidget {
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimaryColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -31,6 +31,13 @@ class PharmacySupportScreen extends StatelessWidget {
             fontSize: 20,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondaryColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.pagePadding),

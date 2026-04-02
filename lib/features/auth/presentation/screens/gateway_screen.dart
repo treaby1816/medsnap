@@ -76,7 +76,13 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
-        leading: const SizedBox.shrink(),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back,
+              color: AppTheme.textPrimaryColor, size: 22),
+          onPressed: () {
+            ref.read(onboardingStageProvider.notifier).state = 'welcome';
+          },
+        ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -165,18 +171,17 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Pharmacy Portal Card
-                  _PortalCard(
-                    icon: Icons.medication,
-                    iconLabel: 'Pharmacy',
-                    title: 'Pharmacy Portal',
-                    description:
-                        'Manage inventory, verify prescriptions, and connect with patients.',
-                    buttonLabel: 'Enter Pharmacy Portal',
-                    onPortalPressed: () => Navigator.of(context)
-                        .pushNamed('/pharmacy-verification'),
-                    onGooglePressed: () => _handleGoogleSignIn('pharmacy'),
-                  ),
+                    _PortalCard(
+                      icon: Icons.medication,
+                      iconLabel: 'Pharmacy',
+                      title: 'Pharmacy Portal',
+                      description:
+                          'Manage inventory, verify prescriptions, and connect with patients.',
+                      buttonLabel: 'Enter Pharmacy Portal',
+                      onPortalPressed: () => Navigator.of(context)
+                          .pushNamed('/registration', arguments: 'pharmacy'),
+                      onGooglePressed: () => _handleGoogleSignIn('pharmacy'),
+                    ),
                   const SizedBox(height: 36),
 
                   // Security Footer

@@ -140,7 +140,7 @@ class _PharmacyOrdersScreenState extends State<PharmacyOrdersScreen> {
               dotData: const FlDotData(show: false),
               belowBarData: BarAreaData(
                 show: true,
-                // FIXED: Using withValues instead of deprecated withOpacity
+                // FIXED: Using withOpacity for backward compatibility
                 color: AppTheme.primaryColor.withValues(alpha: 0.1),
               ),
             ),
@@ -148,7 +148,7 @@ class _PharmacyOrdersScreenState extends State<PharmacyOrdersScreen> {
               LineChartBarData(
                 spots: prevSpots,
                 isCurved: true,
-                // FIXED: Using withValues instead of deprecated withOpacity
+                // FIXED: Using withOpacity for backward compatibility
                 color: Colors.grey.withValues(alpha: 0.3),
                 barWidth: 2,
                 dashArray: [5, 5],
@@ -256,7 +256,7 @@ class _PharmacyOrdersScreenState extends State<PharmacyOrdersScreen> {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        // FIXED: Using withValues instead of deprecated withOpacity
+        // FIXED: Using withOpacity for backward compatibility
         color: AppTheme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
       ),

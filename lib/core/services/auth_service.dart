@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user_profile.dart';
+import '../utils/audit_logger.dart';
 
 class AuthResult {
   final User? user;
@@ -14,6 +15,7 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com',
     scopes: [
       'email',
       'openid',
@@ -45,16 +47,30 @@ class AuthService {
         // Sync Firestore
         final doc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
         if (!doc.exists) {
+          // Professional Rule: Auto-assign admin role if email is from vailmeds.com
+          final String finalRole = (userCredential.user!.email?.endsWith('@vailmeds.com') ?? false) 
+              ? 'admin' 
+              : role;
+
           final profile = UserProfile(
             uid: userCredential.user!.uid,
             email: userCredential.user!.email ?? '',
             name: userCredential.user!.displayName ?? 'New User',
             phone: userCredential.user!.phoneNumber,
-            role: role,
-            isVerified: role == 'patient',
+            role: finalRole,
+            isVerified: finalRole == 'patient' || finalRole == 'admin',
           );
           await createUserProfile(profile);
           return AuthResult(user: userCredential.user, isNewUser: true);
+        } else {
+          // EXISTING USER: Validate Role match
+          final existingRole = doc.data()?['role'] ?? 'patient';
+          if (existingRole != role) {
+            // Role mismatch - we should not sign them in as the requested role
+            // if they already have a different role in the DB.
+            // BUT: We let the UI handle the "This account is a X, not a Y" error
+            // after getting the profile.
+          }
         }
       }
       
@@ -98,14 +114,17 @@ class AuthService {
         // Update auth profile
         await userCredential.user!.updateDisplayName(name);
 
+        // Professional Rule: Auto-assign admin role if email is from vailmeds.com
+        final String finalRole = (email.endsWith('@vailmeds.com')) ? 'admin' : role;
+
         // Create Firestore profile
         final profile = UserProfile(
           uid: userCredential.user!.uid,
           email: email,
           name: name,
           phone: phone,
-          role: role,
-          isVerified: role == 'patient', // Patients are verified by default for now
+          role: finalRole,
+          isVerified: finalRole == 'patient' || finalRole == 'admin',
         );
         await createUserProfile(profile);
       }
@@ -160,17 +179,86 @@ class AuthService {
     }
   }
 
-  Future<void> updateVerificationStatus(String uid, String licenseNumber, String accessToken) async {
+  Future<void> submitVerificationRequest(
+      String uid, String licenseNumber, String accessToken,
+      {String? storeName, String? npiNumber, String? licensePhotoUrl}) async {
     try {
-      await _firestore.collection('users').doc(uid).update({
+      final updateData = <String, dynamic>{
         'licenseNumber': licenseNumber,
         'accessToken': accessToken,
-        'isVerified': true,
-        'verifiedAt': FieldValue.serverTimestamp(),
-      });
-      debugPrint('Pharmacy verification updated for: $uid');
+        'verificationStatus': 'pending', // Marks for admin review
+        'isAdminApproved': false,       // Explicitly false until admin review
+        'isVerified': false,            // Not verified yet
+        'submittedAt': FieldValue.serverTimestamp(),
+      };
+      
+      if (storeName != null) updateData['storeName'] = storeName;
+      if (npiNumber != null) updateData['npiNumber'] = npiNumber;
+      if (licensePhotoUrl != null) updateData['licensePhotoUrl'] = licensePhotoUrl;
+
+      await _firestore.collection('users').doc(uid).update(updateData);
+      debugPrint('Verification request submitted for: $uid');
     } catch (e) {
-      debugPrint('Error updating verification status: $e');
+      debugPrint('Error submitting verification request: $e');
+      rethrow;
+    }
+  }
+
+  // Admin-only method: Get all pharmacies awaiting verification
+  Stream<List<UserProfile>> getPendingPharmacies() {
+    return _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'pharmacy')
+        .where('verificationStatus', isEqualTo: 'pending')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => UserProfile.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Admin-only method: Approve pharmacy
+  Future<void> adminApprovePharmacy(String uid) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'isAdminApproved': true,
+        'isVerified': true,
+        'verificationStatus': 'approved',
+        'approvedAt': FieldValue.serverTimestamp(),
+        'approvedBy': _auth.currentUser?.uid,
+      });
+      
+      if (_auth.currentUser != null) {
+        final adminProfile = await getUserProfile(_auth.currentUser!.uid);
+        final pharmacyProfile = await getUserProfile(uid);
+        
+        await AuditLogger.logPharmacyApproval(
+          licenseNumber: pharmacyProfile?.licenseNumber ?? 'N/A',
+          adminName: adminProfile?.name ?? 'Unknown Admin',
+          adminUid: _auth.currentUser!.uid,
+          pharmacyUid: uid,
+        );
+      }
+      
+      debugPrint('Pharmacy approved by admin: $uid');
+    } catch (e) {
+      debugPrint('Error approving pharmacy: $e');
+      rethrow;
+    }
+  }
+
+  // Admin-only method: Reject pharmacy
+  Future<void> adminRejectPharmacy(String uid, String reason) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'isAdminApproved': false,
+        'isVerified': false,
+        'verificationStatus': 'rejected',
+        'rejectionReason': reason,
+        'rejectedAt': FieldValue.serverTimestamp(),
+      });
+      debugPrint('Pharmacy rejected by admin: $uid. Reason: $reason');
+    } catch (e) {
+      debugPrint('Error rejecting pharmacy: $e');
       rethrow;
     }
   }

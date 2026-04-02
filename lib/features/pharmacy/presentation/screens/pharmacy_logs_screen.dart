@@ -20,6 +20,10 @@ class _PharmacyLogsScreenState extends ConsumerState<PharmacyLogsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimaryColor),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           'Activity Logs',
           style: GoogleFonts.inter(
@@ -35,6 +39,11 @@ class _PharmacyLogsScreenState extends ConsumerState<PharmacyLogsScreen> {
             icon: const Icon(Icons.filter_list,
                 color: AppTheme.textPrimaryColor),
           ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondaryColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(

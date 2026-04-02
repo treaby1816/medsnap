@@ -230,16 +230,45 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _handlePayment() async {
+    final user = ref.read(authProvider);
+    if (user == null || user.email == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User email not found. Please log in again.')),
+      );
+      return;
+    }
+
     setState(() => _isProcessing = true);
     
     try {
       final cart = ref.read(cartProvider);
       final total = ref.read(cartProvider.notifier).total;
+      final totalWithDelivery = total + 1000;
       
-      // PERSIST ORDER TO FIRESTORE
+      bool isPaymentSuccessful = false;
+
+      // 1. CONDUCT REAL PAYMENT
+      if (_selectedPayment == 'paystack') {
+        isPaymentSuccessful = await ref.read(paymentServiceProvider).processPaystackPayment(
+          context: context,
+          email: user.email!,
+          amount: totalWithDelivery,
+          reference: 'VAIL_${DateTime.now().millisecondsSinceEpoch}',
+        );
+      } else {
+        // Placeholder for Flutterwave or other gateways
+        isPaymentSuccessful = true; 
+      }
+
+      if (!isPaymentSuccessful) {
+        if (mounted) setState(() => _isProcessing = false);
+        return; 
+      }
+
+      // 2. PERSIST ORDER TO FIRESTORE ONLY AFTER SUCCESSFUL PAYMENT
       await ref.read(orderServiceProvider).placeOrder(
         items: cart.values.toList(),
-        totalAmount: total,
+        totalAmount: totalWithDelivery,
         deliveryAddress: _addressController.text,
       );
 

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../providers.dart';
+import '../utils/transaction_receipt.dart';
 
 class OrderService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -38,5 +40,37 @@ class OrderService {
     };
 
     await orderRef.set(orderData);
+  }
+
+  Stream<QuerySnapshot> getPharmacyOrders(String pharmacyId) {
+    return _db.collection('orders')
+        .where('globalPharmacyId', isEqualTo: pharmacyId)
+        .snapshots();
+  }
+
+  Future<void> updateOrderStatus(String orderId, String newStatus) async {
+    await _db.collection('orders').doc(orderId).update({'status': newStatus});
+
+    // Automated Receipt Logic (Auditing)
+    if (newStatus.toLowerCase() == 'completed') {
+      try {
+        final orderDoc = await _db.collection('orders').doc(orderId).get();
+        if (orderDoc.exists) {
+          final receipt = await TransactionReceipt.fromOrderDoc(orderDoc);
+          if (receipt != null) {
+            final receiptUrl = await receipt.generateAndStore();
+            if (receiptUrl != null) {
+              await _db.collection('orders').doc(orderId).update({
+                'receiptUrl': receiptUrl,
+                'ledgerStatus': 'recorded',
+              });
+            }
+          }
+        }
+      } catch (e) {
+        // Log error but do not fail the status update
+        debugPrint('Error generating automated receipt: $e');
+      }
+    }
   }
 }

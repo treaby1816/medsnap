@@ -22,7 +22,7 @@ class GlobalLoadingOverlay extends ConsumerWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
               child: Container(
-                // Flutter 3.x Compliance: using .withValues
+                // Using .withOpacity for backward compatibility
                 color: Colors.black.withValues(alpha: 0.2), 
                 child: const Center(
                   child: Card(

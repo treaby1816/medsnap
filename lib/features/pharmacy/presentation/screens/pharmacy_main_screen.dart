@@ -4,9 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
 import 'pharmacy_dashboard_screen.dart';
+import 'pharmacy_inventory_screen.dart';
+import 'pharmacy_orders_screen.dart';
 import 'pharmacy_logs_screen.dart';
 import 'pharmacy_support_screen.dart';
 import 'pharmacy_profile_screen.dart';
+import 'pharmacy_analytics_screen.dart';
+import 'pharmacy_notifications_screen.dart';
+import 'pharmacy_security_screen.dart';
 
 class PharmacyMainScreen extends StatefulWidget {
   const PharmacyMainScreen({super.key});
@@ -20,9 +25,9 @@ class _PharmacyMainScreenState extends State<PharmacyMainScreen> {
 
   final List<Widget> _screens = [
     const PharmacyDashboardScreen(),
-    const _PlaceholderTab(label: 'Inventory', icon: Icons.inventory_2_rounded),
-    const _PlaceholderTab(label: 'Orders', icon: Icons.shopping_cart_rounded),
-    const _PlaceholderTab(label: 'Analytics', icon: Icons.analytics_rounded),
+    const PharmacyInventoryScreen(isEmbedded: true),
+    const PharmacyOrdersScreen(),
+    const PharmacyAnalyticsScreen(),
     const _SettingsTab(),
   ];
 
@@ -61,54 +66,6 @@ class _PharmacyMainScreenState extends State<PharmacyMainScreen> {
             label: 'Settings',
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-class _PlaceholderTab extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  const _PlaceholderTab({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppTheme.backgroundColor,
-      child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 48, color: AppTheme.primaryColor),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimaryColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Coming Soon',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AppTheme.textSecondaryColor,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -196,31 +153,40 @@ class _SettingsTab extends ConsumerWidget {
                             builder: (_) => const PharmacySupportScreen()),
                       ),
                     ),
-                    const SizedBox(height: 16),
                     _buildSettingsTile(
                       context,
                       icon: Icons.notifications_none_rounded,
                       title: 'Notifications',
                       subtitle: 'Manage alerts and preferences',
-                      onTap: () {},
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PharmacyNotificationsScreen()),
+                      ),
                     ),
                     _buildSettingsTile(
                       context,
                       icon: Icons.security_rounded,
                       title: 'Security',
                       subtitle: 'Password, 2FA, sessions',
-                      onTap: () {},
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PharmacySecurityScreen()),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       height: 52,
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/welcome',
-                            (route) => false,
-                          );
+                        onPressed: () async {
+                          // FIXED: Actually call signOut to clear the persistent session
+                          await ref.read(authServiceProvider).signOut();
+                          if (context.mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/gateway',
+                              (route) => false,
+                            );
+                          }
                         },
                         icon: const Icon(Icons.logout_rounded, size: 20),
                         label: const Text('Sign Out'),

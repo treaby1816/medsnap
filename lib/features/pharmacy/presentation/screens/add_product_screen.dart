@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,7 +19,10 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  File? _imageFile;
+  final _stockController = TextEditingController();
+  final _maxStockController = TextEditingController();
+  Uint8List? _imageBytes;
+  String _imageExt = 'jpg';
   bool _isUploading = false;
 
   final ImagePicker _picker = ImagePicker();
@@ -27,15 +30,19 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      String ext = pickedFile.name.split('.').last.toLowerCase();
+      if (ext != 'png' && ext != 'jpg' && ext != 'jpeg') ext = 'jpg';
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageBytes = bytes;
+        _imageExt = ext;
       });
     }
   }
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageFile == null) {
+    if (_imageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please upload a product photo')),
       );
@@ -49,17 +56,22 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
 
       final pharmacyService = ref.read(pharmacyServiceProvider);
       
-      // 1. Upload & Compress Image
-      final imageUrl = await pharmacyService.uploadProductImage(_imageFile!, user.uid);
-      if (imageUrl == null) throw Exception('Failed to upload image');
+      // 1. Upload Image via Bytes
+      final imageUrl = await pharmacyService.uploadProductImageBytes(_imageBytes!, user.uid, _imageExt);
 
       // 2. Save Product to Firestore
+      final userProfile = ref.read(userProfileProvider).value;
+      final storeName = userProfile?.storeName ?? 'Verified Pharmacy';
+
       await pharmacyService.addProduct({
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
+        'stockCount': int.parse(_stockController.text.trim()),
+        'maxStock': int.parse(_maxStockController.text.trim()),
         'imageUrl': imageUrl,
         'pharmacyId': user.uid,
+        'pharmacyName': storeName,
       });
 
       if (mounted) {
@@ -84,6 +96,8 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _stockController.dispose();
+    _maxStockController.dispose();
     super.dispose();
   }
 
@@ -93,7 +107,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
         leading: IconButton(
-          icon: const Icon(Icons.close, color: AppTheme.textPrimaryColor),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimaryColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -104,6 +118,13 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
             color: AppTheme.textPrimaryColor,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondaryColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.pagePadding),
@@ -121,11 +142,11 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                     color: const Color(0xFFF1F5F9), // Surface-Variant
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppTheme.borderColor),
-                    image: _imageFile != null
-                        ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
+                    image: _imageBytes != null
+                        ? DecorationImage(image: MemoryImage(_imageBytes!), fit: BoxFit.cover)
                         : null,
                   ),
-                  child: _imageFile == null
+                  child: _imageBytes == null
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -163,7 +184,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
               ),
               const SizedBox(height: 20),
 
-              _buildLabel('Price (₦)'),
+               _buildLabel('Price (₦)'),
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
@@ -172,6 +193,41 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                   prefixStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor),
                 ),
                 validator: (v) => v == null || v.isEmpty ? 'Price required' : null,
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Current Stock'),
+                        TextFormField(
+                          controller: _stockController,
+                          keyboardType: TextInputType.number,
+                          decoration: _fieldDecoration('e.g., 50'),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Max Capacity'),
+                        TextFormField(
+                          controller: _maxStockController,
+                          keyboardType: TextInputType.number,
+                          decoration: _fieldDecoration('e.g., 500'),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 40),
 

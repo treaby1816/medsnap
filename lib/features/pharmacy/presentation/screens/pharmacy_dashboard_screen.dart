@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
 import 'pharmacy_inventory_screen.dart';
 import 'add_product_screen.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 
-class PharmacyDashboardScreen extends StatefulWidget {
+class PharmacyDashboardScreen extends ConsumerStatefulWidget {
   const PharmacyDashboardScreen({super.key});
 
   @override
-  State<PharmacyDashboardScreen> createState() => _PharmacyDashboardScreenState();
+  ConsumerState<PharmacyDashboardScreen> createState() => _PharmacyDashboardScreenState();
 }
 
-class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
+class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScreen> {
   final Color _deepBlue = const Color(0xFF1E293B);
   final Color _surfaceColor = const Color(0xFFF8F6F6);
   
@@ -53,14 +56,20 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
       appBar: AppBar(
         backgroundColor: _deepBlue,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/gateway', (route) => false),
+        ),
         title: Text(
           'Pharmacy Executive Terminal',
           style: GoogleFonts.inter(
             color: Colors.white,
-            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
           ),
         ),
+        centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
@@ -72,36 +81,12 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
               );
             },
           ),
-          const SizedBox(width: 8),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.list_alt, color: Colors.white),
-                onPressed: () {},
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '3',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: Colors.white70),
+            tooltip: 'Close',
+            onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/gateway', (route) => false),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -110,65 +95,154 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Personalized Welcome
+            ref.watch(userProfileProvider).when(
+              data: (profile) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Good Morning,',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: AppTheme.textSecondaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    profile?.name ?? 'Pharmacist',
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: _deepBlue,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
+              ),
+              loading: () => const SizedBox(height: 40),
+              error: (_, __) => const SizedBox(height: 40),
+            ),
+            const SizedBox(height: 24),
+            
             // Executive Stats Row
-            const Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    title: 'New Orders',
-                    value: '24',
-                    backgroundColor: AppTheme.primaryColor,
-                    textColor: Colors.white,
-                    icon: Icons.receipt_long,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    title: 'Pickups',
-                    value: '12',
-                    backgroundColor: Colors.white,
-                    textColor: Color(0xFF1E293B),
-                    icon: Icons.shopping_bag_outlined,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    title: 'Low Stock',
-                    value: '05',
-                    backgroundColor: Color(0xFFFEE2E2), // Error container
-                    textColor: Color(0xFFDC2626), // Error text
-                    icon: Icons.warning_amber_rounded,
-                  ),
-                ),
-              ],
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('orders')
+                  .where('globalPharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
+                  .snapshots(),
+              builder: (context, orderSnap) {
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('products')
+                      .where('pharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
+                      .snapshots(),
+                  builder: (context, productSnap) {
+                    int pending = 0;
+                    int pickups = 0;
+                    int lowStockCount = 0;
+                    
+                    if (orderSnap.hasData) {
+                      for (var doc in orderSnap.data!.docs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        if (data['status'] == 'Pending') pending++;
+                        if (data['status'] == 'Ready') pickups++;
+                      }
+                    }
+
+                    if (productSnap.hasData) {
+                      for (var doc in productSnap.data!.docs) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final stock = data['stockCount'] ?? 0;
+                        final max = data['maxStock'] ?? 0;
+                        if (max > 0 && (stock / max) < 0.2) lowStockCount++;
+                      }
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _StatCard(
+                              title: 'New Orders',
+                              value: pending.toString().padLeft(2, '0'),
+                              backgroundColor: AppTheme.primaryColor,
+                              textColor: Colors.white,
+                              icon: Icons.receipt_long,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatCard(
+                              title: 'Pickups',
+                              value: pickups.toString().padLeft(2, '0'),
+                              backgroundColor: Colors.white,
+                              textColor: const Color(0xFF1E293B),
+                              icon: Icons.shopping_bag_outlined,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatCard(
+                              title: 'Low Stock',
+                              value: lowStockCount.toString().padLeft(2, '0'),
+                              backgroundColor: const Color(0xFFFEE2E2),
+                              textColor: const Color(0xFFDC2626),
+                              icon: Icons.warning_amber_rounded,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                );
+              }
             ),
             const SizedBox(height: 32),
 
             // Live Order Queue
-            Text(
-              'Live Order Queue',
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: _deepBlue,
-                letterSpacing: -0.5,
-              ),
+            Row(
+              children: [
+                const Icon(Icons.flash_on, color: AppTheme.primaryColor, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Live Order Queue',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: _deepBlue,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('orders')
-                  .where('status', isEqualTo: 'pending')
-                  .orderBy('createdAt', descending: true)
+                  .where('globalPharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
+                  .where('status', isEqualTo: 'Pending')
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 3,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (_, __) => const ShimmerEffect(width: double.infinity, height: 80, borderRadius: 16),
+                  );
                 }
                 
-                final docs = snapshot.data!.docs;
+                final rawDocs = snapshot.data!.docs;
+                // Sort client-side
+                final docs = List<QueryDocumentSnapshot>.from(rawDocs);
+                docs.sort((a, b) {
+                  final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                  final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                  return (bTime?.toDate() ?? DateTime(0)).compareTo(aTime?.toDate() ?? DateTime(0));
+                });
+
                 if (docs.isEmpty) {
                   return Container(
                     padding: const EdgeInsets.all(32),
@@ -246,8 +320,8 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                                     Text(
                                       data['patientName'] ?? 'Unknown Patient',
                                       style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
                                         color: _deepBlue,
                                       ),
                                     ),
@@ -302,14 +376,20 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Fast Moving Items',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: _deepBlue,
-                    letterSpacing: -0.5,
-                  ),
+                Row(
+                  children: [
+                    const Icon(Icons.inventory_2, color: AppTheme.primaryColor, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Fast Moving Items',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: _deepBlue,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
                 ),
                 TextButton(
                   onPressed: () {
@@ -342,14 +422,53 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                   ),
                 ],
               ),
-              child: const Column(
-                children: [
-                  _InventoryItem(name: 'Amoxicillin 500mg', stockCount: 120, maxStock: 500),
-                  Divider(height: 32),
-                  _InventoryItem(name: 'Lisinopril 10mg', stockCount: 45, maxStock: 300),
-                  Divider(height: 32),
-                  _InventoryItem(name: 'Ibuprofen 400mg', stockCount: 15, maxStock: 100, isLow: true),
-                ],
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                  .collection('products')
+                  .where('pharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
+                  .limit(5)
+                  .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Column(
+                      children: List.generate(3, (i) => const Padding(
+                        padding: EdgeInsets.only(bottom: 16),
+                        child: ShimmerEffect(width: double.infinity, height: 60, borderRadius: 12),
+                      )),
+                    );
+                  }
+                  final productDocs = snapshot.data!.docs;
+                  if (productDocs.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text("No products listed yet.", style: GoogleFonts.inter(color: Colors.grey)),
+                      ),
+                    );
+                  }
+                  
+                  return Column(
+                     children: productDocs.map((doc) {
+                       final data = doc.data() as Map<String, dynamic>;
+                       final name = data['name'] ?? 'Product';
+                       final stock = data['stockCount'] ?? 0;
+                       final max = data['maxStock'] ?? 100;
+                       final isLow = max > 0 && (stock / max) < 0.2;
+                       
+                       return Column(
+                         children: [
+                           _InventoryItem(
+                             name: name, 
+                             stockCount: stock, 
+                             maxStock: max,
+                             isLow: isLow,
+                           ),
+                           if (doc != productDocs.last) const Divider(height: 32),
+                         ]
+                       );
+                     }).toList(),
+                  );
+                }
               ),
             ),
             const SizedBox(height: 40),
@@ -381,35 +500,49 @@ class _StatCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withValues(alpha: 0.05),
+            color: backgroundColor.withValues(alpha: 0.2),
             blurRadius: 15,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(
+          color: textColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: textColor.withValues(alpha: 0.7), size: 24),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: textColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: textColor, size: 20),
+          ),
           const SizedBox(height: 16),
           Text(
             value,
             style: GoogleFonts.inter(
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: FontWeight.w900,
               color: textColor,
+              letterSpacing: -1,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
             style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: textColor.withValues(alpha: 0.8),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: textColor.withValues(alpha: 0.7),
+              letterSpacing: 0.5,
+              height: 1.2,
             ),
           ),
         ],
@@ -451,7 +584,7 @@ class _InventoryItem extends StatelessWidget {
               ),
             ),
             Text(
-              '\$stockCount / \$maxStock',
+              '$stockCount / $maxStock',
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
                 color: isLow ? progressColor : Colors.grey.shade600,

@@ -3,11 +3,11 @@ import 'package:vail_meds_v2/core/services/health_service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
-import '../../../../core/models/product_model.dart';
 import 'product_screen.dart';
 import '../../../../core/models/user_profile.dart';
-import '../../../../core/providers.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -20,8 +20,9 @@ class HomeScreen extends ConsumerWidget {
     final cartItems = ref.watch(cartProvider);
     final healthNews = ref.watch(healthNewsProvider);
     final allProducts = ref.watch(allProductsProvider);
-    final searchProducts = ref.watch(filteredDrugsProvider);
-    final searchQuery = ref.watch(drugSearchQueryProvider);
+    final filteredProducts = ref.watch(filteredByBrandProductsProvider);
+    // final searchQuery = ref.watch(drugSearchQueryProvider);
+    final selectedCategory = ref.watch(selectedCategoryProvider);
     
     final displayName = userProfile?.displayName ?? 
                       (userProfile?.email.split('@')[0] ?? 'User');
@@ -47,10 +48,13 @@ class HomeScreen extends ConsumerWidget {
                           style: textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          displayName,
-                          style: textTheme.headlineMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(context, '/profile'),
+                          child: Text(
+                            displayName,
+                            style: textTheme.headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),
@@ -102,11 +106,6 @@ class HomeScreen extends ConsumerWidget {
                               ),
                           ],
                         ),
-                        const SizedBox(width: 8),
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: NetworkImage(userProfile?.photoUrl ?? 'https://ui-avatars.com/api/?name=$displayName'),
-                        ),
                       ],
                     ),
                   ],
@@ -120,76 +119,21 @@ class HomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: AppTheme.floatingShadow,
                   ),
-                    child: TextField(
-                      onChanged: (value) => ref.read(drugSearchQueryProvider.notifier).state = value,
-                      decoration: InputDecoration(
-                        hintText: 'Search medications, pharmacies...',
-                        prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondaryColor),
-                        suffixIcon: searchQuery.isNotEmpty 
-                          ? IconButton(icon: const Icon(Icons.clear), onPressed: () => ref.read(drugSearchQueryProvider.notifier).state = '')
-                          : const Icon(Icons.tune, color: AppTheme.primaryColor, size: 20),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        fillColor: Colors.white,
-                        filled: true,
-                      ),
+                  child: TextField(
+                    onChanged: (val) => ref.read(drugSearchQueryProvider.notifier).state = val,
+                    decoration: InputDecoration(
+                      hintText: 'Search medications, pharmacies...',
+                      hintStyle: TextStyle(color: AppTheme.textSecondaryColor.withValues(alpha: 0.5)),
+                      prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                     ),
+                  ),
                 ),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-            // Sponsored Ads Carousel
-            SliverToBoxAdapter(
-              child: CarouselSlider(
-                options: CarouselOptions(
-                  height: 160,
-                  viewportFraction: 0.85,
-                  enlargeCenterPage: true,
-                  autoPlay: true,
-                ),
-                items: [1, 2, 3].map((i) {
-                  return Builder(
-                    builder: (BuildContext context) {
-                      return Container(
-                        width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          gradient: const LinearGradient(
-                            colors: [AppTheme.primaryColor, Color(0xFFFF9A5C)],
-                          ),
-                        ),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              right: -20,
-                              bottom: -20,
-                              child: Icon(Icons.medication, size: 150, color: Colors.white.withValues(alpha: 0.1)),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-                                    child: Text('SPONSORED', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text('Get 20% off on all\nsupplements this week!', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                }).toList(),
               ),
             ),
 
@@ -198,133 +142,77 @@ class HomeScreen extends ConsumerWidget {
             // Categories
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 44,
+                height: 48,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   children: [
-                    _buildCategoryPill('All Products', true),
+                    _buildCategoryPill(context, ref, 'All', selectedCategory == 'All'),
                     const SizedBox(width: 12),
-                    _buildCategoryPill('Supplements', false),
+                    _buildCategoryPill(context, ref, 'Antibiotics', selectedCategory == 'Antibiotics'),
                     const SizedBox(width: 12),
-                    _buildCategoryPill('Pain Relief', false),
+                    _buildCategoryPill(context, ref, 'Painkillers', selectedCategory == 'Painkillers'),
                     const SizedBox(width: 12),
-                    _buildCategoryPill('Cold & Flu', false),
+                    _buildCategoryPill(context, ref, 'Vitamins', selectedCategory == 'Vitamins'),
                   ],
                 ),
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-            // --- LIVE MARKETPLACE PRODUCT GRID ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Marketplace', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const Icon(Icons.storefront, color: AppTheme.primaryColor, size: 20),
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            // Marketplace Section
             allProducts.when(
               data: (products) {
-                // If a search query is active, show filtered results instead
-                final displayProducts = searchQuery.isNotEmpty ? searchProducts : products;
-                
+                final displayProducts = filteredProducts.isNotEmpty ? filteredProducts : products;
                 if (displayProducts.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.inventory_2_outlined, size: 48, color: AppTheme.primaryColor.withValues(alpha: 0.4)),
-                            const SizedBox(height: 16),
-                            Text(
-                              searchQuery.isNotEmpty 
-                                ? 'No results for "$searchQuery"' 
-                                : 'Marketplace is being stocked',
-                              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              searchQuery.isNotEmpty 
-                                ? 'Try a different search term.' 
-                                : 'Verified pharmacies will list their inventory here soon. Check back shortly!',
-                              style: textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryColor),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  return const SliverToBoxAdapter(
+                    child: Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No drugs found in this category.'))),
                   );
                 }
-                
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   sliver: SliverGrid(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 0.72,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.75,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final product = displayProducts[index];
-                        // Find the source pharmacy name
-                        final pharmacyName = verifiedPharmacies
-                            .where((p) => p.uid == product.pharmacyId)
-                            .map((p) => p.displayName ?? p.name)
-                            .firstOrNull ?? 'Verified Pharmacy';
-                        
+                        final pharmacyName = verifiedPharmacies.firstWhere(
+                          (p) => p.uid == product.pharmacyId,
+                          orElse: () => UserProfile(uid: product.pharmacyId, email: '', name: 'Pharmacy', role: 'pharmacy'),
+                        ).displayName ?? 'Verified Pharmacy';
+
                         return GestureDetector(
-                          onTap: () => Navigator.pushNamed(context, '/product', arguments: product),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductScreen(product: product))),
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: AppTheme.floatingShadow,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Product Image
                                 Expanded(
-                                  flex: 3,
                                   child: ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                    child: product.imageUrl.isNotEmpty
-                                      ? Image.network(product.imageUrl, width: double.infinity, fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => Container(
-                                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                                            child: const Center(child: Icon(Icons.medication, color: AppTheme.primaryColor, size: 32)),
-                                          ),
-                                        )
-                                      : Container(
-                                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                                          child: const Center(child: Icon(Icons.medication, color: AppTheme.primaryColor, size: 32)),
-                                        ),
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                    child: Image.network(
+                                      product.imageUrl.isNotEmpty ? product.imageUrl : 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?q=80&w=400',
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[100], child: const Icon(Icons.medication, color: AppTheme.primaryColor)),
+                                    ),
                                   ),
                                 ),
-                                // Product Info
-                                Expanded(
-                                  flex: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(10),
+                                Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    height: 70,
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -377,8 +265,17 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 );
               },
-              loading: () => const SliverToBoxAdapter(
-                child: Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: AppTheme.primaryColor))),
+              loading: () => SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 0.75,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (_, __) => const ShimmerEffect(width: double.infinity, height: 200, borderRadius: 20),
+                    childCount: 4,
+                  ),
+                ),
               ),
               error: (_, __) => const SliverToBoxAdapter(
                 child: Center(child: Padding(padding: EdgeInsets.all(32), child: Text('Could not load marketplace.'))),
@@ -387,7 +284,7 @@ class HomeScreen extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-            // Prescription Scanning (Request Restored)
+            // Prescription Scanning
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -447,7 +344,7 @@ class HomeScreen extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-            // Verified Pharmacies Carousel (New Request)
+            // Featured Pharmacies Carousel
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,7 +372,7 @@ class HomeScreen extends ConsumerWidget {
                         viewportFraction: 0.4,
                         enableInfiniteScroll: verifiedPharmacies.length > 2,
                         enlargeCenterPage: true,
-                        autoPlay: true,
+                        autoPlay: false, // Stopped "rolling" as requested
                       ),
                       items: verifiedPharmacies.map((ph) {
                         return _buildPharmacyCard(context, ph);
@@ -487,7 +384,7 @@ class HomeScreen extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-            // Sponsored Jobs Section (New Request)
+            // Sponsored Jobs Section
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -585,7 +482,7 @@ class HomeScreen extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-            // Real-time Health Insights
+            // Health Insights
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -604,67 +501,18 @@ class HomeScreen extends ConsumerWidget {
                       data: (articles) => Column(
                         children: articles.take(3).map((article) => _buildNewsCard(context, article)).toList(),
                       ),
-                      loading: () => const Center(child: CircularProgressIndicator()),
+                      loading: () => Column(
+                        children: List.generate(3, (i) => const Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: ShimmerEffect(width: double.infinity, height: 110, borderRadius: 16),
+                        )),
+                      ),
                       error: (e, s) => Text('Failed to load health news: $e'),
                     ),
                   ],
                 ),
               ),
             ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
-
-            // Marketplace Heading
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text('Marketplace Deals', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Product Grid or Search Results
-            if (searchQuery.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: searchProducts.isEmpty 
-                  ? const SliverToBoxAdapter(child: Center(child: Text('No drugs found.')))
-                  : SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 1.15,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildProductCard(context, ref, searchProducts[index], verifiedPharmacies),
-                        childCount: searchProducts.length,
-                      ),
-                    ),
-              )
-            else
-              allProducts.when(
-                data: (products) => SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  sliver: products.isEmpty 
-                    ? const SliverToBoxAdapter(child: Center(child: Text('No products available right now.')))
-                    : SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 1.15,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _buildProductCard(context, ref, products[index], verifiedPharmacies),
-                          childCount: products.length,
-                        ),
-                      ),
-                ),
-                loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
-                error: (e, s) => SliverToBoxAdapter(child: Center(child: Text('Error: $e'))),
-              ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
@@ -695,15 +543,6 @@ class HomeScreen extends ConsumerWidget {
                 width: 80, 
                 height: 80, 
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey[100],
-                    child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                  );
-                },
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: 80,
                   height: 80,
@@ -728,7 +567,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   article.title, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), // Slightly smaller font
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   maxLines: 1, 
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -737,7 +576,7 @@ class HomeScreen extends ConsumerWidget {
                   article.description, 
                   maxLines: 2, 
                   overflow: TextOverflow.ellipsis, 
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor), // Slightly smaller font
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor),
                 ),
               ],
             ),
@@ -784,155 +623,24 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryPill(String label, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primaryColor : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: isSelected ? AppTheme.primaryGlow : AppTheme.floatingShadow,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : AppTheme.textSecondaryColor,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          fontSize: 14,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProductCard(BuildContext context, WidgetRef ref, Product product, List<UserProfile> pharmacies) {
-    final textTheme = Theme.of(context).textTheme;
-    
-    // Find the pharmacy for this product to get the name
-    final pharmacy = pharmacies.firstWhere(
-      (p) => p.uid == product.pharmacyId,
-      orElse: () => UserProfile(uid: product.pharmacyId, email: '', name: 'Verified Pharmacy', displayName: 'Verified Pharmacy', role: 'pharmacy'),
-    );
-
+  Widget _buildCategoryPill(BuildContext context, WidgetRef ref, String label, bool isSelected) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductScreen(product: product),
-          ),
-        );
-      },
+      onTap: () => ref.read(selectedCategoryProvider.notifier).state = label,
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: AppTheme.floatingShadow,
+          color: isSelected ? AppTheme.primaryColor : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: isSelected ? AppTheme.primaryGlow : AppTheme.floatingShadow,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: product.imageUrl.isNotEmpty
-                  ? Image.network(
-                      product.imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) => Image.asset(
-                        'assets/images/pharmacist_patient2.jpg',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      ),
-                    )
-                  : Image.asset(
-                      'assets/images/pharmacist_patient2.jpg',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                    ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimaryColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.store, size: 12, color: AppTheme.primaryColor),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          pharmacy.displayName ?? 'Verified Pharmacy',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textTertiaryColor,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '₦${product.price.toStringAsFixed(0)}',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          ref.read(cartProvider.notifier).addItem({
-                            'id': product.id,
-                            'name': product.name,
-                            'price': product.price,
-                            'imageUrl': product.imageUrl,
-                            'pharmacyId': product.pharmacyId,
-                            'pharmacyName': pharmacy.displayName,
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${product.name} added to cart!'),
-                              backgroundColor: AppTheme.primaryColor,
-                              duration: const Duration(seconds: 1),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            size: 16,
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-            ),
-          ],
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppTheme.textSecondaryColor,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 14,
+          ),
         ),
       ),
     );

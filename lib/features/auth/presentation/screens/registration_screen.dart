@@ -9,7 +9,8 @@ import '../../../../core/providers.dart';
 import 'success_screen.dart';
 
 class RegistrationScreen extends ConsumerStatefulWidget {
-  const RegistrationScreen({super.key});
+  final String initialRole;
+  const RegistrationScreen({super.key, this.initialRole = 'patient'});
 
   @override
   ConsumerState<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -41,7 +42,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
-      const role = 'patient'; 
+      final role = widget.initialRole; 
       
       final authResult = await authService.registerWithEmail(
         _emailController.text.trim(),
@@ -53,9 +54,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
       if (authResult.user != null) {
         ref.read(userRoleProvider.notifier).setRole(role);
+        final userType = role == 'pharmacy' ? UserType.pharmacy : UserType.patient;
+        
+        setState(() => _isLoading = false); // Hide loader before navigation
+        
         navigator.pushReplacement(
           MaterialPageRoute(
-            builder: (_) => const SuccessScreen(userType: UserType.patient),
+            builder: (_) => SuccessScreen(userType: userType),
           ),
         );
       }
@@ -113,6 +118,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         if (profile != null) {
           ref.read(userRoleProvider.notifier).setRole(profile.role);
           final route = profile.role == 'pharmacy' ? '/pharmacy-dashboard' : '/main';
+          
+          setState(() => _isLoading = false); // Hide loader before navigation
+          
           navigator.pushNamedAndRemoveUntil(route, (r) => false);
         }
       }
@@ -135,8 +143,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back,
               color: AppTheme.textPrimaryColor, size: 22),
-          onPressed: () =>
-              Navigator.of(context).pushReplacementNamed('/gateway'),
+          onPressed: () {
+            ref.read(onboardingStageProvider.notifier).state = 'welcome';
+          },
         ),
         title: RichText(
           text: TextSpan(
@@ -198,7 +207,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Create Your Account',
+                  widget.initialRole == 'pharmacy' ? 'Pharmacy Registration' : 'Create Your Account',
                   style: textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -206,7 +215,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Join VailMeds to manage your health journey.',
+                  widget.initialRole == 'pharmacy' ? 'Register your pharmacy branch securely.' : 'Join VailMeds to manage your health journey.',
                   style: textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -222,11 +231,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       final navigator = Navigator.of(context);
                       setState(() => _isLoading = true);
                       try {
-                        final authResult = await ref.read(authServiceProvider).signInWithGoogle(role: 'patient');
+                        final authResult = await ref.read(authServiceProvider).signInWithGoogle(role: widget.initialRole);
                         if (authResult.user != null) {
-                          ref.read(userRoleProvider.notifier).setRole('patient');
+                          ref.read(userRoleProvider.notifier).setRole(widget.initialRole);
+                          
+                          setState(() => _isLoading = false); // Hide loader before navigation
+                          
                           if (authResult.isNewUser) {
-                            navigator.pushReplacementNamed('/success', arguments: 'patient');
+                            navigator.pushReplacementNamed('/success', arguments: widget.initialRole);
                           } else {
                             navigator.popUntil((route) => route.isFirst);
                           }
@@ -355,7 +367,28 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                         : const Text('Create Secure Account'),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Back to Login Link
+                TextButton(
+                  onPressed: () => Navigator.pushReplacementNamed(context, '/login', arguments: widget.initialRole),
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Already have an account? ',
+                      style: GoogleFonts.inter(color: AppTheme.textSecondaryColor),
+                      children: [
+                        TextSpan(
+                          text: 'Sign In',
+                          style: GoogleFonts.inter(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // HIPAA Footer
                 Row(

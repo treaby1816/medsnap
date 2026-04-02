@@ -72,10 +72,10 @@ class _SuccessScreenState extends State<SuccessScreen>
   @override
   Widget build(BuildContext context) {
     final isPatient = widget.userType == UserType.patient;
-    final headline = isPatient ? 'Login Successful!' : 'Executive Access Granted';
+    final headline = isPatient ? 'Login Successful!' : 'Application Received!';
     final subtext = isPatient 
       ? 'Securing your health portal and preparing your dashboard...' 
-      : 'Connecting to Pharmacy terminal and syncing live orders...';
+      : 'Redirecting to the verification portal. Our team will review your credentials shortly.';
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,

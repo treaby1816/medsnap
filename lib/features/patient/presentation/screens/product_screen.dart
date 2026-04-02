@@ -100,12 +100,44 @@ class ProductScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 32),
                             
-                            // Title
+                             // Title
                             Text(
                               product.name,
                               style: textTheme.displaySmall?.copyWith(
                                 fontWeight: FontWeight.bold,
+                                fontSize: 24,
                               ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Pharmacy Name & Badge
+                            Row(
+                              children: [
+                                const Icon(Icons.store_mall_directory_outlined, size: 16, color: AppTheme.textSecondaryColor),
+                                const SizedBox(width: 6),
+                                Text(
+                                  product.pharmacyName,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.textSecondaryColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.verified, size: 12, color: Colors.green),
+                                      SizedBox(width: 4),
+                                      Text('Verified', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 16),
                             
@@ -236,8 +268,7 @@ class ProductScreen extends ConsumerWidget {
                           'price': product.price,
                           'imageUrl': product.imageUrl,
                           'pharmacyId': product.pharmacyId,
-                          // Use a fallback for now, though ideally we'd pass pharmacyName here too
-                          'pharmacyName': 'Verified Pharmacy', 
+                          'pharmacyName': product.pharmacyName, 
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

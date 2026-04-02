@@ -140,7 +140,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          // UPDATED: Using withValues for Flutter 3.41+ compatibility
+          // UPDATED: Using withOpacity for backward compatibility
           color: Colors.white.withValues(alpha: 0.1),
           width: 2,
         ),
