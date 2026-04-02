@@ -66,12 +66,19 @@ service cloud.firestore {
     // --- Orders Collection ---
     match /orders/{orderId} {
       allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
         resource.data.patientId == request.auth.uid || 
+        resource.data.globalPharmacyId == request.auth.uid ||
         resource.data.pharmacyId == request.auth.uid
       );
-      allow create: if isSignedIn() && request.resource.data.patientId == request.auth.uid;
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid || 
+        request.resource.data.patientId == request.auth.uid
+      );
       allow update: if isSignedIn() && (
+        resource.data.globalPharmacyId == request.auth.uid || 
         resource.data.pharmacyId == request.auth.uid || 
+        resource.data.userId == request.auth.uid || 
         resource.data.patientId == request.auth.uid
       );
     }
