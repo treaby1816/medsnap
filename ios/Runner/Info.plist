@@ -33,6 +33,10 @@
 	<string>VailMeds requires gallery access to let you select saved medical documents.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>VailMeds requires microphone access for telehealth consultations.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>VailMeds needs your location to find the closest pharmacies, labs, and hospitals.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>VailMeds needs your location to provide real-time tracking for medical deliveries.</string>
 
 	<key>UIApplicationSceneManifest</key>
 	<dict>
