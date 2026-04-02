@@ -1,7 +1,7 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong2.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/theme.dart';
 import '../../widgets/glass_app_bar.dart';
 
@@ -13,13 +13,10 @@ class NearbyFacilitiesScreen extends StatefulWidget {
 }
 
 class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
-  GoogleMapController? _mapController;
+  final MapController _mapController = MapController();
 
   // Center of Lekki, Lagos
-  static const CameraPosition _initialCameraPosition = CameraPosition(
-    target: LatLng(6.4526, 3.4475),
-    zoom: 13.5,
-  );
+  final LatLng _initialCenter = const LatLng(6.4526, 3.4475);
 
   // Mock facilities data with coordinates
   final List<_FacilityData> _facilities = const [
@@ -65,45 +62,8 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
     ),
   ];
 
-  Set<Marker> _buildMarkers() {
-    return _facilities.map((facility) {
-      double hue;
-      switch (facility.type) {
-        case 'pharmacy':
-          hue = BitmapDescriptor.hueOrange;
-          break;
-        case 'lab':
-          hue = BitmapDescriptor.hueAzure;
-          break;
-        case 'hospital':
-          hue = BitmapDescriptor.hueGreen;
-          break;
-        default:
-          hue = BitmapDescriptor.hueRed;
-      }
-      return Marker(
-        markerId: MarkerId(facility.name),
-        position: facility.location,
-        icon: BitmapDescriptor.defaultMarkerWithHue(hue),
-        infoWindow: InfoWindow(
-          title: facility.name,
-          snippet: facility.hours,
-        ),
-      );
-    }).toSet();
-  }
-
-  void _onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
-  }
-
   void _focusFacility(_FacilityData facility) {
-    if (_mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(facility.location, 16.0),
-      );
-      _mapController!.showMarkerInfoWindow(MarkerId(facility.name));
-    }
+    _mapController.move(facility.location, 16.0);
   }
 
   @override
@@ -122,17 +82,51 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
       ),
       body: Column(
         children: [
-          // Top Half: Google Map
+          // Top Half: OpenStreetMap (flutter_map)
           SizedBox(
-            height: MediaQuery.of(context).size.height * 0.45,
+            height: MediaQuery.of(context).size.height * 0.40,
             width: double.infinity,
-            child: GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: _initialCameraPosition,
-              markers: _buildMarkers(),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _initialCenter,
+                initialZoom: 13.5,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.vailmeds.app',
+                ),
+                MarkerLayer(
+                  markers: _facilities.map((facility) {
+                    Color markerColor;
+                    switch (facility.type) {
+                      case 'pharmacy': markerColor = AppTheme.primaryColor; break;
+                      case 'lab': markerColor = const Color(0xFF3B82F6); break;
+                      case 'hospital': markerColor = const Color(0xFF22C55E); break;
+                      default: markerColor = Colors.red;
+                    }
+
+                    return Marker(
+                      point: facility.location,
+                      width: 40,
+                      height: 40,
+                      child: GestureDetector(
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(facility.name), duration: const Duration(seconds: 1)),
+                          );
+                        },
+                        child: Icon(
+                          Icons.location_on_rounded,
+                          color: markerColor,
+                          size: 40,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
           ),
 
@@ -262,26 +256,13 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                InkWell(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Opening directions to ${facility.name} (Requires Google Maps App)'),
-                        backgroundColor: AppTheme.primaryColor,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.directions_rounded, size: 18, color: AppTheme.primaryColor),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: const Icon(Icons.directions_rounded, size: 18, color: AppTheme.primaryColor),
                 ),
               ],
             ),
