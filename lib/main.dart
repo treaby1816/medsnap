@@ -59,11 +59,11 @@ void main() async {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'An unexpected error occurred.\nPlease restart the app.',
+                Text(
+                  'Error details:\n${details.exceptionAsString()}',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: const TextStyle(
+                    fontSize: 12,
                     color: Color(0xFF64748B),
                   ),
                 ),

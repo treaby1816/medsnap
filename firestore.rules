@@ -40,7 +40,11 @@ service cloud.firestore {
 
     // --- Users Collection ---
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow read: if request.auth != null && (
+        request.auth.uid == userId || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (resource.data.role == 'pharmacy' && resource.data.isAdminApproved == true)
+      );
       
       allow create: if request.auth != null && request.auth.uid == userId 
                     && request.resource.data.role == 'patient'
