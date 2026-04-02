@@ -201,7 +201,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       'VailMeds',
                       style: GoogleFonts.inter(
                         fontSize: 24,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
                         letterSpacing: -0.5,
                       ),

@@ -178,7 +178,7 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
         children: [
           Text(
             'MATCH FOUND',
-            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2.0),
+            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2.0),
           ),
           const SizedBox(height: 8),
           Text(

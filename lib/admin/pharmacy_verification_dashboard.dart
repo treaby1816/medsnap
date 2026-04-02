@@ -236,7 +236,7 @@ class _PharmacyVerificationDashboardState extends ConsumerState<PharmacyVerifica
         children: [
           Text(
             'Verification Details',
-            style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: backgroundSlate),
+            style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: backgroundSlate),
           ),
           IconButton(
             icon: const Icon(Icons.close),

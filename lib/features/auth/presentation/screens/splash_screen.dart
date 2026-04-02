@@ -108,7 +108,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       'VailMeds',
                       style: GoogleFonts.inter(
                         fontSize: 42,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
                         letterSpacing: -1.0,
                       ),

@@ -65,7 +65,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
           style: GoogleFonts.inter(
             color: Colors.white,
             fontSize: 18,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.bold,
             letterSpacing: -0.5,
           ),
         ),
@@ -112,7 +112,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                     profile?.name ?? 'Pharmacist',
                     style: GoogleFonts.inter(
                       fontSize: 24,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.bold,
                       color: _deepBlue,
                       letterSpacing: -1,
                     ),
@@ -209,7 +209,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                   'Live Order Queue',
                   style: GoogleFonts.inter(
                     fontSize: 18,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.bold,
                     color: _deepBlue,
                     letterSpacing: -0.5,
                   ),
@@ -224,7 +224,19 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                   .where('status', isEqualTo: 'Pending')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
+                if (snapshot.hasError) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1), 
+                      borderRadius: BorderRadius.circular(16)
+                    ),
+                    child: Text('Stream Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -232,6 +244,10 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (_, __) => const ShimmerEffect(width: double.infinity, height: 80, borderRadius: 16),
                   );
+                }
+                
+                if (!snapshot.hasData) {
+                  return const SizedBox.shrink();
                 }
                 
                 final rawDocs = snapshot.data!.docs;
@@ -320,7 +336,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                                     Text(
                                       data['patientName'] ?? 'Unknown Patient',
                                       style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w900,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                         color: _deepBlue,
                                       ),
@@ -384,7 +400,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                       'Fast Moving Items',
                       style: GoogleFonts.inter(
                         fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.bold,
                         color: _deepBlue,
                         letterSpacing: -0.5,
                       ),
@@ -529,7 +545,7 @@ class _StatCard extends StatelessWidget {
             value,
             style: GoogleFonts.inter(
               fontSize: 32,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.bold,
               color: textColor,
               letterSpacing: -1,
             ),

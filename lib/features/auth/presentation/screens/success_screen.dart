@@ -142,7 +142,7 @@ class _SuccessScreenState extends State<SuccessScreen>
                             headline,
                             style: GoogleFonts.inter(
                               fontSize: 32,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.bold,
                               color: AppTheme.textPrimaryColor,
                               letterSpacing: -0.5,
                             ),

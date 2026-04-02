@@ -68,7 +68,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Text(
                 'Auditor Access',
                 style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.bold,
                   color: const Color(0xFF0F172A),
                 ),
               ),

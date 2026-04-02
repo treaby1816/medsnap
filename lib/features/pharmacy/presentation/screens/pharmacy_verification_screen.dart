@@ -315,7 +315,7 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
             'Review in Progress',
             style: GoogleFonts.inter(
               fontSize: 24,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.bold,
               color: const Color(0xFF1E293B),
             ),
           ),
