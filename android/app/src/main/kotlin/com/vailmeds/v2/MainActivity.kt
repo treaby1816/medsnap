@@ -1,6 +1,3 @@
-package com.vailmeds.v2 // This must match your build.gradle.kts namespace
-
+package com.vailmeds.v2
 import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity: FlutterActivity() {
-}
+class MainActivity: FlutterActivity() {}

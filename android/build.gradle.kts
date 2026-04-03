@@ -1,13 +1,15 @@
 // android/build.gradle.kts
 
-// 1. We only define the Google Services plugin here. 
-// We DON'T define com.android.application or library here because 
-// Flutter handles those automatically in the background.
 plugins {
-    id("com.google.gms.google-services") version "4.4.2" apply false
+    // DO NOT add 'version "..."' here. 
+    // Versions are strictly managed in settings.gradle.kts.
+    id("com.android.application") apply false
+    id("com.android.library") apply false
+    id("org.jetbrains.kotlin.android") apply false
+    id("com.google.gms.google-services") apply false
+    id("dev.flutter.flutter-gradle-plugin") apply false
 }
 
-// 2. Your 2026 Lazy Properties logic
 rootProject.layout.buildDirectory.set(file("../build"))
 
 subprojects {
@@ -20,7 +22,6 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Modern Clean Task
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

@@ -1,3 +1,5 @@
+// android/settings.gradle.kts
+
 pluginManagement {
     val flutterSdkPath = run {
         val properties = java.util.Properties()
@@ -13,36 +15,26 @@ pluginManagement {
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
-        // PRIORITY: Google and MavenCentral must come first for GMS plugins
         google()
         mavenCentral()
         gradlePluginPortal()
-        
-        // MIRRORS: Fallback for other dependencies
-        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
     }
 }
 
 plugins {
+    // This is the ONLY place in the entire project where versions are defined.
     id("com.android.application") version "8.7.0" apply false
-    // Using 4.4.2 is correct, but the repo priority above is what makes it "findable"
-    id("com.google.gms.google-services") version "4.4.2" apply false
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
-    id("dev.flutter.flutter-plugin-loader") version "1.0.0" apply false
+    id("com.google.gms.google-services") version "4.4.2" apply false
+    id("dev.flutter.flutter-gradle-plugin") version "1.0.0" apply false
 }
 
 dependencyResolutionManagement {
-    // PREFER_PROJECT is safer for Flutter projects with multiple plugin dependencies
     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
         google()
         mavenCentral()
-        
-        // Aliyun mirrors
         maven { url = uri("https://maven.aliyun.com/repository/public") }
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
         maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
     }
 }

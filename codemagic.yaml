@@ -1,14 +1,31 @@
+# codemagic.yaml for VailMeds v2 (2026)
 workflows:
-  android-debug:
-    name: Android Debug Workflow
+  android-release:
+    name: Android Release APK Build
+    instance_type: linux_x2
     max_build_duration: 60
-    instance_type: mac_mini_m1
     environment:
+      groups:
+        - firebase_credentials # Optional: if you set up secret vars in UI
       flutter: stable
+      java: 21
     scripts:
-      - name: Flutter get packages
-        script: flutter pub get
-      - name: Build Android APK
-        script: flutter build apk --debug
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Build Android APK (Split)
+        script: |
+          # This command creates the 3 APKs for your Infinix and other devices
+          flutter build apk --release --split-per-abi --no-tree-shake-icons
     artifacts:
-      - build/app/outputs/flutter-apk/app-debug.apk
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # Replace with your real email
+        notify:
+          success: true
+          failure: true

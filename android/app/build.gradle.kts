@@ -1,7 +1,7 @@
 // android/app/build.gradle.kts
 
 repositories {
-    // Keep your custom mirrors for faster downloads in your region
+    // Custom mirrors for faster downloads in Nigeria
     maven { url = uri("https://maven.aliyun.com/repository/public") }
     maven { url = uri("https://maven.aliyun.com/repository/google") }
     google()
@@ -12,7 +12,8 @@ repositories {
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
-    id("kotlin-android")
+    // Use the modern Kotlin plugin ID
+    id("org.jetbrains.kotlin.android") 
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -27,12 +28,12 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         
-        // REMOVED: ndk { abiFilters ... } 
-        // Flutter's --split-per-abi command handles this automatically now.
+        // Let Flutter handle the ABI splits via command line
     }
 
     buildTypes {
         getByName("release") {
+            // High-performance optimization for production
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
@@ -58,17 +59,17 @@ flutter {
 }
 
 dependencies {
-    // --- FIREBASE 2026 CONFIGURATION ---
+    // --- FIREBASE 2026 BoM ---
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
 
-    // --- KOTLIN & ANDROIDX ---
+    // --- MODERN ANDROIDX & KOTLIN ---
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.appcompat:appcompat:1.7.0")
 
-    // --- ENGINE & PLUGIN RESOLUTION ---
-    implementation(files("D:/flutter/bin/cache/artifacts/engine/android-arm64/flutter.jar"))
+    // --- PLUGIN RESOLUTION ---
+    // Standard Flutter plugin resolution logic
     implementation(fileTree(mapOf("dir" to "../../build/host/outputs/repo", "include" to listOf("*.jar"))))
 }
