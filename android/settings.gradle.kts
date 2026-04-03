@@ -23,9 +23,9 @@ pluginManagement {
 
 plugins {
     // This is the ONLY place in the entire project where versions are defined.
-    // Downgraded to 2024/2025 STABLE for CI/CD compatibility
-    id("com.android.application") version "8.2.2" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+    // Standardizing to high-performance versions for 2026/Codemagic environment
+    id("com.android.application") version "8.7.0" apply false
+    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
     id("com.google.gms.google-services") version "4.4.2" apply false
     id("dev.flutter.flutter-gradle-plugin") version "1.0.0" apply false
 }
