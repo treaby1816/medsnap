@@ -2,20 +2,19 @@
 
 plugins {
     id("com.android.application")
-    // Use the modern Kotlin plugin ID
+    id("dev.flutter.flutter-gradle-plugin")
     id("org.jetbrains.kotlin.android") 
     id("com.google.gms.google-services")
-    id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.vailmeds.v2"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.vailmeds.v2"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
     }
@@ -31,12 +30,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "21"
+        jvmTarget = "17"
     }
 }
 
@@ -51,7 +50,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
 
     // --- MODERN ANDROIDX & KOTLIN ---
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.appcompat:appcompat:1.7.0")
 }

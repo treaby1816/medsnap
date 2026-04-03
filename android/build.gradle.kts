@@ -5,11 +5,10 @@
 allprojects {
     repositories {
         google()
-        mavenCentral()
-        // Essential for Flutter engine and plugin artifacts
         maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
+        mavenCentral()
         
-        // Optional: High-performance mirrors for builds in Nigeria/Global
+        // Reliability mirrors
         maven { url = uri("https://maven.aliyun.com/repository/public") }
         maven { url = uri("https://maven.aliyun.com/repository/google") }
     }

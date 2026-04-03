@@ -23,20 +23,11 @@ pluginManagement {
 
 plugins {
     // This is the ONLY place in the entire project where versions are defined.
-    id("com.android.application") version "8.7.0" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+    // Downgraded to 2024/2025 STABLE for CI/CD compatibility
+    id("com.android.application") version "8.2.2" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
     id("com.google.gms.google-services") version "4.4.2" apply false
     id("dev.flutter.flutter-gradle-plugin") version "1.0.0" apply false
-}
-
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
-        maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
-    }
 }
 
 rootProject.name = "vail_meds_v2"
