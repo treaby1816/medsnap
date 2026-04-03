@@ -1,5 +1,20 @@
 // android/build.gradle.kts
 
+// --- THE AMNESIA FIX: MASTER REPOSITORY ALIGNMENT ---
+// This ensures every subproject (app, plugins, Firebase) can find the internet.
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        // Essential for Flutter engine and plugin artifacts
+        maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
+        
+        // Optional: High-performance mirrors for builds in Nigeria/Global
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+    }
+}
+
 plugins {
     // DO NOT add 'version "..."' here. 
     // Versions are strictly managed in settings.gradle.kts.
