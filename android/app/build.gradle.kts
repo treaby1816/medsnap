@@ -1,19 +1,10 @@
 // android/app/build.gradle.kts
 
-repositories {
-    // Custom mirrors for faster downloads in Nigeria
-    maven { url = uri("https://maven.aliyun.com/repository/public") }
-    maven { url = uri("https://maven.aliyun.com/repository/google") }
-    google()
-    mavenCentral() 
-    maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
-}
-
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
     // Use the modern Kotlin plugin ID
     id("org.jetbrains.kotlin.android") 
+    id("com.google.gms.google-services")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -27,20 +18,15 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
-        
-        // Let Flutter handle the ABI splits via command line
     }
 
     buildTypes {
         getByName("release") {
-            // High-performance optimization for production
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Let Flutter CLI handle minification and obfuscation. 
+            // Setting this to true manually in Gradle often breaks Firebase in 2026.
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
     }
 
@@ -59,6 +45,19 @@ flutter {
 }
 
 dependencies {
+    // --- UNIVERSAL ANTIGRAVITY FIX FOR CODEMAGIC & LOCAL ---
+    // This dynamically finds the Flutter engine whether on Windows D: drive or Codemagic Linux servers
+    val flutterSdkPath = project.findProperty("flutter.sdk")?.toString() ?: ""
+    val flutterJarPath = file("$flutterSdkPath/bin/cache/artifacts/engine/android-arm64-release/flutter.jar")
+    
+    if (flutterJarPath.exists()) {
+        implementation(files(flutterJarPath))
+    } else {
+        implementation(fileTree("$flutterSdkPath/bin/cache/artifacts/engine") {
+            include("**/*.jar")
+        })
+    }
+
     // --- FIREBASE 2026 BoM ---
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-analytics")
@@ -68,8 +67,4 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.appcompat:appcompat:1.7.0")
-
-    // --- PLUGIN RESOLUTION ---
-    // Standard Flutter plugin resolution logic
-    implementation(fileTree(mapOf("dir" to "../../build/host/outputs/repo", "include" to listOf("*.jar"))))
 }
