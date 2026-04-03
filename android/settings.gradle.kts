@@ -29,7 +29,7 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
 
     // Version declarations for project plugins (apply false = available but not applied here)
-    id("com.android.application") version "8.7.0" apply false
+    id("com.android.application") version "8.9.1" apply false
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
     id("com.google.gms.google-services") version "4.4.2" apply false
     id("dev.flutter.flutter-gradle-plugin") version "1.0.0" apply false

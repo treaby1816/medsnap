@@ -39,12 +39,12 @@ if (flutterSdkPath != null) {
 
 android {
     namespace = "com.vailmeds.v2"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.vailmeds.v2"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
     }
@@ -58,6 +58,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -72,6 +73,8 @@ flutter {
 }
 
 dependencies {
+    // --- CORE LIBRARY DESUGARING ---
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     // --- DECLARATIVE ENGINE INJECTION (per build type) ---
     if (engineVersion != null) {
         add("debugImplementation", "io.flutter:flutter_embedding_debug:$engineVersion")
