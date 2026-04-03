@@ -1,21 +1,46 @@
 // android/build.gradle.kts
 
-// --- THE AMNESIA FIX: MASTER REPOSITORY ALIGNMENT ---
-// This ensures every subproject (app, plugins, Firebase) can find the internet.
+// --- REPOSITORY ALIGNMENT: LOCAL ENGINE FIRST, THEN REMOTE ---
+// The Flutter SDK ships its engine as a local Maven repo inside the SDK cache.
+// We read flutter.sdk from local.properties (or env vars) and add that repo
+// FIRST so Gradle resolves io.flutter artifacts locally — never hitting the network.
 allprojects {
     repositories {
+        // 1. Local Flutter engine Maven repo (highest priority)
+        //    This is populated by `flutter precache --android` and contains
+        //    flutter_embedding_debug/release/profile + arm/x86 .so artifacts.
+        val flutterSdkPath = run {
+            val properties = java.util.Properties()
+            val localPropertiesFile = rootProject.file("local.properties")
+            if (localPropertiesFile.exists()) {
+                localPropertiesFile.inputStream().use { properties.load(it) }
+            }
+            properties.getProperty("flutter.sdk")
+                ?: System.getenv("FLUTTER_ROOT")
+                ?: System.getenv("FLUTTER_SDK")
+        }
+        if (flutterSdkPath != null) {
+            maven {
+                url = uri("$flutterSdkPath/bin/cache/artifacts/engine")
+                content {
+                    includeGroup("io.flutter")
+                }
+            }
+        }
+
+        // 2. Standard remote repositories
         google()
         maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
         mavenCentral()
-        
-        // Reliability mirrors
+
+        // 3. Reliability mirrors (fallback for slow/flaky networks)
         maven { url = uri("https://maven.aliyun.com/repository/public") }
         maven { url = uri("https://maven.aliyun.com/repository/google") }
     }
 }
 
 plugins {
-    // DO NOT add 'version "..."' here. 
+    // DO NOT add 'version "..."' here.
     // Versions are strictly managed in settings.gradle.kts.
     id("com.android.application") apply false
     id("com.android.library") apply false

@@ -1,31 +1,53 @@
 # codemagic.yaml for VailMeds v2 (2026)
+# CI Platform: Codemagic macOS M2
+
 workflows:
   android-release:
     name: Android Release APK Build
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       groups:
-        - firebase_credentials # Optional: if you set up secret vars in UI
+        - firebase_credentials
       flutter: stable
       java: 21
     scripts:
-      - name: Set up local.properties
+      # Step 1: Generate local.properties with correct Flutter SDK path
+      # On Codemagic macOS M2, Flutter is installed at $HOME/programs/flutter
+      - name: Generate local.properties
         script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+          FLUTTER_PATH="$HOME/programs/flutter"
+          ANDROID_SDK_PATH="$ANDROID_SDK_ROOT"
+          cat > "$CM_BUILD_DIR/android/local.properties" <<EOF
+          sdk.dir=$ANDROID_SDK_PATH
+          flutter.sdk=$FLUTTER_PATH
+          flutter.versionName=1.0.0
+          flutter.versionCode=1
+          EOF
+
+      # Step 2: Pre-cache Android engine artifacts BEFORE Gradle runs
+      # This populates <flutter_sdk>/bin/cache/artifacts/engine/ with the
+      # local Maven repo containing io.flutter:flutter_embedding_debug/release.
+      # Without this, Gradle searches remote repos for a hash that doesn't exist there.
+      - name: Pre-cache Flutter Android engine
+        script: |
+          flutter precache --android
+
+      # Step 3: Resolve Dart/Flutter dependencies
       - name: Get Flutter packages
         script: |
-          flutter packages pub get
+          flutter pub get
+
+      # Step 4: Build the APK
       - name: Build Android APK (Split)
         script: |
-          # This command creates the 3 APKs for your Infinix and other devices
           flutter build apk --release --split-per-abi --no-tree-shake-icons
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
     publishing:
       email:
         recipients:
-          - your-email@example.com # Replace with your real email
+          - your-email@example.com  # Replace with your real email
         notify:
           success: true
           failure: true
