@@ -1,7 +1,5 @@
 // android/app/build.gradle.kts
 
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("dev.flutter.flutter-gradle-plugin")
@@ -10,19 +8,17 @@ plugins {
 }
 
 // --- DECLARATIVE ENGINE CLASSPATH MAPPING ---
-// The Flutter Gradle plugin SHOULD inject io.flutter:flutter_embedding automatically,
-// but in CI environments it can fail silently. This block reads the engine version hash
-// from the SDK and maps the engine directly onto the compile + runtime classpath.
+// Reads Flutter SDK path from local.properties using pure Kotlin (no java.util imports).
+// Then reads the engine version hash and maps the engine onto the classpath directly.
 val flutterSdkPath: String? = run {
-    val properties = java.util.Properties()
     val localPropertiesFile = rootProject.file("local.properties")
     if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use { properties.load(it) }
-    }
-    properties.getProperty("flutter.sdk")
-        ?: System.getenv("FLUTTER_ROOT")
-        ?: System.getenv("FLUTTER_SDK")
-}
+        localPropertiesFile.readLines()
+            .firstOrNull { it.startsWith("flutter.sdk=") }
+            ?.substringAfter("=")
+            ?.trim()
+    } else null
+} ?: System.getenv("FLUTTER_ROOT") ?: System.getenv("FLUTTER_SDK")
 
 val engineVersion: String? = if (flutterSdkPath != null) {
     val versionFile = file("$flutterSdkPath/bin/internal/engine.version")
@@ -30,7 +26,6 @@ val engineVersion: String? = if (flutterSdkPath != null) {
 } else null
 
 // Add local engine Maven repo directly to :app project
-// This is where `flutter precache --android` stores the engine JARs/POMs.
 if (flutterSdkPath != null) {
     repositories {
         maven {
@@ -56,7 +51,6 @@ android {
 
     buildTypes {
         getByName("release") {
-            // Let Flutter CLI handle minification and obfuscation.
             isMinifyEnabled = false
             isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
@@ -79,9 +73,6 @@ flutter {
 
 dependencies {
     // --- DECLARATIVE ENGINE INJECTION (per build type) ---
-    // Maps the local Flutter SDK engine directly onto the classpath.
-    // The version is read from <flutter_sdk>/bin/internal/engine.version
-    // and the JAR is resolved from <flutter_sdk>/bin/cache/artifacts/engine/.
     if (engineVersion != null) {
         add("debugImplementation", "io.flutter:flutter_embedding_debug:$engineVersion")
         add("releaseImplementation", "io.flutter:flutter_embedding_release:$engineVersion")
