@@ -15,7 +15,10 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com',
+    // ONLY provide clientId directly on Web. On Android/iOS, it reads automatically from google-services.json.
+    clientId: kIsWeb ? '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com' : null,
+    // serverClientId is not supported on Web. For iOS/Android it provides a server auth code.
+    serverClientId: kIsWeb ? null : '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com',
     scopes: [
       'email',
       'openid',

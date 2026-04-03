@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/user_profile.dart';
 import '../models/product_model.dart';
+import '../models/support_ticket.dart';
+import '../services/support_service.dart';
 import '../providers.dart';
 import '../utils/audit_logger.dart';
 
@@ -83,6 +85,21 @@ final adminActivityProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
       .limit(10)
       .snapshots()
       .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+});
+
+// ── SUPPORT SYSTEM PROVIDERS ──
+
+/// Provider for the Support Service.
+final supportServiceProvider = Provider<SupportService>((ref) => SupportService());
+
+/// Streams all active support tickets.
+final supportTicketsProvider = StreamProvider.family<List<SupportTicket>, String?>((ref, filter) {
+  return ref.read(supportServiceProvider).getTicketsStream(userTypeFilter: filter);
+});
+
+/// Streams messages for a specific support ticket.
+final supportMessagesProvider = StreamProvider.family<List<TicketMessage>, String>((ref, ticketId) {
+  return ref.read(supportServiceProvider).getMessagesStream(ticketId);
 });
 
 /// Aggregated dashboard stats pulled from Firestore in real-time.

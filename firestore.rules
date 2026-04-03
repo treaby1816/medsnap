@@ -86,5 +86,21 @@ service cloud.firestore {
         resource.data.patientId == request.auth.uid
       );
     }
+
+    // --- Chats Collection ---
+    match /chats/{chatId} {
+      // Users can read chats where they are a participant
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      // Users can create chats if they are one of the participants
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      // Users can update chats they are a part of (e.g. to update unread counts or last messages)
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Users can read and write messages in a chat they participate in
+        allow read, write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+    }
   }
 }

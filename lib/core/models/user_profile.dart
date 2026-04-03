@@ -28,6 +28,10 @@ class UserProfile {
   final String? npiNumber;
   final bool isAdminApproved;
   final String verificationStatus; // 'none', 'pending', 'approved', 'rejected'
+  
+  // Location Fields
+  final double? latitude;
+  final double? longitude;
 
   bool get isVerificationPending => verificationStatus == 'pending';
   bool get isAdmin => role == 'admin';
@@ -56,6 +60,8 @@ class UserProfile {
     this.npiNumber,
     this.isAdminApproved = false,
     this.verificationStatus = 'none',
+    this.latitude,
+    this.longitude,
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map, [String? uid]) {
@@ -85,6 +91,8 @@ class UserProfile {
       npiNumber: map['npiNumber'],
       isAdminApproved: map['isAdminApproved'] ?? false,
       verificationStatus: map['verificationStatus'] ?? 'none',
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -113,6 +121,8 @@ class UserProfile {
       'npiNumber': npiNumber,
       'isAdminApproved': isAdminApproved,
       'verificationStatus': verificationStatus,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -140,6 +150,8 @@ class UserProfile {
     String? npiNumber,
     bool? isAdminApproved,
     String? verificationStatus,
+    double? latitude,
+    double? longitude,
   }) {
     return UserProfile(
       uid: uid ?? this.uid,
@@ -165,6 +177,8 @@ class UserProfile {
       npiNumber: npiNumber ?? this.npiNumber,
       isAdminApproved: isAdminApproved ?? this.isAdminApproved,
       verificationStatus: verificationStatus ?? this.verificationStatus,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 }

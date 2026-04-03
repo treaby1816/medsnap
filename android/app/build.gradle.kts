@@ -11,7 +11,6 @@ repositories {
 
 plugins {
     id("com.android.application")
-    // This connects your app to the google-services.json file
     id("com.google.gms.google-services")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
@@ -27,6 +26,21 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+        
+        // REMOVED: ndk { abiFilters ... } 
+        // Flutter's --split-per-abi command handles this automatically now.
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     compileOptions {
@@ -45,22 +59,16 @@ flutter {
 
 dependencies {
     // --- FIREBASE 2026 CONFIGURATION ---
-    // 1. Import the Firebase BoM (Bill of Materials)
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
-
-    // 2. Add the specific Firebase Services you need
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth") // <--- THIS LINE FIXES THE "AUTH NOT FOUND" ERROR
+    implementation("com.google.firebase:firebase-auth")
 
     // --- KOTLIN & ANDROIDX ---
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.appcompat:appcompat:1.7.0")
 
-    // --- YOUR CUSTOM ENGINE FIX ---
-    // Ensure this path is still correct on your D: drive
+    // --- ENGINE & PLUGIN RESOLUTION ---
     implementation(files("D:/flutter/bin/cache/artifacts/engine/android-arm64/flutter.jar"))
-
-    // --- PLUGIN RESOLUTION FIX ---
     implementation(fileTree(mapOf("dir" to "../../build/host/outputs/repo", "include" to listOf("*.jar"))))
 }

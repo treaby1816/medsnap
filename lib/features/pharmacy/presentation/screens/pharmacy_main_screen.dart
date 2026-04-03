@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
+import '../../../../widgets/floating_chat_button.dart';
+import '../../../../widgets/floating_chat_panel.dart';
 import 'pharmacy_dashboard_screen.dart';
 import 'pharmacy_inventory_screen.dart';
 import 'pharmacy_orders_screen.dart';
@@ -35,7 +37,15 @@ class _PharmacyMainScreenState extends State<PharmacyMainScreen> {
   Widget build(BuildContext context) {
     // Uses theme's BottomNavigationBarThemeData — no manual styling needed
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: Stack(
+        children: [
+          IndexedStack(index: _currentIndex, children: _screens),
+          // Floating Chat Button — Pharmacy Dashboard
+          FloatingChatButton(
+            onPressed: () => showFloatingChatPanel(context, userRole: 'pharmacy'),
+          ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

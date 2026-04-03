@@ -10,6 +10,8 @@ import 'package:vail_meds_v2/core/services/chat_service.dart';
 import 'package:vail_meds_v2/core/services/health_service.dart';
 import 'package:vail_meds_v2/core/services/order_service.dart';
 import 'package:vail_meds_v2/core/services/payment_service.dart';
+import 'package:vail_meds_v2/core/services/location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 // --- MODELS (UNIFIED PATH) ---
 // Note: Ensure you have deleted the duplicate files in lib/models/ 
@@ -23,6 +25,7 @@ final onboardingStageProvider = StateProvider<String>((ref) => 'splash');
 
 // --- SERVICE PROVIDERS ---
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+final locationServiceProvider = Provider<LocationService>((ref) => LocationService());
 final pharmacyServiceProvider = Provider<PharmacyService>((ref) => PharmacyService());
 final ocrServiceProvider = Provider<OCRService>((ref) => OCRService());
 final chatServiceProvider = Provider((ref) => ChatService());
@@ -75,6 +78,19 @@ class UserRoleNotifier extends Notifier<String?> {
 
 final userRoleProvider = NotifierProvider<UserRoleNotifier, String?>(UserRoleNotifier.new);
 
+// --- CHAT PROVIDERS ---
+final unreadChatCountProvider = StreamProvider<int>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(0);
+  return ref.watch(chatServiceProvider).getTotalUnreadCount(user.uid);
+});
+
+final conversationsProvider = StreamProvider<List<ChatConversation>>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value([]);
+  return ref.watch(chatServiceProvider).getConversations(user.uid);
+});
+
 // --- PHARMACY DISCOVERY & CHAT ---
 final verifiedPharmaciesProvider = StreamProvider<List<UserProfile>>((ref) {
   return FirebaseFirestore.instance
@@ -85,6 +101,58 @@ final verifiedPharmaciesProvider = StreamProvider<List<UserProfile>>((ref) {
       .map((snapshot) => snapshot.docs
           .map((doc) => UserProfile.fromMap(doc.data(), doc.id))
           .toList());
+});
+
+// --- GEOLOCATION & NEARBY PHARMACIES ---
+final userLocationProvider = FutureProvider<Position?>((ref) async {
+  try {
+    return await ref.read(locationServiceProvider).getCurrentPosition();
+  } catch (e) {
+    // If permissions fail or user denies, we return null to use mock location fallback
+    return null; 
+  }
+});
+
+// A consolidated provider that attaches distance (km/minutes) to each verified pharmacy
+final nearbyPharmaciesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final pharmaciesAsync = ref.watch(verifiedPharmaciesProvider);
+  final userLocationAsync = ref.watch(userLocationProvider);
+
+  // Wait for both to be available, or handle loading states here if we wanted complex streams.
+  if (pharmaciesAsync.isLoading) return [];
+  
+  final pharmacies = pharmaciesAsync.value ?? [];
+  final userPosition = userLocationAsync.value;
+
+  // Mock patient coordinate (Center of Lekki Phase 1) if real location is unavailable or denied
+  final finalLat = userPosition?.latitude ?? 6.4468;
+  final finalLng = userPosition?.longitude ?? 3.4563;
+
+  final locationService = ref.read(locationServiceProvider);
+
+  // For each pharmacy, calculate distance. Use a dummy location for old pharmacies that lack data.
+  final listWithDistance = pharmacies.map((pharmacy) {
+    // Dummy coordinate for older pharmacies (somewhere nearby in Victoria Island, etc)
+    // In production, we'll enforce registration of lat/lng.
+    double pLat = pharmacy.latitude ?? (6.4285 + (pharmacy.uid.hashCode % 100) / 10000.0);
+    double pLng = pharmacy.longitude ?? (3.4150 + (pharmacy.uid.hashCode % 100) / 10000.0);
+
+    final distanceData = locationService.calculateDistanceAndDuration(
+      finalLat, finalLng, pLat, pLng,
+    );
+
+    return {
+      'profile': pharmacy,
+      'distanceKm': distanceData.distanceInKm,
+      'estimatedMinutes': distanceData.estimatedMinutes,
+    };
+  }).toList();
+
+  // Sort by shortest distance first
+  listWithDistance.sort((a, b) => (a['distanceKm'] as double).compareTo(b['distanceKm'] as double));
+
+  // Return Top 5 closest
+  return listWithDistance.take(5).toList();
 });
 
 final pendingPharmaciesProvider = StreamProvider<List<UserProfile>>((ref) {

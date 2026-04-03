@@ -17,6 +17,7 @@ class HomeScreen extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final userProfile = ref.watch(userProfileProvider).value;
     final verifiedPharmacies = ref.watch(verifiedPharmaciesProvider).value ?? [];
+    final nearbyPharmaciesAsync = ref.watch(nearbyPharmaciesProvider);
     final cartItems = ref.watch(cartProvider);
     final healthNews = ref.watch(healthNewsProvider);
     final allProducts = ref.watch(allProductsProvider);
@@ -60,29 +61,12 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     Row(
                       children: [
-                        // Pharmacy Chat Icon
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.chat_bubble_outline, color: AppTheme.primaryColor),
-                              onPressed: () => _showPharmacySelection(context, ref, verifiedPharmacies),
-                            ),
-                            if (verifiedPharmacies.isNotEmpty)
-                              Positioned(
-                                right: 8,
-                                top: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                  child: Text(
-                                    '${verifiedPharmacies.length}',
-                                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                          ],
+                        // Profile Icon
+                        IconButton(
+                          icon: const Icon(Icons.person_outline, color: AppTheme.primaryColor),
+                          onPressed: () => Navigator.pushNamed(context, '/profile'),
                         ),
+
                         // Cart Icon
                         Stack(
                           clipBehavior: Clip.none,
@@ -344,7 +328,7 @@ class HomeScreen extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-            // Featured Pharmacies Carousel
+            // Dynamic Nearby Pharmacies Carousel
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,30 +338,42 @@ class HomeScreen extends ConsumerWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Featured Pharmacies', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const Icon(Icons.verified, color: Colors.blue, size: 18),
+                        Text('Top Nearby Pharmacies', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        const Icon(Icons.my_location, color: AppTheme.primaryColor, size: 18),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (verifiedPharmacies.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                      child: Text("Finding verified pharmacies...", style: TextStyle(fontSize: 12)),
-                    )
-                  else
-                    CarouselSlider(
-                      options: CarouselOptions(
-                        height: 120,
-                        viewportFraction: 0.4,
-                        enableInfiniteScroll: verifiedPharmacies.length > 2,
-                        enlargeCenterPage: true,
-                        autoPlay: false, // Stopped "rolling" as requested
-                      ),
-                      items: verifiedPharmacies.map((ph) {
-                        return _buildPharmacyCard(context, ph);
-                      }).toList(),
+                  nearbyPharmaciesAsync.when(
+                    data: (pharmacies) {
+                      if (pharmacies.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24),
+                          child: Text("Finding nearby verified pharmacies...", style: TextStyle(fontSize: 12)),
+                        );
+                      }
+                      return CarouselSlider(
+                        options: CarouselOptions(
+                          height: 220,
+                          viewportFraction: 0.75,
+                          enableInfiniteScroll: pharmacies.length > 2,
+                          enlargeCenterPage: true,
+                          autoPlay: true,
+                          autoPlayInterval: const Duration(seconds: 4),
+                          autoPlayAnimationDuration: const Duration(milliseconds: 800),
+                        ),
+                        items: pharmacies.map((data) => _buildNearbyPharmacyCard(context, data)).toList(),
+                      );
+                    },
+                    loading: () => CarouselSlider(
+                      options: CarouselOptions(height: 220, viewportFraction: 0.75, enlargeCenterPage: true),
+                      items: List.generate(3, (i) => const ShimmerEffect(width: double.infinity, height: 220, borderRadius: 24)).toList(),
                     ),
+                    error: (e, s) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text('Could not calculate nearby locations: $e', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                    ),
+                  )
                 ],
               ),
             ),
@@ -586,39 +582,108 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPharmacyCard(BuildContext context, UserProfile ph) {
+  Widget _buildNearbyPharmacyCard(BuildContext context, Map<String, dynamic> data) {
+    final UserProfile ph = data['profile'];
+    final double distanceKm = data['distanceKm'];
+    final int estimatedMinutes = data['estimatedMinutes'];
+    
+    // Dynamic fallback image if storefront is missing
+    const String defaultStoreFront = 'https://images.unsplash.com/photo-1576602976047-174e57a47881?q=80&w=600&auto=format&fit=crop';
+    final String imageToUse = (ph.storeFrontImageUrl != null && ph.storeFrontImageUrl!.isNotEmpty)
+        ? ph.storeFrontImageUrl!
+        : defaultStoreFront;
+
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/chat', arguments: ph.uid),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2), width: 2),
-                  image: DecorationImage(
-                    image: NetworkImage(ph.photoUrl ?? 'https://ui-avatars.com/api/?name=${ph.displayName}'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
-                  child: const Icon(Icons.verified, size: 10, color: Colors.white),
-                ),
-              ),
-            ],
+      onTap: () => Navigator.pushNamed(
+        context, 
+        '/chat', 
+        arguments: {
+          'receiverId': ph.uid,
+          'receiverName': ph.displayName ?? ph.storeName ?? 'Pharmacy',
+        },
+      ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          image: DecorationImage(
+            image: NetworkImage(imageToUse),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken),
           ),
-          const SizedBox(height: 8),
-          Text(ph.displayName ?? 'Pharmacy', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-        ],
+          boxShadow: AppTheme.floatingShadow,
+        ),
+        child: Stack(
+          children: [
+            // Verified Badge
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified, color: Colors.blue, size: 14),
+                    const SizedBox(width: 4),
+                    Text('Verified', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor)),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Bottom Glassmorphic Panel
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ph.displayName ?? ph.storeName ?? 'Pharmacy', 
+                      style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, color: AppTheme.primaryColor, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${distanceKm.toStringAsFixed(1)} km away',
+                          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          width: 4, height: 4,
+                          decoration: const BoxDecoration(color: AppTheme.textSecondaryColor, shape: BoxShape.circle),
+                        ),
+                        const Icon(Icons.directions_car, color: AppTheme.textSecondaryColor, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$estimatedMinutes min drive',
+                          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -646,49 +711,4 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _showPharmacySelection(BuildContext context, WidgetRef ref, List<UserProfile> pharmacies) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Quick Chat with Pharmacy', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('${pharmacies.length} verified pharmacies online', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
-            const SizedBox(height: 16),
-            if (pharmacies.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No pharmacies online right now.")))
-            else
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: pharmacies.length,
-                  itemBuilder: (context, index) {
-                    final ph = pharmacies[index];
-                    return ListTile(
-                      leading: CircleAvatar(backgroundImage: NetworkImage(ph.photoUrl ?? 'https://ui-avatars.com/api/?name=${ph.displayName}')),
-                      title: Text(ph.displayName ?? 'Pharmacy'),
-                      subtitle: const Text('Online • Swift Reply'),
-                      trailing: ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, '/chat', arguments: ph.uid),
-                        child: const Text('Chat'),
-                      ),
-                    );
-                  },
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }

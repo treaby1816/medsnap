@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 // --- THE ONLY EXPORT YOU NEED ---
 // This now provides access to PatientSearchScreen, OrdersScreen, PatientProfileScreen, etc.
 import 'package:vail_meds_v2/features/screens.dart';
+import 'package:vail_meds_v2/widgets/floating_chat_button.dart';
+import 'package:vail_meds_v2/widgets/floating_chat_panel.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -37,9 +39,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     return Scaffold(
       extendBody: true, // Allows scroll behind the nav bar
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _selectedIndex,
+            children: _pages,
+          ),
+          // Floating Chat Button — Patient Dashboard
+          FloatingChatButton(
+            onPressed: () => showFloatingChatPanel(context, userRole: 'patient'),
+          ),
+        ],
       ),
       bottomNavigationBar: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),

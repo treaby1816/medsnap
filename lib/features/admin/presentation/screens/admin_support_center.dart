@@ -4,110 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../core/providers/admin_providers.dart';
+import '../../../../core/providers.dart';
+import '../../../../core/models/support_ticket.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // ADMIN SUPPORT CENTER — Dual-pane ticket management hub
 // ─────────────────────────────────────────────────────────────────────
-
-/// Mock data models for the Support Center
-class _SupportTicket {
-  final String id;
-  final String userName;
-  final String category;
-  final String snippet;
-  final String timeAgo;
-  final String userType; // 'PATIENT' or 'PHARMACY'
-  final String priority; // 'urgent', 'normal', 'low'
-  final List<_TicketMessage> messages;
-
-  const _SupportTicket({
-    required this.id,
-    required this.userName,
-    required this.category,
-    required this.snippet,
-    required this.timeAgo,
-    required this.userType,
-    this.priority = 'normal',
-    this.messages = const [],
-  });
-}
-
-class _TicketMessage {
-  final String sender;
-  final String role; // 'user', 'admin', 'system'
-  final String content;
-  final String timestamp;
-
-  const _TicketMessage({
-    required this.sender,
-    required this.role,
-    required this.content,
-    required this.timestamp,
-  });
-}
-
-// Mock data
-const _mockTickets = [
-  _SupportTicket(
-    id: 'TK-8821',
-    userName: 'Marcus Holloway',
-    category: 'URGENT REFILL',
-    snippet: '"My prescription hasn\'t arrived at the Aspen branch yet. I need this by tonight."',
-    timeAgo: '2m ago',
-    userType: 'PATIENT',
-    priority: 'urgent',
-    messages: [
-      _TicketMessage(
-        sender: 'Marcus Holloway',
-        role: 'user',
-        content: 'Hello, I am currently at the Aspen mountain branch and they don\'t have my prescription record for the refill I ordered yesterday. I need this medication before my flight tonight at 8 PM. Can you please check the status and coordinate with the pharmacist here?',
-        timestamp: 'Oct 24, 08:10 AM',
-      ),
-      _TicketMessage(
-        sender: 'System Automator',
-        role: 'system',
-        content: 'Ticket created and assigned to High Priority queue. Automated notification sent to Aspen Branch Pharmacy.',
-        timestamp: 'Oct 24, 08:12 AM',
-      ),
-      _TicketMessage(
-        sender: 'Marcus Holloway',
-        role: 'user',
-        content: 'I\'m standing at the counter now. Pharmacist Sarah says the system isn\'t syncing.',
-        timestamp: 'Oct 24, 08:15 AM',
-      ),
-      _TicketMessage(
-        sender: 'You (Support Specialist)',
-        role: 'admin',
-        content: 'Good morning Marcus. I\'m investigating the sync lag between our HQ and the Aspen branch. Please give me 5 minutes.',
-        timestamp: 'Oct 24, 08:18 AM',
-      ),
-    ],
-  ),
-  _SupportTicket(
-    id: 'TK-8819',
-    userName: 'Elena Rodriguez',
-    category: 'DOSAGE QUERY',
-    snippet: '"Can I take this medication with food? The label is slightly torn."',
-    timeAgo: '14m ago',
-    userType: 'PATIENT',
-  ),
-  _SupportTicket(
-    id: 'TK-8815',
-    userName: 'James Chen',
-    category: 'BILLING DISPUTE',
-    snippet: '"I was charged twice for my last concierge delivery. Please investigate."',
-    timeAgo: '1h ago',
-    userType: 'PATIENT',
-  ),
-  _SupportTicket(
-    id: 'TK-8790',
-    userName: 'Central Valley Pharmacy',
-    category: 'STOCK UPDATE',
-    snippet: '"Lisinopril 10mg is currently backordered. Adjusting digital fulfillment."',
-    timeAgo: '2h ago',
-    userType: 'PHARMACY',
-  ),
-];
 
 class AdminSupportCenter extends ConsumerStatefulWidget {
   const AdminSupportCenter({super.key});
@@ -117,19 +19,10 @@ class AdminSupportCenter extends ConsumerStatefulWidget {
 }
 
 class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
-  int _selectedTicketIndex = 0;
+  String? _selectedTicketId;
   String _activeFilter = 'all'; // 'all', 'patient', 'pharmacy'
   bool _isInternalNote = false;
   final _replyController = TextEditingController();
-
-  List<_SupportTicket> get _filteredTickets {
-    if (_activeFilter == 'patient') {
-      return _mockTickets.where((t) => t.userType == 'PATIENT').toList();
-    } else if (_activeFilter == 'pharmacy') {
-      return _mockTickets.where((t) => t.userType == 'PHARMACY').toList();
-    }
-    return _mockTickets;
-  }
 
   @override
   void dispose() {
@@ -139,63 +32,53 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
 
   @override
   Widget build(BuildContext context) {
-    var tickets = List<_SupportTicket>.from(_filteredTickets);
-    
-    // Inject Automated "Critical Stock" Alert if necessary
+    final ticketsAsync = ref.watch(supportTicketsProvider(_activeFilter));
     final urgentList = ref.watch(adminUrgentInventoryProvider).value ?? [];
-    if (urgentList.isNotEmpty) {
-      final names = urgentList.map((p) => p.name).join(', ');
-      tickets.insert(0, _SupportTicket(
-        id: 'SYS-ALERT',
-        userName: 'System Monitor',
-        category: 'CRITICAL STOCK',
-        snippet: '"Low stock detected for: $names. Replenishment required immediately."',
-        timeAgo: 'Just now',
-        userType: 'SYSTEM',
-        priority: 'urgent',
-        messages: [
-          _TicketMessage(
-            sender: 'System Automator',
-            role: 'system',
-            content: 'CRITICAL ALERT: The following medications have dropped below the safe threshold (< 10 units):\n\n'
-                     '${urgentList.map((p) => '• ${p.name} (${p.stockCount} remaining) at ${p.pharmacyName}').join('\n')}'
-                     '\n\nPlease contact the respective pharmacies to pause marketplace fulfillment or restock immediately.',
-            timestamp: 'Just now',
-          ),
-        ],
-      ));
-    }
 
-    final selected = tickets.isNotEmpty && _selectedTicketIndex < tickets.length
-        ? tickets[_selectedTicketIndex]
-        : null;
+    return ticketsAsync.when(
+      data: (tickets) {
+        // Find the selected ticket object
+        final selected = _selectedTicketId != null 
+            ? tickets.firstWhere((t) => t.id == _selectedTicketId, orElse: () => tickets.first)
+            : (tickets.isNotEmpty ? tickets.first : null);
 
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Left: Support Queue (flex 4) ──
-          Expanded(
-            flex: 4,
-            child: _buildSupportQueue(tickets),
-          ),
-          const SizedBox(width: 20),
+        // Update selected ID if it was null
+        if (_selectedTicketId == null && selected != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _selectedTicketId = selected.id);
+          });
+        }
 
-          // ── Right: Active Interaction (flex 6) ──
-          Expanded(
-            flex: 6,
-            child: selected != null
-                ? _buildActiveInteraction(selected)
-                : _buildEmptyInteraction(),
+        return Padding(
+          padding: const EdgeInsets.all(28),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Left: Support Queue (flex 4) ──
+              Expanded(
+                flex: 4,
+                child: _buildSupportQueue(tickets, selected?.id, urgentList),
+              ),
+              const SizedBox(width: 20),
+
+              // ── Right: Active Interaction (flex 6) ──
+              Expanded(
+                flex: 6,
+                child: selected != null
+                    ? _buildActiveInteraction(selected)
+                    : _buildEmptyInteraction(),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error loading tickets: $e')),
     );
   }
 
   // ── Support Queue (Left Pane) ──────────────────────────────────
-  Widget _buildSupportQueue(List<_SupportTicket> tickets) {
+  Widget _buildSupportQueue(List<SupportTicket> tickets, String? selectedId, List<dynamic> urgentList) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -248,12 +131,12 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
           ),
           const SizedBox(height: 12),
 
-          // Ticket List
+          // Scrollable Queue
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: tickets.length,
-              itemBuilder: (context, index) => _buildTicketCard(tickets[index], index),
+              itemBuilder: (context, index) => _buildTicketCard(tickets[index], selectedId),
             ),
           ),
         ],
@@ -261,65 +144,44 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
     );
   }
 
-  Widget _filterChip(String label, String filter) {
-    final isActive = _activeFilter == filter;
-    return InkWell(
-      onTap: () => setState(() => _activeFilter = _activeFilter == filter ? 'all' : filter),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: isActive ? AppTheme.primaryColor : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? AppTheme.primaryColor : AppTheme.borderColor),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isActive ? Colors.white : AppTheme.textSecondaryColor,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildTicketCard(SupportTicket ticket, String? selectedId) {
+    final isSelected = ticket.id == selectedId;
+    final isUrgent = ticket.priority == TicketPriority.urgent;
 
-  Widget _buildTicketCard(_SupportTicket ticket, int index) {
-    final isSelected = index == _selectedTicketIndex;
-    final isUrgent = ticket.priority == 'urgent';
-
-    return Material(
-      color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.04) : Colors.transparent,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () => setState(() => _selectedTicketIndex = index),
+        onTap: () => setState(() => _selectedTicketId = ticket.id),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border(
-              left: isSelected
-                  ? const BorderSide(color: AppTheme.primaryColor, width: 3)
-                  : BorderSide.none,
-              bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5)),
+            color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.05) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.3) : Colors.transparent,
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Category + Time
+              // Header: Category + Time
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    ticket.category,
+                    ticket.category.toUpperCase(),
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
+                      color: isUrgent ? const Color(0xFFEF4444) : AppTheme.primaryColor,
                       letterSpacing: 0.5,
-                      color: isUrgent ? Colors.red : AppTheme.primaryColor,
                     ),
                   ),
-                  Text(ticket.timeAgo, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiaryColor)),
+                  Text(
+                    _formatDateTime(ticket.updatedAt),
+                    style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiaryColor),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -362,7 +224,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '#${ticket.id}',
+                    '#${ticket.id.substring(0, 6).toUpperCase()}',
                     style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiaryColor),
                   ),
                 ],
@@ -375,7 +237,9 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
   }
 
   // ── Active Interaction (Right Pane) ────────────────────────────
-  Widget _buildActiveInteraction(_SupportTicket ticket) {
+  Widget _buildActiveInteraction(SupportTicket ticket) {
+    final messagesAsync = ref.watch(supportMessagesProvider(ticket.id));
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -409,11 +273,12 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
                             style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor),
                           ),
                           const SizedBox(width: 6),
-                          const Icon(Icons.verified, color: Color(0xFF3B82F6), size: 16),
+                          if (ticket.userType != 'SYSTEM')
+                            const Icon(Icons.verified, color: Color(0xFF3B82F6), size: 16),
                         ],
                       ),
                       Text(
-                        'Patient ID: #VM-${ticket.id.replaceAll('TK-', '')} • Member since 2022',
+                        '${ticket.userType} ID: #${ticket.userId.substring(0, 8)} • Priority: ${ticket.priority.name.toUpperCase()}',
                         style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor),
                       ),
                     ],
@@ -422,7 +287,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
                 OutlinedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.folder_shared_outlined, size: 16),
-                  label: Text('Patient File', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                  label: Text('Details', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppTheme.borderColor),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -432,8 +297,8 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () {},
-                  icon: const Icon(Icons.phone, size: 16),
-                  label: Text('Voice Call', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
+                  icon: const Icon(Icons.done_all, size: 16),
+                  label: Text('Close Ticket', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F172A),
                     foregroundColor: Colors.white,
@@ -448,24 +313,26 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
 
           // ── Conversation Log ──
           Expanded(
-            child: ticket.messages.isEmpty
-                ? Center(
-                    child: Text(
-                      'No conversation history yet.',
-                      style: GoogleFonts.inter(color: AppTheme.textTertiaryColor),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: ticket.messages.length + 1, // +1 for original issue
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        // Original Issue header
-                        return _buildOriginalIssue(ticket.messages.first);
-                      }
-                      return _buildMessageBubble(ticket.messages[index - 1]);
-                    },
-                  ),
+            child: messagesAsync.when(
+              data: (messages) {
+                if (messages.isEmpty) {
+                  return Center(child: Text('No conversation history yet.', style: GoogleFonts.inter(color: AppTheme.textTertiaryColor)));
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = messages[index];
+                    if (index == 0 && msg.role == UserRole.system) {
+                       return _buildOriginalIssue(msg);
+                    }
+                    return _buildMessageBubble(msg);
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+            ),
           ),
 
           // ── Reply Editor ──
@@ -482,11 +349,11 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'LAST RESPONSE WAS 4 MINUTES AGO',
+                  'REAL-TIME FIREBASE CONNECTION ACTIVE',
                   style: GoogleFonts.inter(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textTertiaryColor,
+                    color: const Color(0xFF22C55E),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -508,7 +375,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
     );
   }
 
-  Widget _buildOriginalIssue(_TicketMessage msg) {
+  Widget _buildOriginalIssue(TicketMessage msg) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -539,9 +406,9 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
     );
   }
 
-  Widget _buildMessageBubble(_TicketMessage msg) {
-    final isSystem = msg.role == 'system';
-    final isAdmin = msg.role == 'admin';
+  Widget _buildMessageBubble(TicketMessage msg) {
+    final isSystem = msg.role == UserRole.system;
+    final isAdmin = msg.role == UserRole.admin;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -565,7 +432,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
                 ),
               const SizedBox(width: 8),
               Text(
-                msg.sender,
+                msg.senderName,
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -574,7 +441,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
               ),
               const SizedBox(width: 8),
               Text(
-                msg.timestamp,
+                _formatDateTime(msg.timestamp),
                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiaryColor),
               ),
             ],
@@ -607,7 +474,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
     );
   }
 
-  Widget _buildReplyEditor(_SupportTicket ticket) {
+  Widget _buildReplyEditor(SupportTicket ticket) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
@@ -683,7 +550,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
               ),
               const Spacer(),
               TextButton(
-                onPressed: () {},
+                onPressed: () => _handleSendReply(ticket),
                 child: Text(
                   'SAVE DRAFT',
                   style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textSecondaryColor, letterSpacing: 0.5),
@@ -691,7 +558,7 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
               ),
               const SizedBox(width: 8),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _handleSendReply(ticket),
                 icon: const Text('RESOLVE & SEND', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                 label: const Icon(Icons.send, size: 16),
                 style: ElevatedButton.styleFrom(
@@ -705,6 +572,65 @@ class _AdminSupportCenterState extends ConsumerState<AdminSupportCenter> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _handleSendReply(SupportTicket ticket) async {
+    final content = _replyController.text.trim();
+    if (content.isEmpty) return;
+
+    try {
+      final userProfile = ref.read(userProfileProvider).value;
+      await ref.read(supportServiceProvider).sendReply(
+        ticketId: ticket.id,
+        senderName: userProfile?.displayName ?? 'Admin',
+        senderId: userProfile?.uid ?? 'system-admin',
+        content: content,
+        isInternal: _isInternalNote,
+      );
+      _replyController.clear();
+      if (mounted) setState(() => _isInternalNote = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending reply: $e')),
+        );
+      }
+    }
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  Widget _filterChip(String label, String value) {
+    final isSelected = _activeFilter == value;
+    return InkWell(
+      onTap: () => setState(() {
+        _activeFilter = value;
+        _selectedTicketId = null; // Reset selection on filter change
+      }),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryColor : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : AppTheme.textSecondaryColor,
+          ),
+        ),
       ),
     );
   }
