@@ -45,20 +45,7 @@ flutter {
 }
 
 dependencies {
-    // --- UNIVERSAL ANTIGRAVITY FIX FOR CODEMAGIC & LOCAL ---
-    // This dynamically finds the Flutter engine whether on Windows D: drive or Codemagic Linux servers
-    val flutterSdkPath = project.findProperty("flutter.sdk")?.toString() ?: ""
-    val flutterJarPath = file("$flutterSdkPath/bin/cache/artifacts/engine/android-arm64-release/flutter.jar")
-    
-    if (flutterJarPath.exists()) {
-        implementation(files(flutterJarPath))
-    } else {
-        implementation(fileTree("$flutterSdkPath/bin/cache/artifacts/engine") {
-            include("**/*.jar")
-        })
-    }
-
-    // --- FIREBASE 2026 BoM ---
+    // --- MODERN FIREBASE BoM ---
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
