@@ -197,7 +197,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                      'assets/images/logo.png',
+                      'assets/images/logo2.png',
                       height: 32,
                       width: 32,
                       fit: BoxFit.contain,

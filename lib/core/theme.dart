@@ -2,38 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // ── Stitch Palette ──────────────────────────────────────────────
+  // ── Dubai LifeOS Palette ─────────────────────────────────────────
   static const Color primaryColor = Color(0xFFEC5B13);
+  static const Color secondaryColor = Color(0xFFD97706); // Burnished Gold
   static const Color backgroundColor = Color(0xFFF8F6F6);
-  static const Color darkBackgroundColor = Color(0xFF221610);
+  static const Color darkBackgroundColor = Color(0xFF0F172A); // Midnight Obsidian
   static const Color surfaceColor = Colors.white;
-  static const Color darkSurfaceColor = Color(0xFF0F172A);
+  static const Color darkSurfaceColor = Color(0xFF1E293B);
 
   static const Color textPrimaryColor = Color(0xFF1E293B);
   static const Color textSecondaryColor = Color(0xFF64748B);
   static const Color textTertiaryColor = Color(0xFF94A3B8);
   static const Color borderColor = Color(0xFFE2E8F0);
 
+  // ── Dubai LifeOS Glassmorphism ───────────────────────────────
+  static const double glassBlur = 20.0;
+  static double glassOpacity = 0.65;
+  
+  static BoxDecoration get glassDecoration => BoxDecoration(
+    color: Colors.white.withValues(alpha: glassOpacity),
+    borderRadius: BorderRadius.circular(cardRadius),
+    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+  );
+
+  static LinearGradient get premiumGradient => const LinearGradient(
+    colors: [primaryColor, secondaryColor],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   // ── Antigravity Spacing ─────────────────────────────────────────
   static const double pagePadding = 24.0;
-  static const double cardRadius = 16.0;
-  static const double inputRadius = 12.0;
-  static const double buttonRadius = 12.0;
+  static const double cardRadius = 20.0; // Increased for modern look
+  static const double inputRadius = 14.0;
+  static const double buttonRadius = 14.0;
   static const double buttonHeight = 56.0;
 
   /// Signature floating shadow — barely visible, wide spread
   static List<BoxShadow> get floatingShadow => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.05),
-          blurRadius: 20,
-          offset: const Offset(0, 10),
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 30,
+          offset: const Offset(0, 12),
         ),
       ];
 
   /// Accent glow shadow for primary-colored elements
   static List<BoxShadow> get primaryGlow => [
         BoxShadow(
-          color: primaryColor.withValues(alpha: 0.15),
+          color: primaryColor.withValues(alpha: 0.2),
           blurRadius: 24,
           offset: const Offset(0, 8),
         ),
@@ -47,39 +64,39 @@ class AppTheme {
       scaffoldBackgroundColor: backgroundColor,
       colorScheme: const ColorScheme.light(
         primary: primaryColor,
-        secondary: primaryColor,
+        secondary: secondaryColor,
         surface: surfaceColor,
         onSurface: textPrimaryColor,
       ),
-      fontFamily: GoogleFonts.inter().fontFamily,
-      textTheme: GoogleFonts.interTextTheme(
+      fontFamily: GoogleFonts.outfit().fontFamily,
+      textTheme: GoogleFonts.outfitTextTheme(
         ThemeData.light().textTheme,
       ).copyWith(
-        displayLarge: GoogleFonts.inter(
+        displayLarge: GoogleFonts.outfit(
             fontSize: 32, fontWeight: FontWeight.bold, color: textPrimaryColor),
-        displayMedium: GoogleFonts.inter(
+        displayMedium: GoogleFonts.outfit(
             fontSize: 28, fontWeight: FontWeight.w700, color: textPrimaryColor),
-        displaySmall: GoogleFonts.inter(
+        displaySmall: GoogleFonts.outfit(
             fontSize: 24, fontWeight: FontWeight.w600, color: textPrimaryColor),
-        headlineMedium: GoogleFonts.inter(
+        headlineMedium: GoogleFonts.outfit(
             fontSize: 20, fontWeight: FontWeight.w600, color: textPrimaryColor),
-        titleLarge: GoogleFonts.inter(
+        titleLarge: GoogleFonts.outfit(
             fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryColor),
-        titleMedium: GoogleFonts.inter(
+        titleMedium: GoogleFonts.outfit(
             fontSize: 16, fontWeight: FontWeight.w600, color: textPrimaryColor),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: GoogleFonts.outfit(
             fontSize: 16,
             fontWeight: FontWeight.normal,
             color: textPrimaryColor),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: GoogleFonts.outfit(
             fontSize: 14,
             fontWeight: FontWeight.normal,
             color: textSecondaryColor),
-        bodySmall: GoogleFonts.inter(
+        bodySmall: GoogleFonts.outfit(
             fontSize: 12,
             fontWeight: FontWeight.normal,
             color: textTertiaryColor),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: GoogleFonts.outfit(
             fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
       ),
 
@@ -88,7 +105,7 @@ class AppTheme {
         backgroundColor: Colors.white.withValues(alpha: 0.85),
         elevation: 0,
         iconTheme: const IconThemeData(color: textPrimaryColor),
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: GoogleFonts.outfit(
           color: textPrimaryColor,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -111,7 +128,7 @@ class AppTheme {
         fillColor: Colors.white,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: GoogleFonts.inter(color: textTertiaryColor, fontSize: 15),
+        hintStyle: GoogleFonts.outfit(color: textTertiaryColor, fontSize: 15),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
           borderSide: const BorderSide(color: borderColor),
@@ -141,14 +158,14 @@ class AppTheme {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(buttonRadius)),
           textStyle:
-              GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+              GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
           textStyle:
-              GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+              GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -158,7 +175,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(buttonRadius)),
           textStyle:
-              GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
+              GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -170,9 +187,9 @@ class AppTheme {
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle:
-            GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold),
+            GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold),
         unselectedLabelStyle:
-            GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500),
+            GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w500),
         elevation: 8,
       ),
 
@@ -198,40 +215,40 @@ class AppTheme {
       scaffoldBackgroundColor: darkBackgroundColor,
       colorScheme: const ColorScheme.dark(
         primary: primaryColor,
-        secondary: primaryColor,
+        secondary: secondaryColor,
         surface: darkSurfaceColor,
         onSurface: Colors.white,
       ),
-      fontFamily: GoogleFonts.inter().fontFamily,
-      textTheme: GoogleFonts.interTextTheme(
+      fontFamily: GoogleFonts.outfit().fontFamily,
+      textTheme: GoogleFonts.outfitTextTheme(
         ThemeData.dark().textTheme,
       ).copyWith(
-        displayLarge: GoogleFonts.inter(
+        displayLarge: GoogleFonts.outfit(
             fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
-        displayMedium: GoogleFonts.inter(
+        displayMedium: GoogleFonts.outfit(
             fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
-        displaySmall: GoogleFonts.inter(
+        displaySmall: GoogleFonts.outfit(
             fontSize: 24, fontWeight: FontWeight.w600, color: Colors.white),
-        headlineMedium: GoogleFonts.inter(
+        headlineMedium: GoogleFonts.outfit(
             fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
-        titleLarge: GoogleFonts.inter(
+        titleLarge: GoogleFonts.outfit(
             fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-        titleMedium: GoogleFonts.inter(
+        titleMedium: GoogleFonts.outfit(
             fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: GoogleFonts.outfit(
             fontSize: 16, fontWeight: FontWeight.normal, color: Colors.white70),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: GoogleFonts.outfit(
             fontSize: 14, fontWeight: FontWeight.normal, color: Colors.white70),
-        bodySmall: GoogleFonts.inter(
+        bodySmall: GoogleFonts.outfit(
             fontSize: 12, fontWeight: FontWeight.normal, color: Colors.white54),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: GoogleFonts.outfit(
             fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: darkSurfaceColor.withValues(alpha: 0.85),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: GoogleFonts.outfit(
           color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -251,7 +268,7 @@ class AppTheme {
         fillColor: darkSurfaceColor,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: GoogleFonts.inter(color: Colors.white38, fontSize: 15),
+        hintStyle: GoogleFonts.outfit(color: Colors.white38, fontSize: 15),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(inputRadius),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -272,9 +289,9 @@ class AppTheme {
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle:
-            GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold),
+            GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold),
         unselectedLabelStyle:
-            GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500),
+            GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w500),
         elevation: 0,
       ),
       dividerTheme: DividerThemeData(
@@ -288,5 +305,6 @@ class AppTheme {
         thickness: WidgetStateProperty.all(6),
       ),
     );
+
   }
 }

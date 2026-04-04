@@ -24,42 +24,42 @@ class AdminStatsGrid extends ConsumerWidget {
               _StatCard(
                 width: cardWidth < 180 ? constraints.maxWidth / 2 - 8 : cardWidth,
                 icon: Icons.person_rounded,
-                iconBg: const Color(0xFF3B82F6),
+                gradient: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
                 label: 'Total Patients',
                 value: _formatNumber(stats.totalPatients),
                 badge: 'STABLE',
                 badgeColor: const Color(0xFF3B82F6),
-                onTap: () => onCardTap?.call(4), // Staff/Patients stub
+                onTap: () => onCardTap?.call(4),
               ),
               _StatCard(
                 width: cardWidth < 180 ? constraints.maxWidth / 2 - 8 : cardWidth,
                 icon: Icons.storefront_rounded,
-                iconBg: AppTheme.primaryColor,
+                gradient: const [AppTheme.primaryColor, Color(0xFFFF8C42)],
                 label: 'Active Pharmacies',
                 value: _formatNumber(stats.activePharmacies),
                 badge: 'REALTIME',
                 badgeColor: const Color(0xFF22C55E),
-                onTap: () => onCardTap?.call(1), // Approvals/Directory
+                onTap: () => onCardTap?.call(1),
               ),
               _StatCard(
                 width: cardWidth < 180 ? constraints.maxWidth / 2 - 8 : cardWidth,
                 icon: Icons.verified_user_outlined,
-                iconBg: const Color(0xFFF59E0B),
+                gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
                 label: 'Pending Verifications',
                 value: stats.pendingVerifications.toString(),
                 badge: stats.pendingVerifications > 0 ? 'URGENT' : 'STABLE',
                 badgeColor: const Color(0xFFF59E0B),
-                onTap: () => onCardTap?.call(1), // Approvals
+                onTap: () => onCardTap?.call(1),
               ),
               _StatCard(
                 width: cardWidth < 180 ? constraints.maxWidth / 2 - 8 : cardWidth,
                 icon: Icons.support_agent_rounded,
-                iconBg: const Color(0xFFEF4444),
+                gradient: const [Color(0xFFEF4444), Color(0xFFDC2626)],
                 label: 'Support Tickets',
                 value: stats.supportTickets.toString(),
                 badge: stats.supportTickets > 0 ? '${stats.supportTickets} OPEN' : 'ALL CLEAR',
                 badgeColor: stats.supportTickets > 0 ? const Color(0xFFEF4444) : const Color(0xFF22C55E),
-                onTap: () => onCardTap?.call(5), // Support module
+                onTap: () => onCardTap?.call(5),
               ),
             ],
           );
@@ -81,10 +81,10 @@ class AdminStatsGrid extends ConsumerWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
+class _StatCard extends StatefulWidget {
   final double width;
   final IconData icon;
-  final Color iconBg;
+  final List<Color> gradient;
   final String label;
   final String value;
   final String badge;
@@ -94,7 +94,7 @@ class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.width,
     required this.icon,
-    required this.iconBg,
+    required this.gradient,
     required this.label,
     required this.value,
     required this.badge,
@@ -103,81 +103,151 @@ class _StatCard extends StatelessWidget {
   });
 
   @override
+  State<_StatCard> createState() => _StatCardState();
+}
+
+class _StatCardState extends State<_StatCard> with SingleTickerProviderStateMixin {
+  bool _isHovered = false;
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: width,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: iconBg.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: iconBg, size: 22),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(0.0, _isHovered ? -6.0 : 0.0, 0.0),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              width: widget.width,
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: _isHovered ? AppTheme.primaryColor.withValues(alpha: 0.4) : AppTheme.borderColor.withValues(alpha: 0.8),
+                  width: _isHovered ? 1.5 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: _isHovered ? 0.08 : 0.03),
+                    blurRadius: _isHovered ? 32 : 16,
+                    offset: Offset(0, _isHovered ? 12 : 6),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      badge,
-                      style: GoogleFonts.inter(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: badgeColor,
-                        letterSpacing: 0.5,
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Status Orb & Icon
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ScaleTransition(
+                            scale: Tween(begin: 1.0, end: 1.4).animate(
+                              CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+                            ),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: widget.badgeColor.withValues(alpha: 0.15),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: widget.badgeColor,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: widget.badgeColor.withValues(alpha: 0.6),
+                                  blurRadius: 8,
+                                )
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
+                      
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.backgroundColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppTheme.borderColor.withValues(alpha: 0.5)),
+                        ),
+                        child: Text(
+                          widget.badge,
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: widget.badgeColor,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Icon(widget.icon, size: 16, color: AppTheme.textSecondaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.label,
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          color: AppTheme.textSecondaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.value,
+                    style: GoogleFonts.outfit(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimaryColor,
+                      letterSpacing: -1,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppTheme.textSecondaryColor,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: GoogleFonts.inter(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimaryColor,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+

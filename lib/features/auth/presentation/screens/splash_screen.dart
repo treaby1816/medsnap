@@ -21,6 +21,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
+    
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -84,7 +85,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 // High-Fidelity Logo (Bare for Professional Appearance)
                 Center(
                   child: Image.asset(
-                    'assets/images/logo.png',
+                    'assets/images/logo2.png',
                     width: 140,
                     height: 140,
                     fit: BoxFit.contain,

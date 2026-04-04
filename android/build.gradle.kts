@@ -49,12 +49,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin") apply false
 }
 
-rootProject.layout.buildDirectory.set(file("../build"))
+val rootBuildDir = file("../build")
+rootProject.layout.buildDirectory.set(rootBuildDir)
 
 subprojects {
-    project.layout.buildDirectory.set(
-        rootProject.layout.buildDirectory.dir(project.name)
-    )
+    val projectDirStr = project.projectDir.absolutePath
+    val rootDirStr = rootProject.projectDir.absolutePath
+    if (projectDirStr.substring(0, 3).equals(rootDirStr.substring(0, 3), ignoreCase = true)) {
+        project.layout.buildDirectory.set(rootProject.layout.buildDirectory.dir(project.name))
+    }
 }
 
 subprojects {

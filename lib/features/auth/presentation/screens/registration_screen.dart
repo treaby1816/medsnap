@@ -47,7 +47,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   Future<void> _handleRegister() async {
-    if (!_agreedToTerms || !_agreedToPrivacy) {
+    final isConsented = ref.read(agreedToTermsProvider) && ref.read(agreedToPrivacyProvider);
+    if (!isConsented && (!_agreedToTerms || !_agreedToPrivacy)) {
       _showAgreementWarning();
       return;
     }
@@ -167,10 +168,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: AppTheme.textPrimaryColor, size: 22),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppTheme.textPrimaryColor, size: 20),
           onPressed: () {
-            ref.read(onboardingStageProvider.notifier).state = 'welcome';
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              ref.read(onboardingStageProvider.notifier).state = 'welcome';
+            }
           },
         ),
         title: RichText(
@@ -210,7 +215,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 // Health Icon (Logo)
                 Center(
                   child: Image.asset(
-                    'assets/images/logo.png',
+                    'assets/images/logo2.png',
                     width: 72,
                     height: 72,
                     fit: BoxFit.contain,
@@ -250,7 +255,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // --- BEFORE YOU CONTINUE BLOCK ---
+                // --- BEFORE YOU CONTINUE BLOCK (Hidden if consented globally) ---
+                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -314,6 +320,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     ],
                   ),
                 ),
+                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
                 const SizedBox(height: 24),
 
                 // --- SOCIAL LOGIN GRID ---
@@ -327,7 +334,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       ),
                       label: 'Google',
                       onTap: _isLoading ? null : () async {
-                        if (!_agreedToTerms || !_agreedToPrivacy) {
+                        final isConsented = ref.read(agreedToTermsProvider) && ref.read(agreedToPrivacyProvider);
+                        if (!isConsented && (!_agreedToTerms || !_agreedToPrivacy)) {
                           _showAgreementWarning();
                           return;
                         }
@@ -339,11 +347,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           if (authResult.user != null) {
                             ref.read(userRoleProvider.notifier).setRole(widget.initialRole);
                             setState(() => _isLoading = false);
-                            if (authResult.isNewUser) {
-                              navigator.pushReplacementNamed('/success', arguments: widget.initialRole);
-                            } else {
-                              navigator.popUntil((route) => route.isFirst);
-                            }
+                            // ALWAYS show Success screen as requested by the user
+                            navigator.pushReplacementNamed('/success', arguments: {
+                              'role': widget.initialRole,
+                              'isReturningUser': !authResult.isNewUser,
+                            });
                           }
                         } catch (e) {
                           messenger.showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
@@ -362,12 +370,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
                 Center(
                   child: Text(
                     '↑ Accept both agreements above to enable sign-in',
                     style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiaryColor),
                   ),
                 ),
+                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
                 const SizedBox(height: 24),
 
                 // OR Divider

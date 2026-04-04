@@ -44,10 +44,11 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
   ConsumerState<GlobalFloatingChatbot> createState() => _GlobalFloatingChatbotState();
 }
 
-class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> with SingleTickerProviderStateMixin {
+class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> with TickerProviderStateMixin {
   Offset _position = const Offset(0, 0); // Need to initialize in didChangeDependencies
   bool _isInit = false;
   late final AnimationController _hoverController;
+  late final AnimationController _blinkController;
   late final Animation<double> _hoverAnimation;
 
   @override
@@ -61,6 +62,24 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
     _hoverAnimation = Tween<double>(begin: -5, end: 5).animate(
       CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut),
     );
+
+    _blinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+
+    // Blinking trigger timer
+    _startBlinkCycle();
+  }
+
+  void _startBlinkCycle() async {
+    while (mounted) {
+      await Future.delayed(Duration(seconds: 2 + (DateTime.now().millisecond % 4)));
+      if (mounted) {
+        await _blinkController.forward();
+        await _blinkController.reverse();
+      }
+    }
   }
 
   @override
@@ -77,6 +96,7 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   @override
   void dispose() {
     _hoverController.dispose();
+    _blinkController.dispose();
     super.dispose();
   }
 
@@ -84,24 +104,9 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   Widget build(BuildContext context) {
     final currentRoute = ref.watch(currentRouteProvider);
 
-    // Routes where we hide the chatbot (auth screens, dashboards with their own chat, etc.)
+    // Routes where we absolutely must hide it (Splash only)
     final hiddenRoutes = [
       '/',                    // Splash screen
-      '/welcome',             // Welcome screen
-      '/gateway',             // Gateway/portal selection
-      '/login',               // Login screen
-      '/registration',        // Registration screen
-      '/onboarding',          // Onboarding screen
-      '/success',             // Success/transition screen
-      '/verification',        // Verification screen
-      '/pharmacy-verification', // Pharmacy verification
-      '/privacy',             // Privacy policy
-      '/terms',               // Terms of service
-      '/main',                // Patient dashboard (has its own FloatingChatButton)
-      '/patient-dashboard',   // Patient dashboard alias
-      '/pharmacy-dashboard',  // Pharmacy dashboard (has its own chat)
-      '/admin-dashboard',     // Admin dashboard
-      '/chat',                // Chat screen itself
     ];
 
     final bool shouldHide = hiddenRoutes.contains(currentRoute);
@@ -185,9 +190,10 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
               ),
             ),
             // The Cartoon Avatar
+            // The Cartoon Mascot: 'VailBot'
             Container(
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
@@ -197,20 +203,79 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFEC5B13).withValues(alpha: 0.3),
-                    blurRadius: 15,
-                    spreadRadius: 5,
-                    offset: const Offset(0, 6),
+                    color: const Color(0xFFEC5B13).withValues(alpha: 0.4),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 8),
                   ),
                 ],
+                border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
               ),
               child: isDragging 
                 ? const Icon(Icons.pan_tool_alt_rounded, color: Colors.white, size: 32)
-                : const Icon(Icons.support_agent_rounded, size: 40, color: Colors.white),
+                : Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Mascot Face Background
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      // Animated Eyes
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildAnimatedEye(),
+                          const SizedBox(width: 8),
+                          _buildAnimatedEye(),
+                        ],
+                      ),
+                      // Smile
+                      Positioned(
+                        bottom: 12,
+                        child: Container(
+                          width: 20,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colors.white, width: 2.5),
+                            ),
+                            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
             ),
           ],
         ),
       ),
+    );
+  }
+  Widget _buildAnimatedEye() {
+    return AnimatedBuilder(
+      animation: _blinkController,
+      builder: (context, child) {
+        return Container(
+          width: 10,
+          height: 14 * (1 - _blinkController.value), // Collapse height for blink
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              if (_blinkController.value < 0.5)
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  blurRadius: 4,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

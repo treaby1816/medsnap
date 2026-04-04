@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
-
 import '../../../../core/theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // FINANCE ANALYTICS HUB — Revenue Intelligence Dashboard
 // ─────────────────────────────────────────────────────────────────────
 
-/// Mock data model for analytics. Ready for Firestore stream integration.
 class _DailyRevenue {
   final String label;
   final double amount;
@@ -44,68 +42,102 @@ class AdminAnalyticsScreen extends ConsumerStatefulWidget {
   ConsumerState<AdminAnalyticsScreen> createState() => _AdminAnalyticsScreenState();
 }
 
-class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
+class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> with SingleTickerProviderStateMixin {
   String _timeRange = 'This Week';
+  late AnimationController _fadeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header ──
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('FINANCE & ANALYTICS', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primaryColor, letterSpacing: 1.5)),
-                  const SizedBox(height: 4),
-                  Text('Revenue Intelligence Hub', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
-                ],
-              ),
-              _buildTimeToggle(),
-            ],
-          ),
-          const SizedBox(height: 24),
+    return FadeTransition(
+      opacity: _fadeController,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'FINANCE & ANALYTICS', 
+                      style: GoogleFonts.inter(
+                        fontSize: 11, 
+                        fontWeight: FontWeight.w800, 
+                        color: AppTheme.primaryColor, 
+                        letterSpacing: 2.0
+                      )
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Revenue Intelligence Hub', 
+                      style: GoogleFonts.inter(
+                        fontSize: 28, 
+                        fontWeight: FontWeight.w800, 
+                        color: AppTheme.textPrimaryColor,
+                        letterSpacing: -0.5
+                      )
+                    ),
+                  ],
+                ),
+                _buildTimeToggle(),
+              ],
+            ),
+            const SizedBox(height: 32),
 
-          // ── Revenue Snapshot (Top Row) ──
-          _buildRevenueSnapshots(),
-          const SizedBox(height: 24),
+            // ── Revenue Snapshot Cards ──
+            _buildRevenueSnapshots(),
+            const SizedBox(height: 32),
 
-          // ── Charts Row: Area Chart + Donut Chart ──
-          LayoutBuilder(builder: (context, constraints) {
-            if (constraints.maxWidth < 800) {
-              return Column(children: [
-                _buildRevenueChart(),
-                const SizedBox(height: 20),
-                _buildCategoryDonut(),
+            // ── Charts Row ──
+            LayoutBuilder(builder: (context, constraints) {
+              if (constraints.maxWidth < 900) {
+                return Column(children: [
+                  _buildRevenueChart(),
+                  const SizedBox(height: 24),
+                  _buildCategoryDonut(),
+                ]);
+              }
+              return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(flex: 3, child: _buildRevenueChart()),
+                const SizedBox(width: 24),
+                Expanded(flex: 2, child: _buildCategoryDonut()),
               ]);
-            }
-            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(flex: 3, child: _buildRevenueChart()),
-              const SizedBox(width: 20),
-              Expanded(flex: 2, child: _buildCategoryDonut()),
-            ]);
-          }),
-          const SizedBox(height: 24),
+            }),
+            const SizedBox(height: 32),
 
-          // ── Pharmacy Leaderboard ──
-          _buildLeaderboard(),
-          const SizedBox(height: 32),
-        ],
+            // ── Pharmacy Leaderboard ──
+            _buildLeaderboard(),
+            const SizedBox(height: 48),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Time Range Toggle ──
   Widget _buildTimeToggle() {
     return Container(
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
+        color: AppTheme.backgroundColor,
         border: Border.all(color: AppTheme.borderColor),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: ['Today', 'This Week', 'Monthly'].map((label) {
@@ -113,15 +145,23 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
           return InkWell(
             onTap: () => setState(() => _timeRange = label),
             borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               decoration: BoxDecoration(
                 color: isActive ? AppTheme.primaryColor : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
+                boxShadow: isActive ? [
+                  BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))
+                ] : null,
               ),
               child: Text(
                 label,
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: isActive ? Colors.white : AppTheme.textSecondaryColor),
+                style: GoogleFonts.inter(
+                  fontSize: 12, 
+                  fontWeight: FontWeight.w700, 
+                  color: isActive ? Colors.white : AppTheme.textSecondaryColor
+                ),
               ),
             ),
           );
@@ -130,47 +170,51 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
     );
   }
 
-  // ── Revenue Snapshot Cards ──
   Widget _buildRevenueSnapshots() {
     return Wrap(
-      spacing: 16,
-      runSpacing: 16,
+      spacing: 20,
+      runSpacing: 20,
       children: [
-        _revenueCard('Total Platform Revenue', '₦4.82M', '+12.4%', true, const Color(0xFF22C55E)),
-        _revenueCard('Net Platform Commission', '₦482K', '+8.1%', true, const Color(0xFF22C55E)),
-        _revenueCard('Active Subscriptions', '47', '-2', false, const Color(0xFFEF4444)),
-        _revenueCard('Avg. Order Value', '₦18,240', '+3.2%', true, const Color(0xFF22C55E)),
+        _revenueCard('Platform Gross Revenue', '₦4.82M', '+12.4%', true, const Color(0xFF22C55E), [const Color(0xFF22C55E), const Color(0xFF16A34A)]),
+        _revenueCard('Commission (VailMeds)', '₦482,000', '+8.1%', true, const Color(0xFF3B82F6), [const Color(0xFF3B82F6), const Color(0xFF2563EB)]),
+        _revenueCard('Active Subscriptions', '47', '-2', false, const Color(0xFFEF4444), [const Color(0xFFEF4444), const Color(0xFFDC2626)]),
+        _revenueCard('Avg. Checkout Value', '₦18,240', '+3.2%', true, const Color(0xFFF59E0B), [const Color(0xFFF59E0B), const Color(0xFFD97706)]),
       ],
     );
   }
 
-  Widget _revenueCard(String label, String value, String trend, bool isUp, Color trendColor) {
+  Widget _revenueCard(String label, String value, String trend, bool isUp, Color trendColor, List<Color> gradient) {
     return Container(
-      width: 240,
-      padding: const EdgeInsets.all(20),
+      width: 260,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(value, style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
-              const SizedBox(width: 8),
+              Text(value, style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: trendColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: trendColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(isUp ? Icons.trending_up : Icons.trending_down, size: 12, color: trendColor),
-                    const SizedBox(width: 2),
+                    Icon(isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: trendColor),
+                    const SizedBox(width: 4),
                     Text(trend, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: trendColor)),
                   ],
                 ),
@@ -182,34 +226,56 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
     );
   }
 
-  // ── Revenue Growth Area Chart ──
   Widget _buildRevenueChart() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Revenue Growth', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor)),
-          Text('$_timeRange volume trends', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor)),
-          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Revenue Performance', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+                  const SizedBox(height: 4),
+                  Text('Volume distribution across therapeutic categories', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondaryColor)),
+                ],
+              ),
+              const Icon(Icons.show_chart_rounded, color: AppTheme.primaryColor),
+            ],
+          ),
+          const SizedBox(height: 40),
           SizedBox(
-            height: 220,
+            height: 280,
             child: LineChart(
               LineChartData(
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: 25000,
-                  getDrawingHorizontalLine: (value) => const FlLine(color: AppTheme.borderColor, strokeWidth: 0.5),
+                  getDrawingHorizontalLine: (value) => FlLine(color: AppTheme.borderColor.withValues(alpha: 0.5), strokeWidth: 1),
                 ),
                 titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 45,
+                      getTitlesWidget: (value, meta) => Text(
+                        '₦${(value/1000).toInt()}k',
+                        style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textTertiaryColor, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
@@ -217,8 +283,12 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
                       showTitles: true,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        if (value.toInt() < _mockRevenue.length) {
-                          return Text(_mockRevenue[value.toInt()].label, style: GoogleFonts.inter(fontSize: 10, color: AppTheme.textTertiaryColor));
+                        int index = value.toInt();
+                        if (index >= 0 && index < _mockRevenue.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(_mockRevenue[index].label, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.w500)),
+                          );
                         }
                         return const Text('');
                       },
@@ -230,15 +300,24 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
                   LineChartBarData(
                     spots: List.generate(_mockRevenue.length, (i) => FlSpot(i.toDouble(), _mockRevenue[i].amount)),
                     isCurved: true,
+                    curveSmoothness: 0.35,
                     color: AppTheme.primaryColor,
-                    barWidth: 3,
-                    dotData: const FlDotData(show: false),
+                    barWidth: 4,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                        radius: 5,
+                        color: Colors.white,
+                        strokeWidth: 3,
+                        strokeColor: AppTheme.primaryColor,
+                      ),
+                    ),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [AppTheme.primaryColor.withValues(alpha: 0.3), AppTheme.primaryColor.withValues(alpha: 0.0)],
+                        colors: [AppTheme.primaryColor.withValues(alpha: 0.2), AppTheme.primaryColor.withValues(alpha: 0.0)],
                       ),
                     ),
                   ),
@@ -253,66 +332,73 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
     );
   }
 
-  // ── Category Split Donut Chart ──
   Widget _buildCategoryDonut() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Category Split', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor)),
-          Text('Sales by medication type', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor)),
-          const SizedBox(height: 20),
+          Text('Market Allocation', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+          const SizedBox(height: 4),
+          Text('Top medication categories', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondaryColor)),
+          const SizedBox(height: 32),
           SizedBox(
-            height: 180,
+            height: 200,
             child: PieChart(
               PieChartData(
-                sectionsSpace: 2,
-                centerSpaceRadius: 50,
+                sectionsSpace: 4,
+                centerSpaceRadius: 60,
                 sections: _mockCategories.map((cat) => PieChartSectionData(
                   color: cat['color'] as Color,
                   value: cat['pct'] as double,
-                  title: '${(cat['pct'] as double).toInt()}%',
-                  radius: 30,
-                  titleStyle: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+                  title: '',
+                  radius: 20,
+                  badgeWidget: _Badge(cat['color'] as Color, size: 40),
+                  badgePositionPercentageOffset: 1.0,
                 )).toList(),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          // Legend
-          ...(_mockCategories.map((cat) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                Container(width: 10, height: 10, decoration: BoxDecoration(color: cat['color'] as Color, borderRadius: BorderRadius.circular(3))),
-                const SizedBox(width: 8),
-                Text(cat['name'] as String, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor)),
-                const Spacer(),
-                Text('${(cat['pct'] as double).toInt()}%', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor)),
-              ],
-            ),
-          ))),
+          const SizedBox(height: 24),
+          ...(_mockCategories.map((cat) => _legendItem(cat['name'] as String, cat['pct'] as double, cat['color'] as Color))),
         ],
       ),
     );
   }
 
-  // ── Pharmacy Leaderboard ──
+  Widget _legendItem(String name, double pct, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 12),
+          Text(name, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textSecondaryColor)),
+          const Spacer(),
+          Text('${pct.toInt()}%', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLeaderboard() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,60 +406,80 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Top Performing Pharmacies', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor)),
-              OutlinedButton.icon(
+              Text('Top Performing Nodes', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+              TextButton.icon(
                 onPressed: () {},
-                icon: const Icon(Icons.download_rounded, size: 16),
-                label: Text('Export Financial Statement', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppTheme.borderColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
+                icon: const Icon(Icons.file_download_outlined, size: 20),
+                label: Text('Full Audit Log', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700)),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.primaryColor),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Table Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(color: AppTheme.backgroundColor, borderRadius: BorderRadius.circular(8)),
-            child: Row(children: [
-              _headerCell('RANK', flex: 1),
-              _headerCell('PHARMACY NAME', flex: 4),
-              _headerCell('TXN VOLUME', flex: 2),
-              _headerCell('AVG. FULFILLMENT', flex: 2),
-              _headerCell('REVENUE', flex: 2),
-            ]),
-          ),
-          const SizedBox(height: 4),
-
-          // Rows
-          ...List.generate(_mockLeaderboard.length, (i) {
-            final pharm = _mockLeaderboard[i];
-            final isTop = i == 0;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          const SizedBox(height: 24),
+          // Scrollable table area
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5))),
+                border: Border.all(color: AppTheme.borderColor.withValues(alpha: 0.5)),
               ),
-              child: Row(children: [
-                Expanded(flex: 1, child: Container(
-                  width: 28, height: 28,
-                  decoration: BoxDecoration(
-                    color: isTop ? AppTheme.primaryColor : AppTheme.backgroundColor,
-                    borderRadius: BorderRadius.circular(8),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    color: AppTheme.backgroundColor,
+                    child: Row(children: [
+                      _headerCell('RANK', flex: 1),
+                      _headerCell('PHARMACY CORE', flex: 4),
+                      _headerCell('TX VOLUME', flex: 2),
+                      _headerCell('LATENCY', flex: 2),
+                      _headerCell('REVENUE', flex: 2),
+                    ]),
                   ),
-                  alignment: Alignment.center,
-                  child: Text('${i + 1}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: isTop ? Colors.white : AppTheme.textSecondaryColor)),
-                )),
-                Expanded(flex: 4, child: Text(pharm['name']!, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimaryColor))),
-                Expanded(flex: 2, child: Text(pharm['volume']!, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondaryColor))),
-                Expanded(flex: 2, child: Text(pharm['speed']!, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondaryColor))),
-                Expanded(flex: 2, child: Text(pharm['revenue']!, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.primaryColor))),
-              ]),
-            );
-          }),
+                  ...List.generate(_mockLeaderboard.length, (i) {
+                    final pharm = _mockLeaderboard[i];
+                    final isTop = i == 0;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      decoration: BoxDecoration(
+                        color: isTop ? AppTheme.primaryColor.withValues(alpha: 0.02) : Colors.white,
+                        border: Border(bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5))),
+                      ),
+                      child: Row(children: [
+                        Expanded(flex: 1, child: Text(
+                          '0${i + 1}', 
+                          style: GoogleFonts.inter(
+                            fontSize: 14, 
+                            fontWeight: FontWeight.w800, 
+                            color: isTop ? AppTheme.primaryColor : AppTheme.textTertiaryColor
+                          )
+                        )),
+                        Expanded(flex: 4, child: Row(
+                          children: [
+                            CircleAvatar(radius: 4, backgroundColor: isTop ? AppTheme.primaryColor : Colors.transparent),
+                            SizedBox(width: isTop ? 10 : 0),
+                            Text(pharm['name']!, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor)),
+                          ],
+                        )),
+                        Expanded(flex: 2, child: Text(pharm['volume']!, style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondaryColor))),
+                        Expanded(flex: 2, child: Row(
+                          children: [
+                            Icon(Icons.bolt_rounded, size: 14, color: isTop ? const Color(0xFF22C55E) : AppTheme.textTertiaryColor),
+                            const SizedBox(width: 4),
+                            Text(pharm['speed']!, style: GoogleFonts.inter(fontSize: 14, color: isTop ? const Color(0xFF22C55E) : AppTheme.textSecondaryColor)),
+                          ],
+                        )),
+                        Expanded(flex: 2, child: Text(
+                          pharm['revenue']!, 
+                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)
+                        )),
+                      ]),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -382,7 +488,31 @@ class _AdminAnalyticsScreenState extends ConsumerState<AdminAnalyticsScreen> {
   Widget _headerCell(String text, {required int flex}) {
     return Expanded(
       flex: flex,
-      child: Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.textTertiaryColor, letterSpacing: 1.0)),
+      child: Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textTertiaryColor, letterSpacing: 1.5)),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final Color color;
+  final double size;
+  const _Badge(this.color, {required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: color, width: 2),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))
+        ],
+      ),
+      child: Center(child: Container(width: size * 0.4, height: size * 0.4, decoration: BoxDecoration(color: color, shape: BoxShape.circle))),
     );
   }
 }

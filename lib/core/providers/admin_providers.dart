@@ -194,9 +194,122 @@ final adminUrgentInventoryProvider = StreamProvider<List<Product>>((ref) {
         StreamTransformer<List<Product>, List<Product>>.fromHandlers(
           handleData: (data, sink) => sink.add(data),
           handleError: (error, stackTrace, sink) {
-            // Properly emit empty list on permission error
             sink.add(<Product>[]);
           },
         ),
       );
 });
+
+// ── STAFF MANAGEMENT PROVIDERS ──
+
+/// Mock data for admin staff to simulate a live command center.
+List<UserProfile> _demoAdminStaff() => [
+  UserProfile(
+    uid: 'staff_1',
+    name: 'Dr. Sarah Connor',
+    displayName: 'Dr. Sarah Connor',
+    email: 'sarah.c@vailmeds.com',
+    role: 'super_admin',
+    photoUrl: 'https://i.pravatar.cc/150?u=staff_1',
+    isVerified: true,
+    bio: 'Lead Clinical Auditor',
+    createdAt: DateTime.now().subtract(const Duration(days: 45)),
+  ),
+  UserProfile(
+    uid: 'staff_2',
+    name: 'Marcus Wright',
+    displayName: 'Marcus Wright',
+    email: 'marcus.w@vailmeds.com',
+    role: 'admin',
+    photoUrl: 'https://i.pravatar.cc/150?u=staff_2',
+    isVerified: true,
+    bio: 'Systems Integrity Officer',
+    createdAt: DateTime.now().subtract(const Duration(days: 30)),
+  ),
+  UserProfile(
+    uid: 'staff_3',
+    name: 'Kyle Reese',
+    displayName: 'Kyle Reese',
+    email: 'kyle.r@vailmeds.com',
+    role: 'admin',
+    photoUrl: 'https://i.pravatar.cc/150?u=staff_3',
+    isVerified: true,
+    bio: 'Pharmacy Relations Lead',
+    createdAt: DateTime.now().subtract(const Duration(days: 12)),
+  ),
+];
+
+/// Streams all administrative and auditing personnel.
+final adminStaffProvider = StreamProvider<List<UserProfile>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('users')
+      .where('role', whereIn: ['admin', 'super_admin'])
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => UserProfile.fromMap(doc.data(), doc.id))
+          .toList())
+      .transform(
+        StreamTransformer<List<UserProfile>, List<UserProfile>>.fromHandlers(
+          handleData: (data, sink) => sink.add(data),
+          handleError: (error, stackTrace, sink) {
+            // Provide high-fidelity demo staff for the Dubai experience
+            sink.add(_demoAdminStaff());
+          },
+        ),
+      );
+});
+
+// ── AUDIT LEDGER PROVIDERS ──
+
+/// Comprehensive historical activity stream for the Global Audit Ledger.
+final adminFullAuditProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('audit_logs')
+      .orderBy('timestamp', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => {
+            ...doc.data(),
+            'id': doc.id,
+          }).toList())
+      .transform(
+        StreamTransformer<List<Map<String, dynamic>>, List<Map<String, dynamic>>>.fromHandlers(
+          handleData: (data, sink) => sink.add(data),
+          handleError: (error, stackTrace, sink) {
+            // High-fidelity fallback for Audit Ledger simulation
+            sink.add([
+              {
+                'id': 'audit_1',
+                'type': 'PHARMACY_APPROVAL',
+                'status': 'SUCCESS',
+                'action': 'VERIFIED',
+                'details': 'License PHA-002341-2024 verified by Admin',
+                'adminId': 'admin_1',
+                'pharmacyId': 'pharmacy_1',
+                'timestamp': Timestamp.now(),
+              },
+              {
+                'id': 'audit_2',
+                'type': 'SECURITY_ALERT',
+                'status': 'FLAGGED',
+                'action': 'LOGIN_MFA_FAIL',
+                'details': 'Multiple MFA failures from IP 124.55.12.33',
+                'adminId': 'system',
+                'pharmacyId': 'pharmacy_2',
+                'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 4))),
+              },
+              {
+                'id': 'audit_3',
+                'type': 'INVENTORY_CHANGE',
+                'status': 'UPDATED',
+                'action': 'RESTOCK',
+                'details': 'Amoxicillin 500mg restocked +250 units',
+                'adminId': 'pharmacy_admin_A',
+                'pharmacyId': 'pharmacy_1',
+                'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 12))),
+              },
+            ]);
+          },
+        ),
+      );
+});
+

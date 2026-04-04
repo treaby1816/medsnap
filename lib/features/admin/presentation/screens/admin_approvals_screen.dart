@@ -1,9 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../../../../core/theme.dart';
 import '../../../../core/models/user_profile.dart';
 import '../../../../core/providers.dart';
@@ -20,14 +19,7 @@ class _AdminApprovalsScreenState extends ConsumerState<AdminApprovalsScreen> {
   UserProfile? _selectedPharmacy;
   final Set<String> _recentlyApproved = {};
 
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      debugPrint('Could not launch $url');
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -36,77 +28,392 @@ class _AdminApprovalsScreenState extends ConsumerState<AdminApprovalsScreen> {
     final currentUserInfo = ref.watch(userProfileProvider).value;
     final isSeniorAuditor = currentUserInfo?.role == 'super_admin' || currentUserInfo?.role == 'admin';
 
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Page Header ──
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // ── Hub Header ──
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'VERIFICATION QUEUE',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.primaryColor,
-                      letterSpacing: 1.5,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SECURITY & VERIFICATION',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.primaryColor,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Clinical Verification Queue',
+                        style: GoogleFonts.inter(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimaryColor,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Pharmacist Credentials',
-                    style: GoogleFonts.inter(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.textPrimaryColor,
-                    ),
-                  ),
+                  _buildHeaderActions(),
                 ],
               ),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.filter_list_rounded, size: 18),
-                    label: Text('Filters', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.borderColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.download_rounded, size: 18),
-                    label: Text('Export CSV', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.borderColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 32),
+
+              // ── Layout Switcher (Split Pane) ──
+              Expanded(
+                child: pendingAsync.when(
+                  data: (pharmacies) {
+                    final visible = pharmacies.where((p) => !_recentlyApproved.contains(p.uid)).toList();
+                    return _buildWorkspaceSplit(visible, approvingUid, isSeniorAuditor);
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+                  error: (e, _) => Center(child: Text('Verification Stream Error: $e', style: const TextStyle(color: Colors.red))),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+        ),
+      ],
+    );
+  }
 
-          // ── Split Pane ──
-          Expanded(
-            child: pendingAsync.when(
-              data: (pharmacies) {
-                // Remove recently approved from immediate UI view while fading out
-                final visiblePharmacies = pharmacies.where((p) => !_recentlyApproved.contains(p.uid)).toList();
-                return _buildSplitPane(visiblePharmacies, approvingUid, isSeniorAuditor);
-              },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
-              error: (e, _) => Center(child: Text('Error: $e')),
+  Widget _buildHeaderActions() {
+    return Row(
+      children: [
+        _actionBtn(Icons.assignment_turned_in_outlined, 'VailMeds Audit Log'),
+        const SizedBox(width: 12),
+        _actionBtn(Icons.security_rounded, 'Compliance Policy'),
+      ],
+    );
+  }
+
+  Widget _actionBtn(IconData icon, String label) {
+    return OutlinedButton.icon(
+      onPressed: () {},
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.textSecondaryColor,
+        side: const BorderSide(color: AppTheme.borderColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  Widget _buildWorkspaceSplit(List<UserProfile> pharmacies, String? approvingUid, bool isSeniorAuditor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Main Queue (Table flex 8) ──
+        Expanded(
+          flex: 8,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppTheme.borderColor),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))
+              ],
+            ),
+            child: Column(
+              children: [
+                // Premium Table Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundColor.withValues(alpha: 0.5),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: Row(
+                    children: [
+                      _headerCell('ENTITY NAME', flex: 4),
+                      _headerCell('IDENTIFIER', flex: 2),
+                      _headerCell('TIMESTAMP', flex: 2),
+                      _headerCell('SEC. STATUS', flex: 2),
+                      _headerCell('ACTION', flex: 2),
+                    ],
+                  ),
+                ),
+                // Scrollable Table Body
+                Expanded(
+                  child: pharmacies.isEmpty
+                      ? _buildEmptyQueue()
+                      : ListView.builder(
+                          itemCount: pharmacies.length,
+                          padding: EdgeInsets.zero,
+                          itemBuilder: (context, index) {
+                            final pharmacy = pharmacies[index];
+                            final isSelected = _selectedPharmacy?.uid == pharmacy.uid;
+                            return _buildQueueRow(pharmacy, isSelected, approvingUid);
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 24),
+
+        // ── Clinical Inspector (flex 4) ──
+        Expanded(
+          flex: 4,
+          child: _buildInspectorPane(approvingUid, isSeniorAuditor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQueueRow(UserProfile pharmacy, bool isSelected, String? approvingUid) {
+    final isApproving = approvingUid == pharmacy.uid;
+    final dateStr = pharmacy.createdAt != null
+        ? DateFormat('MMM dd, hh:mm a').format(pharmacy.createdAt!)
+        : 'N/A';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.02) : Colors.transparent,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() => _selectedPharmacy = pharmacy),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              border: Border(
+                left: isSelected ? const BorderSide(color: AppTheme.primaryColor, width: 4) : BorderSide.none,
+                bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5)),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Entity info
+                Expanded(
+                  flex: 4,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppTheme.primaryColor : AppTheme.backgroundColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.business_rounded, 
+                          size: 18, 
+                          color: isSelected ? Colors.white : AppTheme.primaryColor
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pharmacy.storeName ?? pharmacy.name,
+                              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              pharmacy.email,
+                              style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiaryColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // License ID
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    pharmacy.licenseNumber ?? 'UNASSIGNED',
+                    style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondaryColor),
+                  ),
+                ),
+                // Timestamp
+                Expanded(
+                  flex: 2,
+                  child: Text(dateStr, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondaryColor)),
+                ),
+                // Security status
+                Expanded(
+                  flex: 2,
+                  child: _statusBadge(pharmacy.verificationStatus),
+                ),
+                // CTA
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    isApproving ? 'VERIFYING...' : 'REVIEW',
+                    style: GoogleFonts.inter(
+                      fontSize: 11, 
+                      fontWeight: FontWeight.w900, 
+                      color: isApproving ? const Color(0xFF22C55E) : AppTheme.primaryColor,
+                      letterSpacing: 1.0
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statusBadge(String status) {
+    final color = status == 'pending' ? AppTheme.primaryColor : const Color(0xFFF59E0B);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Text(
+            status.toUpperCase(),
+            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInspectorPane(String? approvingUid, bool isSeniorAuditor) {
+    if (_selectedPharmacy == null) {
+      return _buildInspectorPlaceholder();
+    }
+
+    final p = _selectedPharmacy!;
+    final isApproving = approvingUid == p.uid;
+
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))
+        ],
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Pane Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('ENTITY PROFILE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textTertiaryColor, letterSpacing: 1.5)),
+                _trustIndicator(88), // Mock trust score
+              ],
+            ),
+            const SizedBox(height: 24),
+            
+            Text(p.storeName ?? p.name, style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+            const SizedBox(height: 8),
+            Text(p.email, style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondaryColor)),
+            
+            const SizedBox(height: 32),
+            
+            // Document Review
+            _sectionLabel('PRIMARY CREDENTIALS'),
+            const SizedBox(height: 12),
+            _buildDocPreview(),
+            const SizedBox(height: 24),
+            
+            // Metadata Grid
+            _metadataItem('License Number', p.licenseNumber ?? 'N/A', isMono: true),
+            _metadataItem('NPI Record', p.npiNumber ?? 'Pending Discovery'),
+            _metadataItem('Entity Type', 'Licensed Pharmacy Hub'),
+            
+            const SizedBox(height: 40),
+            
+            // Verification Actions
+            if (isSeniorAuditor) ...[
+              _verificationCTA(
+                onTap: isApproving ? null : () => _handleApprove(p),
+                label: isApproving ? 'Writing Audit Block...' : 'SECURE APPROVAL',
+                icon: Icons.verified_user_rounded,
+                isPrimary: true,
+              ),
+              const SizedBox(height: 12),
+            ],
+            _verificationCTA(
+              onTap: isApproving ? null : () => _handleReject(p),
+              label: 'FLAG FOR REVIEW',
+              icon: Icons.flag_rounded,
+              isPrimary: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _trustIndicator(int score) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF22C55E).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF22C55E)),
+          const SizedBox(width: 4),
+          Text('TRUST SCORE: $score', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF22C55E))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocPreview() {
+    return Container(
+      width: double.infinity,
+      height: 220,
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.contact_page_outlined, size: 48, color: AppTheme.textTertiaryColor.withValues(alpha: 0.5)),
+                const SizedBox(height: 12),
+                Text('SECURED LICENSE PDF', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textTertiaryColor)),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 16, right: 16,
+            child: FloatingActionButton.small(
+              onPressed: () {},
+              backgroundColor: Colors.white,
+              elevation: 4,
+              child: const Icon(Icons.open_in_full_rounded, size: 18, color: AppTheme.primaryColor),
             ),
           ),
         ],
@@ -114,495 +421,87 @@ class _AdminApprovalsScreenState extends ConsumerState<AdminApprovalsScreen> {
     );
   }
 
-  Widget _buildSplitPane(List<UserProfile> pharmacies, String? approvingUid, bool isSeniorAuditor) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Left: Data Table (flex 8) ──
-        Expanded(
-          flex: 8,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor),
-            ),
-            child: Column(
-              children: [
-                // Table Header
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.backgroundColor,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
-                  child: Row(
-                    children: [
-                      _headerCell('PHARMACY NAME', flex: 3),
-                      _headerCell('LICENSE NUMBER', flex: 2),
-                      _headerCell('SUBMISSION', flex: 2),
-                      _headerCell('STATUS', flex: 2),
-                      _headerCell('ACTION', flex: 2),
-                    ],
-                  ),
-                ),
-                // Table Rows
-                Expanded(
-                  child: pharmacies.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle_outline, size: 56, color: Colors.green.withValues(alpha: 0.4)),
-                              const SizedBox(height: 12),
-                              Text('No pending applications', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: pharmacies.length,
-                          padding: EdgeInsets.zero,
-                          itemBuilder: (context, index) {
-                            final pharmacy = pharmacies[index];
-                            final isSelected = _selectedPharmacy?.uid == pharmacy.uid;
-                            return _buildAnimatedTableRow(pharmacy, isSelected, approvingUid);
-                          },
-                        ),
-                ),
-                // Pagination (visual)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: AppTheme.borderColor)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Showing ${pharmacies.length} of ${pharmacies.length} applications',
-                        style: GoogleFonts.inter(fontSize: 12, color: AppTheme.primaryColor),
-                      ),
-                      Row(
-                        children: [
-                          _paginationBtn('<', false),
-                          _paginationBtn('1', true),
-                          _paginationBtn('2', false),
-                          _paginationBtn('3', false),
-                          _paginationBtn('>', false),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+  Widget _metadataItem(String label, String value, {bool isMono = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textTertiaryColor)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: isMono 
+              ? GoogleFonts.robotoMono(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)
+              : GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor),
           ),
-        ),
-        const SizedBox(width: 20),
-
-        // ── Right: License Preview Sidebar (flex 4) ──
-        Expanded(
-          flex: 4,
-          child: _buildLicensePreview(approvingUid, isSeniorAuditor),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildAnimatedTableRow(UserProfile pharmacy, bool isSelected, String? approvingUid) {
-    // Check if this row is currently being approved
-    final isApprovingThis = approvingUid == pharmacy.uid;
-
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      child: isApprovingThis
-          ? Container(
-              height: 70,
-              color: Colors.green.withValues(alpha: 0.1),
-              child: const Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.check_circle_rounded, color: Colors.green, size: 24),
-                    SizedBox(width: 10),
-                    Text('Approving and creating record...', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            )
-          : _buildTableRow(pharmacy, isSelected, approvingUid),
-    );
-  }
-
-  Widget _buildTableRow(UserProfile pharmacy, bool isSelected, String? approvingUid) {
-    final dateStr = pharmacy.createdAt != null
-        ? '${DateFormat('MMM dd, yyyy').format(pharmacy.createdAt!)}\n${DateFormat('hh:mm a').format(pharmacy.createdAt!)}'
-        : 'N/A';
-
-    final statusColor = pharmacy.verificationStatus == 'pending'
-        ? AppTheme.primaryColor
-        : const Color(0xFFF59E0B);
-    final statusLabel = pharmacy.verificationStatus == 'pending' ? 'UNDER REVIEW' : 'PENDING';
-
-    return Material(
-      color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.04) : Colors.transparent,
-      child: InkWell(
-        onTap: () => setState(() => _selectedPharmacy = pharmacy),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          decoration: BoxDecoration(
-            border: Border(
-              left: isSelected
-                  ? const BorderSide(color: AppTheme.primaryColor, width: 3)
-                  : BorderSide.none,
-              bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5)),
-            ),
-          ),
-          child: Row(
-            children: [
-              // Pharmacy Name
-              Expanded(
-                flex: 3,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.storefront_rounded, size: 18, color: AppTheme.primaryColor),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            pharmacy.storeName ?? pharmacy.name,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (pharmacy.email.isNotEmpty)
-                            Text(
-                              pharmacy.email,
-                              style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiaryColor),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // License Number
-              Expanded(
-                flex: 2,
-                child: Text(
-                  pharmacy.licenseNumber ?? 'N/A',
-                  style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.w500),
-                ),
-              ),
-
-              // Submission Date
-              Expanded(
-                flex: 2,
-                child: Text(
-                  dateStr,
-                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor),
-                ),
-              ),
-
-              // Status
-              Expanded(
-                flex: 2,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Action
-              Expanded(
-                flex: 2,
-                child: TextButton(
-                  onPressed: () => setState(() => _selectedPharmacy = pharmacy),
-                  child: Text(
-                    isSelected ? 'Review Details' : 'View Documents',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+  Widget _verificationCTA({required VoidCallback? onTap, required String label, required IconData icon, required bool isPrimary}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 20),
+        label: Text(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isPrimary ? AppTheme.primaryColor : Colors.white,
+          foregroundColor: isPrimary ? Colors.white : const Color(0xFFEF4444),
+          elevation: 0,
+          side: isPrimary ? null : const BorderSide(color: Color(0xFFEF4444)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );
   }
 
-  Widget _buildLicensePreview(String? approvingUid, bool isSeniorAuditor) {
-    if (_selectedPharmacy == null) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderColor),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.touch_app_outlined, size: 48, color: AppTheme.textTertiaryColor.withValues(alpha: 0.4)),
-              const SizedBox(height: 12),
-              Text(
-                'Select an application',
-                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondaryColor),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Click a row to preview license details',
-                style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiaryColor),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+  Widget _sectionLabel(String text) {
+    return Text(text, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textTertiaryColor, letterSpacing: 1.0));
+  }
 
-    final pharmacy = _selectedPharmacy!;
-    final isApproving = approvingUid == pharmacy.uid;
-
+  Widget _buildInspectorPlaceholder() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.borderColor),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      child: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ── Header & REF ID ──
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    pharmacy.storeName ?? pharmacy.name,
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'REF: APP-${pharmacy.uid.substring(0, 3).toUpperCase()}',
-                    style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: AppTheme.primaryColor),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // ── Document Viewer Placeholder ──
             Container(
-              width: double.infinity,
-              height: 180,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0x1AEC5B13)), // Subtle Orange Outline (#ec5b131a)
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: AppTheme.backgroundColor,
+                shape: BoxShape.circle,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.description_outlined, size: 40, color: AppTheme.textTertiaryColor),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.zoom_in, size: 16),
-                    label: Text('Enlarge Document', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.borderColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // ── Metadata Section ──
-            Text(
-              'SUBMITTED METADATA',
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textTertiaryColor,
-                letterSpacing: 1.0,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _metadataRow('Full Legal Name', pharmacy.storeName ?? pharmacy.name),
-            
-            // License ID (Bold Monospace)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('License ID', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.bold)),
-                  Text(
-                    pharmacy.licenseNumber ?? 'N/A',
-                    style: GoogleFonts.robotoMono(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            _metadataRow('NPI Number', pharmacy.npiNumber ?? 'N/A'),
-            _metadataRow('Email', pharmacy.email),
-            const SizedBox(height: 12),
-
-            // Verification Link
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  const url = 'https://nabp.pharmacy/lookup';
-                  _launchUrl(url);
-                },
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: Text('Verify on NABP', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppTheme.borderColor),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // ── System Cross-Check ──
-            Text(
-              'SYSTEM CROSS-CHECK',
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textTertiaryColor,
-                letterSpacing: 1.0,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)), // Green #059669
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Color(0xFF059669), size: 22),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'License Verified',
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor),
-                        ),
-                        Text(
-                          'External database match found.',
-                          style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textSecondaryColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              child: const Icon(Icons.verified_user_outlined, size: 48, color: AppTheme.textTertiaryColor),
             ),
             const SizedBox(height: 24),
-
-            // ── Action Buttons ──
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isApproving ? null : () => _handleReject(pharmacy),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text('Reject', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
-                  ),
-                ),
-                if (isSeniorAuditor) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: isApproving ? null : () => _handleApprove(pharmacy),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: isApproving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : Text('Approve', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            if (!isSeniorAuditor)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  'Only Senior Auditors can approve pharmacy applications.',
-                  style: GoogleFonts.inter(fontSize: 11, color: Colors.orange, fontStyle: FontStyle.italic),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            Text('Clinical Review Workspace', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+            const SizedBox(height: 8),
+            Text('Select a pharmacy from the queue\nto begin clinical verification.', textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondaryColor)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyQueue() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.check_circle_outline_rounded, size: 64, color: const Color(0xFF22C55E).withValues(alpha: 0.5)),
+          const SizedBox(height: 16),
+          Text('All entities verified', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+          Text('The verification queue is currently empty.', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
+        ],
       ),
     );
   }
@@ -610,110 +509,57 @@ class _AdminApprovalsScreenState extends ConsumerState<AdminApprovalsScreen> {
   Widget _headerCell(String text, {required int flex}) {
     return Expanded(
       flex: flex,
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: AppTheme.textTertiaryColor,
-          letterSpacing: 1.0,
-        ),
-      ),
+      child: Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textTertiaryColor, letterSpacing: 1.5)),
     );
   }
 
-  Widget _metadataRow(String label, String value, {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.bold)),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? AppTheme.textPrimaryColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _paginationBtn(String label, bool active) {
-    return Container(
-      width: 32,
-      height: 32,
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      decoration: BoxDecoration(
-        color: active ? AppTheme.primaryColor : Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
-        border: active ? null : Border.all(color: AppTheme.borderColor),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: active ? Colors.white : AppTheme.textSecondaryColor,
-        ),
-      ),
-    );
-  }
+  // ── Logic Handlers (Unchanged signature) ──
 
   Future<void> _handleApprove(UserProfile pharmacy) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Approve Pharmacy?', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Text(
-          'Confirm approval of "${pharmacy.storeName ?? pharmacy.name}".\nThis will grant marketplace access and write an Audit Log.',
-          style: GoogleFonts.inter(color: AppTheme.textSecondaryColor),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text('Approve'),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('SECURE APPROVAL', style: GoogleFonts.inter(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+          content: Text(
+            'Confirming digital verification for "${pharmacy.storeName ?? pharmacy.name}". This action will be logged in the immutable audit trail.',
+            style: GoogleFonts.inter(color: AppTheme.textSecondaryColor),
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('CANCEL', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppTheme.textTertiaryColor))),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              child: const Text('AUTHORIZE'),
+            ),
+          ],
+        ),
       ),
     );
 
     if (confirmed == true) {
       try {
         await approvePharmacy(ref, pharmacy.uid);
-        
-        // Hide the item from the UX gracefully
         setState(() {
           _recentlyApproved.add(pharmacy.uid);
           _selectedPharmacy = null;
         });
-        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle_rounded, color: Colors.white),
-                  const SizedBox(width: 10),
-                  Text('${pharmacy.storeName ?? pharmacy.name} approved securely!'),
-                ],
-              ),
+              content: Text('Entity ${pharmacy.storeName ?? pharmacy.name} approved and logged.'),
               backgroundColor: const Color(0xFF22C55E),
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+            SnackBar(content: Text('Approval Fail: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
           );
         }
       }
@@ -724,53 +570,56 @@ class _AdminApprovalsScreenState extends ConsumerState<AdminApprovalsScreen> {
     final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Reject Application?', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Provide a reason for rejecting "${pharmacy.storeName ?? pharmacy.name}".', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Reason for rejection...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('FLAG FOR REVIEW', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: const Color(0xFFEF4444))),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Specify the compliance violation for "${pharmacy.storeName ?? pharmacy.name}".', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Compliance notes...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: AppTheme.backgroundColor,
+                ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              child: const Text('FLAG ENTITY'),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text('Reject'),
-          ),
-        ],
       ),
     );
 
     if (confirmed == true) {
       try {
         await rejectPharmacy(ref, pharmacy.uid, reasonController.text);
-        
         setState(() {
           _recentlyApproved.add(pharmacy.uid);
           _selectedPharmacy = null;
         });
-        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${pharmacy.storeName ?? pharmacy.name} rejected.'), behavior: SnackBarBehavior.floating),
+            const SnackBar(content: Text('Entity flagged for review.'), behavior: SnackBarBehavior.floating),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+            SnackBar(content: Text('Fail: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
           );
         }
       }

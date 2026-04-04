@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../core/models/product_model.dart';
 import '../../../../core/providers/admin_providers.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Admin Inventory Screen displaying global stock.
+/// Admin Inventory Screen — Global Stock Intelligence Hub
 class AdminInventoryScreen extends ConsumerStatefulWidget {
   const AdminInventoryScreen({super.key});
 
@@ -18,209 +18,280 @@ class AdminInventoryScreen extends ConsumerStatefulWidget {
 class _AdminInventoryScreenState extends ConsumerState<AdminInventoryScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-    
-    _pulseAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
+    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'GLOBAL INVENTORY',
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.primaryColor,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Medication Stock Monitor',
-              style: GoogleFonts.inter(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimaryColor,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderColor),
-              ),
-              child: Column(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.backgroundColor,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Row(
-                      children: [
-                        _headerCell('MEDICATION', flex: 3),
-                        _headerCell('PHARMACY', flex: 2),
-                        _headerCell('STOCK COUNT', flex: 2),
-                        _headerCell('STATUS', flex: 2),
-                      ],
-                    ),
+                  Text(
+                    'SUPPLY CHAIN INTELLIGENCE', 
+                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primaryColor, letterSpacing: 2.0)
                   ),
-                  _buildInventoryList(),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Global Inventory Monitor', 
+                    style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor, letterSpacing: -0.5)
+                  ),
                 ],
               ),
-            ),
-          ],
+              _buildGlobalSearch(),
+            ],
+          ),
+          const SizedBox(height: 32),
+
+          // ── Stock Health Overview ──
+          _buildInventoryGrid(),
+          const SizedBox(height: 48),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlobalSearch() {
+    return Container(
+      width: 320,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+        style: GoogleFonts.inter(fontSize: 14),
+        decoration: InputDecoration(
+          hintText: 'Search SKU or Pharmacy...',
+          hintStyle: GoogleFonts.inter(color: AppTheme.textTertiaryColor),
+          prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.textTertiaryColor),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );
   }
 
-  Widget _buildInventoryList() {
+  Widget _buildInventoryGrid() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Live Stock Telemetry', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+              _inventoryLegend(),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildStreamContent(),
+        ],
+      ),
+    );
+  }
+
+  Widget _inventoryLegend() {
+    return Row(
+      children: [
+        _legendItem(const Color(0xFF22C55E), 'Healthy'),
+        const SizedBox(width: 16),
+        _legendItem(const Color(0xFFF59E0B), 'Monitoring'),
+        const SizedBox(width: 16),
+        _legendItem(const Color(0xFFEF4444), 'Critical'),
+      ],
+    );
+  }
+
+  Widget _legendItem(Color color, String label) {
+    return Row(
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSecondaryColor)),
+      ],
+    );
+  }
+
+  Widget _buildStreamContent() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('products').snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
-          );
-        }
+        if (snapshot.hasError) return Center(child: Text('Data Stream Error: ${snapshot.error}'));
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
 
         final products = snapshot.data!.docs
             .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+            .where((p) => p.name.toLowerCase().contains(_searchQuery) || p.pharmacyName.toLowerCase().contains(_searchQuery))
             .toList();
 
         if (products.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(32),
-            child: Center(
-              child: Text(
-                'No inventory records found.',
-                style: GoogleFonts.inter(color: AppTheme.textSecondaryColor),
-              ),
-            ),
-          );
+          return _buildEmptyState();
         }
 
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: products.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final p = products[index];
-            final isCritical = p.stockCount < lowStockThreshold;
-            
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      p.name,
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      p.pharmacyName,
-                      style: GoogleFonts.inter(color: AppTheme.textSecondaryColor, fontSize: 13),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          p.stockCount.toString(),
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w800,
-                            color: isCritical ? Colors.red : AppTheme.textPrimaryColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                        if (isCritical) ...[
-                          const SizedBox(width: 8),
-                          FadeTransition(
-                            opacity: _pulseAnimation,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'LOW STOCK',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      isCritical ? 'NEEDS RESTOCK' : 'HEALTHY',
-                      style: GoogleFonts.inter(
-                        color: isCritical ? Colors.red : Colors.green,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+        return Column(
+          children: [
+            // Table Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              color: AppTheme.backgroundColor.withValues(alpha: 0.5),
+              child: Row(children: [
+                _headerCell('MEDICATION SKU', flex: 4),
+                _headerCell('PHARMACY NODE', flex: 3),
+                _headerCell('AVAILABLE UNIT', flex: 2),
+                _headerCell('HEALTH STATUS', flex: 2),
+              ]),
+            ),
+            // Table Rows
+            ...products.map((p) => _buildInventoryRow(p)),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildInventoryRow(Product p) {
+    final bool isLow = p.stockCount < lowStockThreshold;
+    final bool isCritical = p.stockCount < (lowStockThreshold / 2);
+    final statusColor = isCritical ? const Color(0xFFEF4444) : (isLow ? const Color(0xFFF59E0B) : const Color(0xFF22C55E));
+    final statusText = isCritical ? 'CRITICAL' : (isLow ? 'MONITOR' : 'OPTIMAL');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5))),
+      ),
+      child: Row(
+        children: [
+          // Medication
+          Expanded(
+            flex: 4,
+            child: Row(
+              children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(child: Icon(Icons.medication_rounded, size: 20, color: statusColor)),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(p.name, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryColor)),
+                      Text('Category: Clinical Pharma', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiaryColor)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Pharmacy
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined, size: 14, color: AppTheme.textTertiaryColor),
+                const SizedBox(width: 6),
+                Text(p.pharmacyName, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondaryColor)),
+              ],
+            ),
+          ),
+          // Unit Count
+          Expanded(
+            flex: 2,
+            child: Text(
+              p.stockCount.toString(),
+              style: GoogleFonts.robotoMono(
+                fontSize: 16, 
+                fontWeight: FontWeight.w800, 
+                color: statusColor,
+              ),
+            ),
+          ),
+          // Health Status
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                FadeTransition(
+                  opacity: (isLow || isCritical) ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
+                  child: Container(width: 8, height: 8, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  statusText,
+                  style: GoogleFonts.inter(
+                    fontSize: 11, 
+                    fontWeight: FontWeight.w800, 
+                    color: statusColor,
+                    letterSpacing: 0.5
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _headerCell(String text, {required int flex}) {
     return Expanded(
       flex: flex,
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: AppTheme.textTertiaryColor,
-          letterSpacing: 1.0,
-        ),
+      child: Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textTertiaryColor, letterSpacing: 1.5)),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Column(
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 48, color: AppTheme.textTertiaryColor.withValues(alpha: 0.5)),
+          const SizedBox(height: 16),
+          Text('No matching records', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textSecondaryColor)),
+          Text('Try adjusting your search query.', style: GoogleFonts.inter(color: AppTheme.textTertiaryColor)),
+        ],
       ),
     );
   }

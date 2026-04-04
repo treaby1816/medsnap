@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/providers.dart';
+import '../../../../core/theme.dart';
+
 
 /// Fixed-width sidebar for the admin dashboard.
 /// Role-aware: only shows admin-only tabs (Approvals, Support, Analytics)
@@ -21,8 +23,8 @@ class AdminSidebar extends ConsumerWidget {
   });
 
   static const double width = 220;
-  static const Color _sidebarBg = Color(0xFF0F172A);
-  static const Color _activeColor = Color(0xFFEC5B13);
+  static const Color _sidebarBg = AppTheme.darkBackgroundColor;
+  static const Color _activeColor = AppTheme.primaryColor;
   static const Color _inactiveColor = Color(0xFF94A3B8);
 
   @override
@@ -39,6 +41,7 @@ class AdminSidebar extends ConsumerWidget {
       const _NavItem(Icons.analytics_outlined, 'Analytics', true),
       const _NavItem(Icons.people_outline_rounded, 'Staff', true),
       const _NavItem(Icons.support_agent_rounded, 'Support', true),
+      const _NavItem(Icons.history_edu_rounded, 'Audit Log', true),
     ];
 
     // Filter: non-admins only see non-restricted items
@@ -56,9 +59,9 @@ class AdminSidebar extends ConsumerWidget {
             child: Row(
               children: [
                 Image.asset(
-                  'assets/images/logo.png',
-                  width: 36,
-                  height: 36,
+                  'assets/images/logo2.png',
+                  width: 48,
+                  height: 48,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(width: 10),
@@ -67,20 +70,20 @@ class AdminSidebar extends ConsumerWidget {
                   children: [
                     Text(
                       'VAILMEDS',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
+                      style: GoogleFonts.outfit(
+                        color: AppTheme.primaryColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
                       ),
                     ),
                     Text(
-                      isAdmin ? 'ADMIN' : 'CLINICAL CONCIERGE',
-                      style: GoogleFonts.inter(
+                      isAdmin ? 'ADMIN CONSOLE' : 'CLINICAL CONCIERGE',
+                      style: GoogleFonts.outfit(
                         color: _inactiveColor,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.0,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
                       ),
                     ),
                   ],

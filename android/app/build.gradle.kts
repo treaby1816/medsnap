@@ -47,13 +47,23 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
+        multiDexEnabled = true
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("upload-keystore.jks")
+            storePassword = "vailmeds2026"
+            keyAlias = "upload"
+            keyPassword = "vailmeds2026"
+        }
     }
 
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

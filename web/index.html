@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
+<!DOCTYPE html><html><head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
@@ -14,14 +12,100 @@
   <meta name="apple-mobile-web-app-title" content="vail_meds_v2">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png">
 
   <title>vail_meds_v2</title>
   <link rel="manifest" href="manifest.json">
   
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async="" defer=""></script>
+  <style id="splash-screen-style">
+    html {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      min-height: 100%;
+      background-color: #FFFFFF;
+          background-size: 100% 100%;
+    }
+
+    .center {
+      margin: 0;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      -ms-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+    }
+
+    .contain {
+      display:block;
+      width:100%; height:100%;
+      object-fit: contain;
+    }
+
+    .stretch {
+      display:block;
+      width:100%; height:100%;
+    }
+
+    .cover {
+      display:block;
+      width:100%; height:100%;
+      object-fit: cover;
+    }
+
+    .bottom {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      -ms-transform: translate(-50%, 0);
+      transform: translate(-50%, 0);
+    }
+
+    .bottomLeft {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+    }
+
+    .bottomRight {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+    }
+  </style>
+  <script id="splash-screen-script">
+    // Replaced DOM logic with graceful fallback to prevent any Native interop crashes.
+    function removeSplashFromWeb() {
+      document.body.style.background = "transparent";
+    }
+  </script>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
-</body>
-</html>
+  <!-- Native Web Splash physically scrubbed. Hands rendering directly to Flutter Canvaskit payload. -->
+  <script>
+    // --- FORCED RENDERER (Circuit Breaker) ---
+    // Specifically hardcoded to bypass CLI flag dependencies.
+    window.flutterConfiguration = {
+      renderer: "html",
+    };
+
+    // --- LOADING WATCHDOG (5s Timeout) ---
+    // If the engine doesn't start in 5 seconds, auto-refresh.
+    const startTimeout = setTimeout(() => {
+      console.warn("BOOT CRITICAL: Engine stall detected. Refreshing...");
+      window.location.reload();
+    }, 5000);
+
+    // Listener for Dart's custom signal
+    window.addEventListener("flutter-engine-started", (event) => {
+      console.log("BOOT SUCCESS: Flutter engine confirmed active.");
+      clearTimeout(startTimeout);
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async=""></script>
+
+</body></html>

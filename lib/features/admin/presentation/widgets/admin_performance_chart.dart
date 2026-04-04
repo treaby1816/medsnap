@@ -3,36 +3,32 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme.dart';
 
-/// Bar chart showing "Order Processing Volume" over the last 30 days.
-/// Uses fl_chart with mock data, structured for future Firestore stream.
+/// Clinical Performance Intelligence Hub showing order volume telemetry.
 class AdminPerformanceChart extends StatelessWidget {
   const AdminPerformanceChart({super.key});
 
-  // Mock data: daily order volumes for ~15 bars
-  static const List<double> _mockData = [
-    420, 550, 380, 680, 890, 760, 920, 1240, 1100, 980, 850, 720, 640, 810, 950
+  static const List<FlSpot> _spots = [
+    FlSpot(0, 420), FlSpot(1, 550), FlSpot(2, 380), FlSpot(3, 680),
+    FlSpot(4, 890), FlSpot(5, 760), FlSpot(6, 920), FlSpot(7, 1240),
+    FlSpot(8, 1100), FlSpot(9, 980), FlSpot(10, 850), FlSpot(11, 720),
+    FlSpot(12, 640), FlSpot(13, 810), FlSpot(14, 950),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 8))
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Title Row ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -40,67 +36,27 @@ class AdminPerformanceChart extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'App Performance',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimaryColor,
-                    ),
+                    'SYSTEM LATENCY & THROUGHPUT',
+                    style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.primaryColor, letterSpacing: 1.5),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
-                    'Order processing volume over the last 30 days',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppTheme.textSecondaryColor,
-                    ),
+                    'Digital Clinical Throughput',
+                    style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppTheme.borderColor),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Last 30 Days',
-                      style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppTheme.textSecondaryColor),
-                  ],
-                ),
-              ),
+              _buildPulseIndicator(),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
-          // ── Bar Chart ──
+          // ── Line Chart with Premium Gradients ──
           SizedBox(
-            height: 200,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: 1400,
-                barTouchData: BarTouchData(
-                  touchTooltipData: BarTouchTooltipData(
-                    tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    tooltipMargin: 8,
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      return BarTooltipItem(
-                        rod.toY.toInt().toString(),
-                        GoogleFonts.inter(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      );
-                    },
-                  ),
-                ),
+            height: 220,
+            child: LineChart(
+              LineChartData(
+                gridData: const FlGridData(show: false),
                 titlesData: const FlTitlesData(
                   show: true,
                   bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -109,66 +65,105 @@ class AdminPerformanceChart extends StatelessWidget {
                   rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
                 borderData: FlBorderData(show: false),
-                gridData: const FlGridData(show: false),
-                barGroups: List.generate(_mockData.length, (i) {
-                  final isHighlight = _mockData[i] == _mockData.reduce((a, b) => a > b ? a : b);
-                  return BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(
-                        toY: _mockData[i],
-                        width: 16,
-                        borderRadius: BorderRadius.circular(4),
-                        color: isHighlight
-                            ? AppTheme.primaryColor
-                            : AppTheme.primaryColor.withValues(alpha: 0.3),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    tooltipRoundedRadius: 12,
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        return LineTooltipItem(
+                          '${spot.y.toInt()} RX',
+                          GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: _spots,
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    barWidth: 4,
+                    color: AppTheme.primaryColor,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppTheme.primaryColor.withValues(alpha: 0.15),
+                          AppTheme.primaryColor.withValues(alpha: 0.0),
+                        ],
                       ),
-                    ],
-                  );
-                }),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
 
-          // ── Footer Stats ──
-          Row(
-            children: [
-              _buildFooterStat('AVG. FULFILLMENT', '14.2 min', AppTheme.textPrimaryColor),
-              const SizedBox(width: 40),
-              _buildFooterStat('ERROR RATE', '0.02%', AppTheme.primaryColor),
-              const SizedBox(width: 40),
-              _buildFooterStat('ACTIVE SESSIONS', '4.1k', AppTheme.textPrimaryColor),
-            ],
+          // ── High-Density Telemetry ──
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _telemetryStat('AVG. RX TIME', '14.2m', Icons.timer_outlined),
+                _separator(),
+                _telemetryStat('ERROR RATE', '0.02%', Icons.error_outline_rounded),
+                _separator(),
+                _telemetryStat('AUDIT STATUS', 'SYNCED', Icons.sync_rounded),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFooterStat(String label, String value, Color valueColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textTertiaryColor,
-            letterSpacing: 1.0,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: valueColor,
-          ),
-        ),
-      ],
+  Widget _buildPulseIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF22C55E).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Text('LIVE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF22C55E))),
+        ],
+      ),
     );
+  }
+
+  Widget _telemetryStat(String label, String value, IconData icon) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 12, color: AppTheme.textTertiaryColor),
+              const SizedBox(width: 4),
+              Text(label, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: AppTheme.textTertiaryColor, letterSpacing: 0.5)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(value, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor)),
+        ],
+      ),
+    );
+  }
+
+  Widget _separator() {
+    return Container(width: 1, height: 24, color: AppTheme.borderColor, margin: const EdgeInsets.symmetric(horizontal: 10));
   }
 }

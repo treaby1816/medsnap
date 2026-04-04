@@ -61,14 +61,11 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
           if (profile.role == 'pharmacy' && !profile.isVerified) {
             Navigator.of(context).pushReplacementNamed('/pharmacy-verification');
           } else {
-            // If new user, push to success, otherwise go straight to dash or let AuthGate do it
-            if (authResult.isNewUser) {
-               Navigator.of(context).pushReplacementNamed('/success', arguments: profile.role);
-            } else {
-               // AuthGate automatically handles the navigation if not a new user
-               // BUT just to be perfectly seamless without flashing, we can do nothing here
-               // and let AuthGate replace the GatewayScreen entirely.
-            }
+            // ALWAYS show Success screen as requested by the user
+            Navigator.of(context).pushReplacementNamed('/success', arguments: {
+              'role': profile.role,
+              'isReturningUser': !authResult.isNewUser,
+            });
           }
         }
       }
@@ -93,8 +90,8 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: AppTheme.textPrimaryColor, size: 22),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppTheme.textPrimaryColor, size: 20),
           onPressed: () {
             ref.read(onboardingStageProvider.notifier).state = 'welcome';
           },
@@ -103,7 +100,7 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
-              'assets/images/logo.png',
+              'assets/images/logo2.png',
               width: 32,
               height: 32,
               fit: BoxFit.contain,
@@ -205,7 +202,11 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                               height: 24,
                               child: Checkbox(
                                 value: _agreedToTerms,
-                                onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                                onChanged: (val) {
+                                  final newVal = val ?? false;
+                                  setState(() => _agreedToTerms = newVal);
+                                  ref.read(agreedToTermsProvider.notifier).state = newVal;
+                                },
                                 activeColor: AppTheme.primaryColor,
                               ),
                             ),
@@ -228,7 +229,11 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                               height: 24,
                               child: Checkbox(
                                 value: _agreedToPrivacy,
-                                onChanged: (val) => setState(() => _agreedToPrivacy = val ?? false),
+                                onChanged: (val) {
+                                  final newVal = val ?? false;
+                                  setState(() => _agreedToPrivacy = newVal);
+                                  ref.read(agreedToPrivacyProvider.notifier).state = newVal;
+                                },
                                 activeColor: AppTheme.primaryColor,
                               ),
                             ),

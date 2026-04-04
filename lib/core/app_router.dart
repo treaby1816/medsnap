@@ -134,14 +134,20 @@ class AppRouter {
 
       case success:
         var userType = UserType.patient;
+        var isReturningUser = false;
         if (settings.arguments is String) {
           userType = (settings.arguments as String).toLowerCase() == 'pharmacy' ? UserType.pharmacy : UserType.patient;
         } else if (settings.arguments is UserType) {
           userType = settings.arguments as UserType;
+        } else if (settings.arguments is Map) {
+          final args = settings.arguments as Map;
+          final role = (args['role'] as String?) ?? 'patient';
+          userType = role.toLowerCase() == 'pharmacy' ? UserType.pharmacy : UserType.patient;
+          isReturningUser = (args['isReturningUser'] as bool?) ?? false;
         }
         
         return MaterialPageRoute(
-          builder: (_) => SuccessScreen(userType: userType),
+          builder: (_) => SuccessScreen(userType: userType, isReturningUser: isReturningUser),
           settings: settings,
         );
 

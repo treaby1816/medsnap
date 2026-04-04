@@ -7,8 +7,9 @@ import '../../../../core/constants/enums.dart';
 
 class SuccessScreen extends StatefulWidget {
   final UserType userType;
+  final bool isReturningUser;
 
-  const SuccessScreen({super.key, required this.userType});
+  const SuccessScreen({super.key, required this.userType, this.isReturningUser = false});
 
   @override
   State<SuccessScreen> createState() => _SuccessScreenState();
@@ -72,10 +73,18 @@ class _SuccessScreenState extends State<SuccessScreen>
   @override
   Widget build(BuildContext context) {
     final isPatient = widget.userType == UserType.patient;
-    final headline = isPatient ? 'Login Successful!' : 'Application Received!';
+    final isReturning = widget.isReturningUser;
+    
+    final headline = isPatient
+        ? (isReturning ? 'Welcome Back!' : 'Account Created!')
+        : (isReturning ? 'Welcome Back!' : 'Application Received!');
     final subtext = isPatient 
-      ? 'Securing your health portal and preparing your dashboard...' 
-      : 'Redirecting to the verification portal. Our team will review your credentials shortly.';
+      ? (isReturning 
+          ? 'Great to see you again! Loading your health dashboard...'
+          : 'Your secure health portal is ready. Preparing your dashboard...')
+      : (isReturning
+          ? 'Syncing your pharmacy data and loading your command center...'
+          : 'Redirecting to the verification portal. Our team will review your credentials shortly.');
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,

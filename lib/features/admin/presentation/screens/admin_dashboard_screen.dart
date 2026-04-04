@@ -14,6 +14,9 @@ import 'admin_approvals_screen.dart';
 import 'admin_support_center.dart';
 import 'admin_analytics_screen.dart';
 import 'admin_inventory_screen.dart';
+import 'admin_staff_screen.dart';
+import 'admin_audit_ledger_screen.dart';
+import '../widgets/admin_chatbot_overlay.dart';
 
 /// The main Admin Dashboard screen — desktop-first layout with:
 ///  • Fixed sidebar navigation (left)
@@ -48,119 +51,124 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth >= 900;
-          final sidebar = AdminSidebar(
-            selectedIndex: _selectedIndex,
-            onItemSelected: (i) {
-              setState(() => _selectedIndex = i);
-              if (!isDesktop) Navigator.pop(context); // Close drawer on mobile
-            },
-            onLogout: () async {
-              await ref.read(authServiceProvider).signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-              }
-            },
-            onExportPdf: () => ComplianceReportExporter.generateAndPreview(context),
-          );
+      body: Stack(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth >= 900;
+              final sidebar = AdminSidebar(
+                selectedIndex: _selectedIndex,
+                onItemSelected: (i) {
+                  setState(() => _selectedIndex = i);
+                  if (!isDesktop) Navigator.pop(context); // Close drawer on mobile
+                },
+                onLogout: () async {
+                  await ref.read(authServiceProvider).signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  }
+                },
+                onExportPdf: () => ComplianceReportExporter.generateAndPreview(context),
+              );
 
-          return Scaffold(
-            backgroundColor: AppTheme.backgroundColor,
-            appBar: isDesktop ? null : AppBar(
-              backgroundColor: AppTheme.backgroundColor,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: AppTheme.primaryColor),
-              title: Text(
-                _sectionLabels[_selectedIndex] ?? 'Admin Dashboard', 
-                style: GoogleFonts.inter(color: AppTheme.textPrimaryColor, fontWeight: FontWeight.bold),
-              ),
-            ),
-            drawer: isDesktop ? null : Drawer(child: sidebar),
-            body: Row(
-              children: [
-                // ── Sidebar (Desktop only) ──
-                if (isDesktop) sidebar,
-
-          // ── Main Content ──
-          Expanded(
-            child: Column(
-              children: [
-                // ── Glassmorphism Header ──
-                AdminHeader(
-                  adminName: profile?.displayName ?? 'Dr. Alistair Vail',
-                  adminRole: profile?.role.toUpperCase() ?? 'SUPER ADMIN',
-                  onProfileTap: () => _showProfileDialog(context),
-                  onSettingsTap: () => _showSettingsDialog(context),
-                  onNotificationsTap: () => _showNotificationsDialog(context),
+              return Scaffold(
+                backgroundColor: AppTheme.backgroundColor,
+                appBar: isDesktop ? null : AppBar(
+                  backgroundColor: AppTheme.backgroundColor,
+                  elevation: 0,
+                  iconTheme: const IconThemeData(color: AppTheme.primaryColor),
+                  title: Text(
+                    _sectionLabels[_selectedIndex] ?? 'Admin Dashboard', 
+                    style: GoogleFonts.outfit(color: AppTheme.textPrimaryColor, fontWeight: FontWeight.bold),
+                  ),
                 ),
+                drawer: isDesktop ? null : Drawer(child: sidebar),
+                body: Row(
+                  children: [
+                    // ── Sidebar (Desktop only) ──
+                    if (isDesktop) sidebar,
 
-                // ── Back Navigation Bar (when not on Dashboard) ──
-                if (_selectedIndex != 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5)),
+                    // ── Main Content ──
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // ── Glassmorphism Header ──
+                          AdminHeader(
+                            adminName: profile?.displayName ?? 'Dr. Alistair Vail',
+                            adminRole: profile?.role.toUpperCase() ?? 'SUPER ADMIN',
+                            onProfileTap: () => _showProfileDialog(context),
+                            onSettingsTap: () => _showSettingsDialog(context),
+                            onNotificationsTap: () => _showNotificationsDialog(context),
+                          ),
+
+                          // ── Back Navigation Bar (when not on Dashboard) ──
+                          if (_selectedIndex != 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border(
+                                  bottom: BorderSide(color: AppTheme.borderColor.withValues(alpha: 0.5)),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  InkWell(
+                                    onTap: () => setState(() => _selectedIndex = 0),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.arrow_back_rounded, size: 18, color: AppTheme.primaryColor),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Back to Dashboard',
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.primaryColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    '/ ${_sectionLabels[_selectedIndex] ?? 'Section'}',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppTheme.textTertiaryColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // ── Body Content (switches by sidebar selection) ──
+                          Expanded(
+                            child: _buildBody(),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        InkWell(
-                          onTap: () => setState(() => _selectedIndex = 0),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.arrow_back_rounded, size: 18, color: AppTheme.primaryColor),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Back to Dashboard',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.primaryColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '/ ${_sectionLabels[_selectedIndex] ?? 'Section'}',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.textTertiaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // ── Body Content (switches by sidebar selection) ──
-                Expanded(
-                  child: _buildBody(),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
+          const AdminChatbotOverlay(),
         ],
       ),
-    ); // ends Scaffold (inner)
-  },
-), // ends LayoutBuilder
-); // ends Scaffold (outer)
-}
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────
   // PROFILE DIALOG
@@ -190,7 +198,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               const SizedBox(height: 16),
               Text(
                 displayName,
-                style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor),
+                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimaryColor),
               ),
               const SizedBox(height: 4),
               Container(
@@ -201,7 +209,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ),
                 child: Text(
                   role.toUpperCase().replaceAll('_', ' '),
-                  style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.primaryColor, letterSpacing: 1),
+                  style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.primaryColor, letterSpacing: 1),
                 ),
               ),
               const SizedBox(height: 20),
@@ -425,9 +433,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       case 3:
         return const AdminAnalyticsScreen();
       case 4:
-        return _buildStubView('Staff', Icons.people_outline_rounded);
+        return const AdminStaffScreen();
       case 5:
         return const AdminSupportCenter();
+      case 6:
+        return const AdminAuditLedgerScreen();
       default:
         return _buildDashboardView();
     }
@@ -508,30 +518,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildStubView(String title, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: AppTheme.textTertiaryColor.withValues(alpha: 0.4)),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimaryColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This module is coming soon.',
-            style: GoogleFonts.inter(color: AppTheme.textSecondaryColor),
-          ),
-        ],
-      ),
-    );
-  }
+
 }
 
 // ─────────────────────────────────────────────────────────────────────

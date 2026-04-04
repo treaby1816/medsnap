@@ -22,6 +22,8 @@ import 'package:vail_meds_v2/core/models/user_profile.dart';
 // --- ONBOARDING & FLOW MANAGEMENT ---
 // Stages: 'splash' -> 'welcome' -> 'auth'
 final onboardingStageProvider = StateProvider<String>((ref) => 'splash');
+final agreedToTermsProvider = StateProvider<bool>((ref) => false);
+final agreedToPrivacyProvider = StateProvider<bool>((ref) => false);
 
 // --- SERVICE PROVIDERS ---
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());

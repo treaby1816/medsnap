@@ -66,14 +66,21 @@ class AuthService {
           await createUserProfile(profile);
           return AuthResult(user: userCredential.user, isNewUser: true);
         } else {
-          // EXISTING USER: Validate Role match
+          // EXISTING USER: Update role to match the portal they signed in from.
+          // This ensures a user entering the Patient Portal is routed as a Patient,
+          // even if their previous session was as a Pharmacy user.
           final existingRole = doc.data()?['role'] ?? 'patient';
-          if (existingRole != role) {
-            // Role mismatch - we should not sign them in as the requested role
-            // if they already have a different role in the DB.
-            // BUT: We let the UI handle the "This account is a X, not a Y" error
-            // after getting the profile.
+          debugPrint('Existing user found with role: $existingRole. Requested portal role: $role');
+          
+          // Only update if the role doesn't match AND user isn't admin
+          if (existingRole != role && existingRole != 'admin') {
+            await _firestore.collection('users').doc(userCredential.user!.uid).update({
+              'role': role,
+            });
+            debugPrint('Role updated from $existingRole to $role to match portal selection.');
           }
+          
+          return AuthResult(user: userCredential.user, isNewUser: false);
         }
       }
       

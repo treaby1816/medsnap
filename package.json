@@ -1,0 +1,11 @@
+{
+  "name": "vail_meds_v2",
+  "version": "1.0.0",
+  "description": "VailMeds V2 High-Fidelity Project",
+  "scripts": {
+    "dev": "flutter run -d web-server --web-hostname 127.0.0.1 --web-port 61725",
+    "clean": "flutter clean && flutter pub get",
+    "build:web": "flutter build web",
+    "build:apk": "flutter build apk --release"
+  }
+}

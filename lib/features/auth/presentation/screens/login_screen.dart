@@ -285,12 +285,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (authResult.isNewUser) {
           loadingNotifier.hide();
           if (mounted) {
-            navigator.pushReplacementNamed('/success', arguments: targetRole);
+            navigator.pushReplacementNamed('/success', arguments: {
+              'role': targetRole,
+              'isReturningUser': false,
+            });
           }
         } else {
+          // Existing users also get the Success screen for a consistent experience
           loadingNotifier.hide();
           if (mounted) {
-            navigator.popUntil((route) => route.isFirst);
+            navigator.pushReplacementNamed('/success', arguments: {
+              'role': targetRole,
+              'isReturningUser': true,
+            });
           }
         }
       }
@@ -335,8 +342,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.pop(context);
+            } else {
+              ref.read(onboardingStageProvider.notifier).state = 'welcome';
+            }
+          },
         ),
       ),
       body: SafeArea(
@@ -357,7 +370,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
-                      child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+                      child: Image.asset('assets/images/logo2.png', fit: BoxFit.contain),
                     ),
                   ),
                 ),
