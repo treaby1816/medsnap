@@ -7,10 +7,22 @@ import '../../../../widgets/glass_app_bar.dart';
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
 
-  Future<void> _launchUrl(String url) async {
+  Future<void> _launchUrl(BuildContext context, String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+    try {
+      // Bypassing canLaunchUrl which fails on Android 11+ due to package visibility rules
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open external app for this action.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: No compatible app found.')),
+        );
+      }
     }
   }
 
@@ -89,21 +101,21 @@ class SupportScreen extends StatelessWidget {
               icon: Icons.email_outlined,
               title: 'Email Support',
               subtitle: 'support@vailmeds.com',
-              onTap: () => _launchUrl('mailto:support@vailmeds.com?subject=VailMeds%20Support%20Request'),
+              onTap: () => _launchUrl(context, 'mailto:support@vailmeds.com?subject=VailMeds%20Support%20Request'),
             ),
             const SizedBox(height: 16),
             _buildSupportOption(
               icon: Icons.phone_outlined,
               title: 'Phone Support',
               subtitle: '+234 801 234 5678',
-              onTap: () => _launchUrl('tel:+2348012345678'),
+              onTap: () => _launchUrl(context, 'tel:+2348012345678'),
             ),
             const SizedBox(height: 16),
             _buildSupportOption(
               icon: Icons.chat_bubble_outline,
               title: 'WhatsApp',
               subtitle: 'Chat with us instantly',
-              onTap: () => _launchUrl('https://wa.me/2348012345678?text=Hello%20VailMeds%20Support'),
+              onTap: () => _launchUrl(context, 'https://wa.me/2348012345678?text=Hello%20VailMeds%20Support'),
             ),
             const SizedBox(height: 32),
 
