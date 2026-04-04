@@ -11,8 +11,7 @@ import 'package:vail_meds_v2/features/auth/presentation/screens/login_screen.dar
 import 'package:vail_meds_v2/features/home/presentation/screens/main_navigation_screen.dart';
 import 'package:vail_meds_v2/features/screens.dart';
 
-// Features - Pharmacy
-import 'package:vail_meds_v2/features/pharmacy/pharmacy_orders_screen.dart';
+
 
 class AppRouter {
   // --- AUTH & CORE ROUTES ---
@@ -39,7 +38,6 @@ class AppRouter {
   static const String orders = '/orders'; 
   static const String product = '/product';
   static const String success = '/success';
-  static const String jobBoard = '/job-board';
   static const String orderHistory = '/order-history';
   static const String chat = '/chat';
   static const String checkout = '/checkout';
@@ -81,14 +79,14 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => const PolicyScreen(
             title: 'Privacy Policy',
-            content: 'VailMeds is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your data, including health information protected under HIPAA. We use your data to provide medical services and ensure a secure experience. We never sell your personal information to third parties.',
+            isPrivacy: true,
           ),
         );
       case terms:
         return MaterialPageRoute(
           builder: (_) => const PolicyScreen(
             title: 'Terms of Service',
-            content: 'By using VailMeds, you agree to our terms and conditions. Our platform provides bridge services between patients and pharmacies. We are not a medical provider but a technology facilitator. Users must provide accurate information and comply with local medical regulations.',
+            isPrivacy: false,
           ),
           settings: settings,
         );
@@ -111,8 +109,7 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const PatientProfileScreen(), settings: settings);
       case orders:
         return MaterialPageRoute(builder: (_) => const OrdersScreen(), settings: settings);
-      case jobBoard:
-        return MaterialPageRoute(builder: (_) => const JobBoardScreen(), settings: settings);
+
       case orderHistory:
         return MaterialPageRoute(builder: (_) => const OrderHistoryScreen(), settings: settings);
       case chat:

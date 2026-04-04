@@ -48,12 +48,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: Row(
-        children: [
-          // ── Sidebar ──
-          AdminSidebar(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 900;
+          final sidebar = AdminSidebar(
             selectedIndex: _selectedIndex,
-            onItemSelected: (i) => setState(() => _selectedIndex = i),
+            onItemSelected: (i) {
+              setState(() => _selectedIndex = i);
+              if (!isDesktop) Navigator.pop(context); // Close drawer on mobile
+            },
             onLogout: () async {
               await ref.read(authServiceProvider).signOut();
               if (context.mounted) {
@@ -61,7 +64,24 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               }
             },
             onExportPdf: () => ComplianceReportExporter.generateAndPreview(context),
-          ),
+          );
+
+          return Scaffold(
+            backgroundColor: AppTheme.backgroundColor,
+            appBar: isDesktop ? null : AppBar(
+              backgroundColor: AppTheme.backgroundColor,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: AppTheme.primaryColor),
+              title: Text(
+                _sectionLabels[_selectedIndex] ?? 'Admin Dashboard', 
+                style: GoogleFonts.inter(color: AppTheme.textPrimaryColor, fontWeight: FontWeight.bold),
+              ),
+            ),
+            drawer: isDesktop ? null : Drawer(child: sidebar),
+            body: Row(
+              children: [
+                // ── Sidebar (Desktop only) ──
+                if (isDesktop) sidebar,
 
           // ── Main Content ──
           Expanded(
@@ -136,8 +156,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           ),
         ],
       ),
-    );
-  }
+    ); // ends Scaffold (inner)
+  },
+), // ends LayoutBuilder
+); // ends Scaffold (outer)
+}
 
   // ─────────────────────────────────────────────────────────────────────
   // PROFILE DIALOG

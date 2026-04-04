@@ -55,14 +55,11 @@ class AdminSidebar extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Container(
+                Image.asset(
+                  'assets/images/logo.png',
                   width: 36,
                   height: 36,
-                  decoration: BoxDecoration(
-                    color: _activeColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 20),
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(width: 10),
                 Column(

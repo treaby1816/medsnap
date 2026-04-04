@@ -39,83 +39,83 @@ class AdminHeader extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // ── Search Bar ──
-              Expanded(
-                flex: 3,
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppTheme.backgroundColor,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.borderColor),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 12),
-                      const Icon(Icons.search_rounded, size: 20, color: AppTheme.textTertiaryColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          style: GoogleFonts.inter(fontSize: 13),
-                          decoration: InputDecoration(
-                            hintText: 'Search medical records, pharmacies...',
-                            hintStyle: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: AppTheme.textTertiaryColor,
+              // ── Search Bar (Hidden on Mobile) ──
+              if (MediaQuery.of(context).size.width >= 600)
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.backgroundColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.borderColor),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        const Icon(Icons.search_rounded, size: 20, color: AppTheme.textTertiaryColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            style: GoogleFonts.inter(fontSize: 13),
+                            decoration: InputDecoration(
+                              hintText: 'Search medical records...',
+                              hintStyle: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: AppTheme.textTertiaryColor,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
                             ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              const Spacer(flex: 2),
+              if (MediaQuery.of(context).size.width >= 600) const Spacer(flex: 1) else const Spacer(),
 
-              // ── Notification Bell ──
+              // ── Icons ──
               _buildIconButton(Icons.notifications_none_rounded, onNotificationsTap),
               const SizedBox(width: 4),
-
-              // ── Settings ──
               _buildIconButton(Icons.settings_outlined, onSettingsTap),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
 
-              // ── Profile Chip ──
+              // ── Profile Chip (Compact on Mobile) ──
               InkWell(
                 onTap: onProfileTap,
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   child: Row(
                     children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            adminName,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimaryColor,
+                      if (MediaQuery.of(context).size.width >= 800)
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              adminName,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimaryColor,
+                              ),
                             ),
-                          ),
-                          Text(
-                            adminRole,
-                            style: GoogleFonts.inter(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.primaryColor,
-                              letterSpacing: 0.8,
+                            Text(
+                              adminRole,
+                              style: GoogleFonts.inter(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primaryColor,
+                                letterSpacing: 0.8,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 10),
+                          ],
+                        ),
+                      if (MediaQuery.of(context).size.width >= 800) const SizedBox(width: 10),
                       CircleAvatar(
                         radius: 18,
                         backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.15),
@@ -127,7 +127,6 @@ class AdminHeader extends StatelessWidget {
               ),
 
               const SizedBox(width: 8),
-              // ── Clear Exit (Standardized) ──
               _buildIconButton(Icons.close_rounded, () {
                 Navigator.of(context).pushNamedAndRemoveUntil('/gateway', (route) => false);
               }),

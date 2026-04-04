@@ -16,8 +16,24 @@ class GatewayScreen extends ConsumerStatefulWidget {
 
 class _GatewayScreenState extends ConsumerState<GatewayScreen> {
   bool _isLoading = false;
+  bool _agreedToTerms = false;
+  bool _agreedToPrivacy = false;
+
+  void _showAgreementWarning() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Please agree to both the Terms of Use and Privacy Policy to continue.'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   Future<void> _handleGoogleSignIn(String role) async {
+    if (!_agreedToTerms || !_agreedToPrivacy) {
+      _showAgreementWarning();
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
@@ -86,15 +102,22 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+            Image.asset(
+              'assets/images/logo.png',
+              width: 32,
+              height: 32,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Text('V', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
               ),
-              child: const Icon(Icons.medical_services,
-                  color: AppTheme.primaryColor, size: 20),
             ),
             const SizedBox(width: 10),
             Text(
@@ -103,6 +126,7 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.primaryColor,
+                letterSpacing: -0.5,
               ),
             ),
           ],
@@ -155,7 +179,74 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                         color: AppTheme.textSecondaryColor),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
+
+                  // --- BEFORE YOU CONTINUE BLOCK ---
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.borderColor, width: 1.5),
+                      color: Colors.white,
+                      boxShadow: AppTheme.floatingShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'BEFORE YOU CONTINUE',
+                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: AppTheme.textSecondaryColor),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                                activeColor: AppTheme.primaryColor,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor, fontSize: 13)),
+                            GestureDetector(
+                              onTap: () => Navigator.pushNamed(context, '/terms'),
+                              child: Text(
+                                'Terms of Use',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _agreedToPrivacy,
+                                onChanged: (val) => setState(() => _agreedToPrivacy = val ?? false),
+                                activeColor: AppTheme.primaryColor,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor, fontSize: 13)),
+                            GestureDetector(
+                              onTap: () => Navigator.pushNamed(context, '/privacy'),
+                              child: Text(
+                                'Privacy Policy',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
                   // Patient Portal Card
                   _PortalCard(
@@ -165,23 +256,33 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                     description:
                         'Access prescriptions, find nearby pharmacies, and manage your health profile.',
                     buttonLabel: 'Enter Patient Portal',
-                    onPortalPressed: () =>
-                        Navigator.of(context).pushNamed('/registration'),
+                    onPortalPressed: () {
+                      if (!_agreedToTerms || !_agreedToPrivacy) {
+                        _showAgreementWarning();
+                        return;
+                      }
+                      Navigator.of(context).pushNamed('/registration');
+                    },
                     onGooglePressed: () => _handleGoogleSignIn('patient'),
                   ),
                   const SizedBox(height: 20),
 
-                    _PortalCard(
-                      icon: Icons.medication,
-                      iconLabel: 'Pharmacy',
-                      title: 'Pharmacy Portal',
-                      description:
-                          'Manage inventory, verify prescriptions, and connect with patients.',
-                      buttonLabel: 'Enter Pharmacy Portal',
-                      onPortalPressed: () => Navigator.of(context)
-                          .pushNamed('/registration', arguments: 'pharmacy'),
-                      onGooglePressed: () => _handleGoogleSignIn('pharmacy'),
-                    ),
+                  _PortalCard(
+                    icon: Icons.medication,
+                    iconLabel: 'Pharmacy',
+                    title: 'Pharmacy Portal',
+                    description:
+                        'Manage inventory, verify prescriptions, and connect with patients.',
+                    buttonLabel: 'Enter Pharmacy Portal',
+                    onPortalPressed: () {
+                      if (!_agreedToTerms || !_agreedToPrivacy) {
+                        _showAgreementWarning();
+                        return;
+                      }
+                      Navigator.of(context).pushNamed('/registration', arguments: 'pharmacy');
+                    },
+                    onGooglePressed: () => _handleGoogleSignIn('pharmacy'),
+                  ),
                   const SizedBox(height: 36),
 
                   // Security Footer
@@ -203,8 +304,10 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                   const SizedBox(height: 20),
 
                   // Privacy Links
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4.0,
                     children: [
                       _buildLink('Privacy Policy', '/privacy'),
                       _buildDot(),
@@ -305,16 +408,8 @@ class _PortalCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon in circular primary/10 bg
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-            ),
-            child: Icon(icon, color: AppTheme.primaryColor, size: 28),
-          ),
+          // Bare Icon (Standard & Professional Appearance)
+          Icon(icon, color: AppTheme.primaryColor, size: 36),
           const SizedBox(height: 16),
           Text(
             title,
@@ -338,32 +433,85 @@ class _PortalCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Continue with Google button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: onGooglePressed,
-              icon: const Text(
-                'G',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4285F4),
+          // --- SOCIAL LOGIN GRID (Dubai LifeOS Style) ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildSquareSocialBtn(
+                iconWidget: const Text(
+                  'G',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
                 ),
+                label: 'Google',
+                onTap: onGooglePressed,
               ),
-              label: Text(
-                'Continue with Google',
-                style: GoogleFonts.inter(
-                  color: AppTheme.textPrimaryColor,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 15,
-                ),
+              const SizedBox(width: 20),
+              _buildSquareSocialBtn(
+                iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
+                label: 'Apple',
+                tagText: 'Soon',
+                onTap: null,
               ),
-            ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSquareSocialBtn({
+    required Widget iconWidget,
+    required String label,
+    required VoidCallback? onTap,
+    String? tagText,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 100,
+            height: 90,
+            decoration: BoxDecoration(
+              color: onTap == null ? AppTheme.backgroundColor : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.borderColor, width: 1.5),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                iconWidget,
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: onTap == null ? AppTheme.textTertiaryColor : AppTheme.textPrimaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (tagText != null)
+          Positioned(
+            top: -8,
+            right: -8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAB308),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                tagText,
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

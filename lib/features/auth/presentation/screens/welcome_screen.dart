@@ -128,7 +128,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               if (controller.text == 'VM-2026-NGR') {
                 HapticFeedback.mediumImpact();
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/admin-dashboard');
+                // Navigate to login first — user must authenticate before accessing admin
+                Navigator.pushNamed(context, '/login');
               } else {
                 HapticFeedback.heavyImpact();
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -160,7 +161,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             child: Image.asset(
               'assets/images/pharmacist_patient2.jpg',
               fit: BoxFit.cover,
-              color: Colors.black.withValues(alpha: 0.2),
+              color: Colors.black.withValues(alpha: 0.6),
               colorBlendMode: BlendMode.darken,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -195,7 +196,17 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor, size: 32),
+                    Image.asset(
+                      'assets/images/logo.png',
+                      height: 32,
+                      width: 32,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.local_hospital_rounded,
+                        color: AppTheme.primaryColor,
+                        size: 32,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'VailMeds',
@@ -203,7 +214,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        letterSpacing: -0.5,
+                        letterSpacing: -0.8,
                       ),
                     ),
                   ],
@@ -298,7 +309,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       TextButton(
                         onPressed: () {
                           HapticFeedback.lightImpact();
+                          // Navigate directly to login screen
                           ref.read(onboardingStageProvider.notifier).state = 'auth';
+                          Navigator.of(context).pushNamed('/login');
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 18),

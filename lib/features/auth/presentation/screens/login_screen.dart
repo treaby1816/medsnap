@@ -355,10 +355,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       color: AppTheme.primaryColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.local_hospital_rounded,
-                      size: 40,
-                      color: AppTheme.primaryColor,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
                     ),
                   ),
                 ),
@@ -443,7 +442,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: () => _handleLogin(roleArg == 'pharmacy' ? UserType.pharmacy : UserType.patient),
                       ),
                       const SizedBox(height: 16),
-                      if (roleArg != 'pharmacy') _buildGoogleButton(isLoading: isLoading),
+                      if (roleArg != 'pharmacy') ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildSquareSocialBtn(
+                              iconWidget: const Text(
+                                'G',
+                                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
+                              ),
+                              label: 'Google',
+                              onTap: isLoading ? null : _handleGoogleSignIn,
+                            ),
+                            const SizedBox(width: 20),
+                            _buildSquareSocialBtn(
+                              iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
+                              label: 'Apple',
+                              tagText: 'Soon',
+                              onTap: null,
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -494,8 +514,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 16),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       "Patient? ",
@@ -620,32 +641,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildGoogleButton({bool isLoading = false}) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: OutlinedButton(
-        onPressed: isLoading ? null : _handleGoogleSignIn,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  Widget _buildSquareSocialBtn({
+    required Widget iconWidget,
+    required String label,
+    required VoidCallback? onTap,
+    String? tagText,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 100,
+            height: 90,
+            decoration: BoxDecoration(
+              color: onTap == null ? AppTheme.backgroundColor : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.borderColor, width: 1.5),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                iconWidget,
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: onTap == null ? AppTheme.textTertiaryColor : AppTheme.textPrimaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.g_mobiledata, size: 30, color: Colors.red), 
-            const SizedBox(width: 8),
-            Text(
-              'Continue with Google',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1E293B),
+        if (tagText != null)
+          Positioned(
+            top: -8,
+            right: -8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAB308),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                tagText,
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

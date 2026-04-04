@@ -7,7 +7,8 @@ import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'core/theme_provider.dart';
 import 'core/app_router.dart';
-import 'core/auth_gate.dart'; // <--- NEW: Added AuthGate import
+import 'core/auth_gate.dart';
+import 'widgets/global_floating_chatbot.dart';
 
 void main() async {
   // Ensure Flutter is ready before initializing Firebase
@@ -97,6 +98,12 @@ class VailMedsApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
+      
+      // Global Chatbot Overlay & Tracking
+      navigatorObservers: [AppRouteObserver(ref)],
+      builder: (context, child) {
+        return GlobalFloatingChatbot(child: child!);
+      },
       
       // Routing Setup
       // initialRoute is removed so the AuthGate can control the first screen

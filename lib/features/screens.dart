@@ -16,13 +16,13 @@ export 'pharmacy/presentation/screens/pharmacy_main_screen.dart';
 export 'pharmacy/presentation/screens/pharmacy_logs_screen.dart';
 export 'pharmacy/presentation/screens/pharmacy_support_screen.dart';
 export 'pharmacy/presentation/screens/pharmacy_profile_screen.dart';
+export 'pharmacy/presentation/screens/pharmacy_orders_screen.dart';
 
 // --- PATIENT & FEATURE SCREENS (UNIFIED PATH) ---
 export 'patient/presentation/screens/home_screen.dart';
 export 'patient/presentation/screens/product_screen.dart';
 export 'patient/presentation/screens/checkout_screen.dart';
 export 'patient/presentation/screens/patient_profile_screen.dart';
-export 'patient/job_board_screen.dart';
 export 'patient/orders_screen.dart';
 export 'patient/order_history_screen.dart';
 export 'patient/nearby_facilities_screen.dart';

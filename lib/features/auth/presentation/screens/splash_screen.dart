@@ -38,8 +38,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _handleNavigation() async {
-    // 1. Show the beautiful animation for at least 3 seconds
-    await Future.delayed(const Duration(seconds: 3));
+    // 1. Show the beautiful animation without unnecessary artificial delay
+    await _controller.forward();
 
     if (!mounted) return;
 
@@ -81,28 +81,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Clean White Logo Container
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 30,
-                            spreadRadius: 5,
-                            offset: Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.local_hospital_rounded,
-                        size: 60,
-                        color: AppTheme.primaryColor,
+                // High-Fidelity Logo (Bare for Professional Appearance)
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: Text(
+                        'V',
+                        style: GoogleFonts.inter(
+                          fontSize: 64,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
                     ),
+                  ),
+                ),
                     const SizedBox(height: 32),
                     Text(
                       'VailMeds',

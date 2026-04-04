@@ -24,6 +24,18 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _agreedToTerms = false;
+  bool _agreedToPrivacy = false;
+
+  void _showAgreementWarning() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Please agree to both the Terms of Use and Privacy Policy to continue.'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -35,6 +47,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   Future<void> _handleRegister() async {
+    if (!_agreedToTerms || !_agreedToPrivacy) {
+      _showAgreementWarning();
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -124,6 +140,16 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           navigator.pushNamedAndRemoveUntil(route, (r) => false);
         }
       }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-credential') {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Incorrect password. Please try again.')),
+        );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Sign in failed: ${e.message}')),
+        );
+      }
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text('Sign in failed: ${e.toString().replaceAll('Exception: ', '')}')),
@@ -181,27 +207,30 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Health Icon
+                // Health Icon (Logo)
                 Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              AppTheme.primaryColor.withValues(alpha: 0.1),
-                          blurRadius: 30,
-                          spreadRadius: 4,
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'V',
+                          style: GoogleFonts.inter(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.health_and_safety,
-                      size: 40,
-                      color: AppTheme.primaryColor,
+                      ),
                     ),
                   ),
                 ),
@@ -221,59 +250,122 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // Sign Up with Google (wired to AuthService)
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final navigator = Navigator.of(context);
-                      setState(() => _isLoading = true);
-                      try {
-                        final authResult = await ref.read(authServiceProvider).signInWithGoogle(role: widget.initialRole);
-                        if (authResult.user != null) {
-                          ref.read(userRoleProvider.notifier).setRole(widget.initialRole);
-                          
-                          setState(() => _isLoading = false); // Hide loader before navigation
-                          
-                          if (authResult.isNewUser) {
-                            navigator.pushReplacementNamed('/success', arguments: widget.initialRole);
-                          } else {
-                            navigator.popUntil((route) => route.isFirst);
-                          }
-                        }
-                      } catch (e) {
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text(e.toString().replaceAll('Exception: ', '')),
-                            backgroundColor: Colors.redAccent,
-                            behavior: SnackBarBehavior.floating,
+                // --- BEFORE YOU CONTINUE BLOCK ---
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.borderColor, width: 1.5),
+                    color: Colors.transparent,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'BEFORE YOU CONTINUE',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: AppTheme.textSecondaryColor),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _agreedToTerms,
+                              onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                              activeColor: AppTheme.primaryColor,
+                            ),
                           ),
-                        );
-                      } finally {
-                        if (mounted) setState(() => _isLoading = false);
-                      }
-                    },
-                    icon: const Text(
-                      'G',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4285F4),
+                          const SizedBox(width: 12),
+                          Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
+                          GestureDetector(
+                            onTap: () => Navigator.pushNamed(context, '/terms'),
+                            child: Text(
+                              'Terms of Use',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    label: Text(
-                      'Sign Up with Google',
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimaryColor,
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _agreedToPrivacy,
+                              onChanged: (val) => setState(() => _agreedToPrivacy = val ?? false),
+                              activeColor: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
+                          GestureDetector(
+                            onTap: () => Navigator.pushNamed(context, '/privacy'),
+                            child: Text(
+                              'Privacy Policy',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor),
+                            ),
+                          ),
+                        ],
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // --- SOCIAL LOGIN GRID ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildSquareSocialBtn(
+                      iconWidget: const Text(
+                        'G',
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
+                      ),
+                      label: 'Google',
+                      onTap: _isLoading ? null : () async {
+                        if (!_agreedToTerms || !_agreedToPrivacy) {
+                          _showAgreementWarning();
+                          return;
+                        }
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(context);
+                        setState(() => _isLoading = true);
+                        try {
+                          final authResult = await ref.read(authServiceProvider).signInWithGoogle(role: widget.initialRole);
+                          if (authResult.user != null) {
+                            ref.read(userRoleProvider.notifier).setRole(widget.initialRole);
+                            setState(() => _isLoading = false);
+                            if (authResult.isNewUser) {
+                              navigator.pushReplacementNamed('/success', arguments: widget.initialRole);
+                            } else {
+                              navigator.popUntil((route) => route.isFirst);
+                            }
+                          }
+                        } catch (e) {
+                          messenger.showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
+                        } finally {
+                          if (mounted) setState(() => _isLoading = false);
+                        }
+                      },
                     ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                    const SizedBox(width: 20),
+                    _buildSquareSocialBtn(
+                      iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
+                      label: 'Apple',
+                      tagText: 'Soon',
+                      onTap: null,
                     ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    '↑ Accept both agreements above to enable sign-in',
+                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiaryColor),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -287,7 +379,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'or register with email',
+                        'or continue with email',
                         style: textTheme.bodySmall,
                       ),
                     ),
@@ -397,12 +489,14 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     const Icon(Icons.enhanced_encryption,
                         size: 16, color: AppTheme.textTertiaryColor),
                     const SizedBox(width: 8),
-                    Text(
-                      'HIPAA Compliant & Secure',
-                      style: GoogleFonts.inter(
-                        color: AppTheme.textTertiaryColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                    Flexible(
+                      child: Text(
+                        'HIPAA Compliant & Secure',
+                        style: GoogleFonts.inter(
+                          color: AppTheme.textTertiaryColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -437,6 +531,62 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         }
         return null;
       },
+    );
+  }
+
+  Widget _buildSquareSocialBtn({
+    required Widget iconWidget,
+    required String label,
+    required VoidCallback? onTap,
+    String? tagText,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 100,
+            height: 90,
+            decoration: BoxDecoration(
+              color: onTap == null ? AppTheme.backgroundColor : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.borderColor, width: 1.5),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                iconWidget,
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: onTap == null ? AppTheme.textTertiaryColor : AppTheme.textPrimaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (tagText != null)
+          Positioned(
+            top: -8,
+            right: -8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAB308),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                tagText,
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

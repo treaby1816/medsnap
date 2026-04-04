@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -98,7 +100,9 @@ class OnboardingScreen extends StatelessWidget {
                     buttonLabel: 'Enter Patient Portal',
                     onPortalPressed: () =>
                         Navigator.of(context).pushNamed('/registration'),
-                    onGooglePressed: () {},
+                    onGooglePressed: () {
+                      ref.read(authServiceProvider).signInWithGoogle(role: 'patient');
+                    },
                   ),
                   const SizedBox(height: 20),
 
