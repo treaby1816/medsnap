@@ -95,9 +95,20 @@
   </style>
   <script id="splash-screen-script">
     function removeSplashFromWeb() {
+      // 1. Remove auto-generated splash if it exists
       document.getElementById("splash")?.remove();
       document.getElementById("splash-branding")?.remove();
+      
+      // 2. Remove our custom instant HTML splash gracefully
+      const nativeSplash = document.getElementById('native-splash');
+      if (nativeSplash) {
+        nativeSplash.style.transition = 'opacity 0.6s ease-out';
+        nativeSplash.style.opacity = '0';
+        setTimeout(() => nativeSplash.remove(), 600);
+      }
+
       document.body.style.background = "transparent";
+      document.body.style.overflow = "auto";
     }
   </script>
 </head>
@@ -118,17 +129,9 @@
       renderer: "html",
     };
 
-    // --- LOADING WATCHDOG (5s Timeout) ---
-    // If the engine doesn't start in 5 seconds, auto-refresh.
-    const startTimeout = setTimeout(() => {
-      console.warn("BOOT CRITICAL: Engine stall detected. Refreshing...");
-      window.location.reload();
-    }, 5000);
-
     // Listener for Dart's custom signal
     window.addEventListener("flutter-engine-started", (event) => {
       console.log("BOOT SUCCESS: Flutter engine confirmed active.");
-      clearTimeout(startTimeout);
       removeSplashFromWeb(); // Graceful hand-off to Flutter CanvasKit Splash
     });
   </script>

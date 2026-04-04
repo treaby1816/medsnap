@@ -137,16 +137,16 @@ class _BootstrapAppState extends State<BootstrapApp> {
         WebLogger.log('Heartbeat: Critical URL/API Handshake active...');
       });
 
-      // 2. Circuit Breaker Routing (Increased to 5 seconds)
+      // 2. Circuit Breaker Routing (Increased to 15 seconds for slow web debug builds)
       // EXPLICIT WEB CHECK to prevent "google-services.json missing" errors on Chrome
       if (kIsWeb) {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.web,
-        ).timeout(const Duration(seconds: 5));
+        ).timeout(const Duration(seconds: 15));
       } else {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
-        ).timeout(const Duration(seconds: 5));
+        ).timeout(const Duration(seconds: 15));
       }
 
       heartbeatTimer.cancel();
@@ -171,6 +171,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
           _errorDetails = e;
         });
       }
+      // CRITICAL: Ensure the HTML overlay is destroyed even if an error occurs!
+      WebLogger.dispatchStartEvent();
       FlutterNativeSplash.remove();
     }
   }
