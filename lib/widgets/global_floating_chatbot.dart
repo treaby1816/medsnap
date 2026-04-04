@@ -201,24 +201,24 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                 return Transform.scale(
                   scale: scaleValue,
                   child: Container(
-                    width: 90,
-                    height: 90,
+                    width: 76,
+                    height: 76,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      image: const DecorationImage(
-                        image: AssetImage('assets/images/chatbot_avatar.png'),
-                        fit: BoxFit.cover,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEC5B13), Color(0xFFFACC15)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          // Dynamic glowing aura
                           color: const Color(0xFFFACC15).withValues(alpha: 0.2 + (0.4 * hoverNormalized)),
                           blurRadius: 15 + (10 * hoverNormalized),
                           spreadRadius: 2 + (4 * hoverNormalized),
                           offset: const Offset(0, 8),
                         ),
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -234,9 +234,30 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                             color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.pan_tool_alt_rounded, color: Colors.white, size: 36),
+                          child: const Icon(Icons.pan_tool_alt_rounded, color: Colors.white, size: 30),
                         )
-                      : null,
+                      : Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Icon(
+                              Icons.support_agent_rounded,
+                              size: 42,
+                              color: Colors.white,
+                            ),
+                            // Optional: animated blink feature
+                            FadeTransition(
+                              opacity: _blinkController,
+                              child: Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                   ),
                 );
               },
