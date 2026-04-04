@@ -13,10 +13,12 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -34,6 +36,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
     );
 
+    _pulseController = AnimationController(
+        vsync: this, 
+        duration: const Duration(seconds: 2)
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
     _controller.forward();
     _handleNavigation();
   }
@@ -41,6 +52,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _handleNavigation() async {
     // 1. Show the beautiful animation without unnecessary artificial delay
     await _controller.forward();
+    
+    // Hold splash screen for 2 seconds - enough to see the animation but not feel slow
+    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
@@ -53,6 +67,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -84,18 +99,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   children: [
                 // High-Fidelity Logo (Bare for Professional Appearance)
                 Center(
-                  child: Image.asset(
-                    'assets/images/logo2.png',
-                    width: 140,
-                    height: 140,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Center(
-                      child: Text(
-                        'V',
-                        style: GoogleFonts.inter(
-                          fontSize: 64,
-                          fontWeight: FontWeight.w900,
-                          color: AppTheme.primaryColor,
+                  child: ScaleTransition(
+                    scale: _pulseAnimation,
+                    child: Image.asset(
+                      'assets/images/logo2.png',
+                      width: 180,
+                      height: 180,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Text(
+                          'V',
+                          style: GoogleFonts.inter(
+                            fontSize: 64,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
                       ),
                     ),

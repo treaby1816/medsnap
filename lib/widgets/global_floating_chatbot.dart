@@ -86,9 +86,9 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isInit) {
-      // Default position: bottom right corner
+      // Improved default position: further inward so it's fully visible without zooming
       final size = MediaQuery.of(context).size;
-      _position = Offset(size.width - 80, size.height - 100);
+      _position = Offset(size.width - 120, size.height - 150);
       _isInit = true;
     }
   }
@@ -104,18 +104,19 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   Widget build(BuildContext context) {
     final currentRoute = ref.watch(currentRouteProvider);
 
-    // Routes where we absolutely must hide it (Splash only)
-    final hiddenRoutes = [
-      '/',                    // Splash screen
+    // Routes where the chatbot should be visible (Unified Registration & Registration Form)
+    final visibleRoutes = [
+      '/gateway',        // Unified Registration selection
+      '/registration',   // Patient & Pharmacy Registration form
     ];
 
-    final bool shouldHide = hiddenRoutes.contains(currentRoute);
+    final bool shouldShow = visibleRoutes.contains(currentRoute);
 
     return Stack(
       children: [
         widget.child,
 
-        if (!shouldHide)
+        if (shouldShow)
           Positioned(
             left: _position.dx,
             top: _position.dy,
@@ -125,9 +126,9 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
               onDragEnd: (details) {
                 final size = MediaQuery.of(context).size;
                 setState(() {
-                  // Clamp bounds so it doesn't get dragged off-screen
-                  double dx = details.offset.dx.clamp(0, size.width - 80);
-                  double dy = details.offset.dy.clamp(0, size.height - 100);
+                  // Clamp bounds with comfortable margins
+                  double dx = details.offset.dx.clamp(0, size.width - 110);
+                  double dy = details.offset.dy.clamp(0, size.height - 130);
                   _position = Offset(dx, dy);
                 });
               },
@@ -189,93 +190,60 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                 ),
               ),
             ),
-            // The Cartoon Avatar
-            // The Cartoon Mascot: 'VailBot'
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFEC5B13), Color(0xFFFF8C33)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFEC5B13).withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-                border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
-              ),
-              child: isDragging 
-                ? const Icon(Icons.pan_tool_alt_rounded, color: Colors.white, size: 32)
-                : Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Mascot Face Background
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+            // The Dynamic 3D Avatar
+            AnimatedBuilder(
+              animation: _hoverAnimation,
+              builder: (context, child) {
+                // Creates a value between 0.0 and 1.0 from the hover tween (-5 to 5)
+                final hoverNormalized = (_hoverAnimation.value + 5) / 10;
+                final scaleValue = 1.0 + (0.05 * hoverNormalized); // Gentle breathing scale
+                
+                return Transform.scale(
+                  scale: scaleValue,
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/chatbot_avatar.png'),
+                        fit: BoxFit.cover,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          // Dynamic glowing aura
+                          color: const Color(0xFFFACC15).withValues(alpha: 0.2 + (0.4 * hoverNormalized)),
+                          blurRadius: 15 + (10 * hoverNormalized),
+                          spreadRadius: 2 + (4 * hoverNormalized),
+                          offset: const Offset(0, 8),
                         ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 3,
                       ),
-                      // Animated Eyes
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildAnimatedEye(),
-                          const SizedBox(width: 8),
-                          _buildAnimatedEye(),
-                        ],
-                      ),
-                      // Smile
-                      Positioned(
-                        bottom: 12,
-                        child: Container(
-                          width: 20,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Colors.white, width: 2.5),
-                            ),
-                            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+                    ),
+                    child: isDragging 
+                      ? Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
                           ),
-                        ),
-                      ),
-                    ],
+                          child: const Icon(Icons.pan_tool_alt_rounded, color: Colors.white, size: 36),
+                        )
+                      : null,
                   ),
+                );
+              },
             ),
           ],
         ),
       ),
-    );
-  }
-  Widget _buildAnimatedEye() {
-    return AnimatedBuilder(
-      animation: _blinkController,
-      builder: (context, child) {
-        return Container(
-          width: 10,
-          height: 14 * (1 - _blinkController.value), // Collapse height for blink
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              if (_blinkController.value < 0.5)
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  blurRadius: 4,
-                ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

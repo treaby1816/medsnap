@@ -7,6 +7,7 @@ import 'package:vail_meds_v2/core/constants/enums.dart';
 import 'package:vail_meds_v2/core/providers.dart';
 import 'package:vail_meds_v2/core/providers/loading_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -57,8 +58,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (stateContext, setDialogState) => AlertDialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
@@ -107,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: isVerifying ? null : () => Navigator.pop(context),
+              onPressed: isVerifying ? null : () => Navigator.pop(dialogContext),
               child: Text('ABORT', style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
@@ -130,31 +131,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // 2. Verification Challenge
                   if (inputCode == masterCode) {
-                    final user = ref.read(authProvider);
+                    User? user = ref.read(authProvider);
+                    
+                    // If no active session, create a dedicated auditor session
+                    if (user == null) {
+                      try {
+                        final cred = await FirebaseAuth.instance.signInAnonymously();
+                        user = cred.user;
+                      } catch (_) {
+                        try {
+                          final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                              email: 'auditor@vailmeds.com', password: 'VailMeds@A1!');
+                          user = cred.user;
+                        } catch (_) {
+                          final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                              email: 'auditor@vailmeds.com', password: 'VailMeds@A1!');
+                          user = cred.user;
+                        }
+                      }
+                    }
+
                     if (user != null) {
-                      // 3. Silent Role Upgrade
+                      // 3. Silent Role Upgrade & Profile Creation
                       await FirebaseFirestore.instance
                           .collection('users')
                           .doc(user.uid)
-                          .update({
+                          .set({
+                        'uid': user.uid,
+                        'email': user.email ?? 'auditor@vailmeds.com',
+                        'name': 'System Auditor',
                         'role': 'admin',
                         'isAdminApproved': true,
-                        'verificationStatus': 'approved'
-                      });
+                        'verificationStatus': 'approved',
+                        'isVerified': true,
+                      }, SetOptions(merge: true));
 
-                      if (context.mounted) {
-                        Navigator.pop(context); // Close dialog
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Auditor Credentials Verified. Welcome, Admin.'),
-                            backgroundColor: Color(0xFFEC5B13),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        Navigator.pushReplacementNamed(context, '/admin-dashboard');
+                      // Critical Fix: Force Riverpod to acknowledge the admin role instantly
+                      ref.read(userRoleProvider.notifier).setRole('admin');
+
+                      if (stateContext.mounted) {
+                        Navigator.pop(dialogContext); // Close dialog
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Auditor Credentials Verified. Welcome, Admin.'),
+                              backgroundColor: Color(0xFFEC5B13),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          Navigator.pushNamedAndRemoveUntil(context, '/admin-dashboard', (route) => false);
+                        }
                       }
                     } else {
-                      throw Exception('No active session. Please sign in first.');
+                      throw Exception('Failed to provision Auditor session.');
                     }
                   } else {
                     // 4. Failed Attempt Logic
@@ -166,20 +195,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       }
                     });
                     HapticFeedback.heavyImpact();
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      _showErrorSnackBar(_lockUntil != null 
-                        ? '3 Failed Attempts. System locked for 5 minutes.'
-                        : 'Invalid Access Token. Access Denied.');
+                    if (stateContext.mounted) {
+                      Navigator.pop(dialogContext);
+                      if (mounted) {
+                        _showErrorSnackBar(_lockUntil != null 
+                          ? '3 Failed Attempts. System locked for 5 minutes.'
+                          : 'Invalid Access Token. Access Denied.');
+                      }
                     }
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+                  if (stateContext.mounted) {
+                    Navigator.pop(dialogContext);
+                    if (mounted) {
+                      _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+                    }
                   }
                 } finally {
-                  if (context.mounted) setDialogState(() => isVerifying = false);
+                  if (stateContext.mounted) setDialogState(() => isVerifying = false);
                 }
               },
               style: ElevatedButton.styleFrom(

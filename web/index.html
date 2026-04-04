@@ -14,77 +14,102 @@
 
   <link rel="icon" type="image/png" href="favicon.png">
 
-  <title>vail_meds_v2</title>
+  <title>VailMeds</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   
   <script src="https://accounts.google.com/gsi/client" async="" defer=""></script>
+  
+  
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
   <style id="splash-screen-style">
-    html {
-      height: 100%
-    }
-
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
-      min-height: 100%;
-      background-color: #FFFFFF;
-          background-size: 100% 100%;
+      background-color: #EC5B13;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
     }
 
-    .center {
-      margin: 0;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-    }
-
-    .contain {
-      display:block;
-      width:100%; height:100%;
-      object-fit: contain;
-    }
-
-    .stretch {
-      display:block;
-      width:100%; height:100%;
-    }
-
-    .cover {
-      display:block;
-      width:100%; height:100%;
-      object-fit: cover;
-    }
-
-    .bottom {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      -ms-transform: translate(-50%, 0);
-      transform: translate(-50%, 0);
-    }
-
-    .bottomLeft {
-      position: absolute;
-      bottom: 0;
+    #native-splash {
+      position: fixed;
+      top: 0;
       left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #EC5B13;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    
+    .splash-logo {
+      width: 180px;
+      height: 180px;
+      animation: pulse 2s infinite ease-in-out;
+      margin-bottom: 32px;
     }
 
-    .bottomRight {
+    .splash-text {
+      font-size: 42px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -1.0px;
+      margin: 0 0 12px 0;
+    }
+
+    .loader-track {
+      width: 40px;
+      height: 2px;
+      background-color: rgba(255, 255, 255, 0.24);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loader-bar {
       position: absolute;
-      bottom: 0;
-      right: 0;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background-color: white;
+      width: 50%;
+      animation: load 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes load {
+      0% { left: -50%; }
+      100% { left: 100%; }
     }
   </style>
   <script id="splash-screen-script">
-    // Replaced DOM logic with graceful fallback to prevent any Native interop crashes.
     function removeSplashFromWeb() {
+      document.getElementById("splash")?.remove();
+      document.getElementById("splash-branding")?.remove();
       document.body.style.background = "transparent";
     }
   </script>
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 </head>
 <body>
+  <!-- INSTANT HTML SPLASH (Mirrors Flutter UI exactly) -->
+  <div id="native-splash">
+    <img class="splash-logo" src="assets/assets/images/logo2.png" alt="V">
+    <h1 class="splash-text">VailMeds</h1>
+    <div class="loader-track">
+      <div class="loader-bar"></div>
+    </div>
+  </div>
   <!-- Native Web Splash physically scrubbed. Hands rendering directly to Flutter Canvaskit payload. -->
   <script>
     // --- FORCED RENDERER (Circuit Breaker) ---
@@ -104,6 +129,7 @@
     window.addEventListener("flutter-engine-started", (event) => {
       console.log("BOOT SUCCESS: Flutter engine confirmed active.");
       clearTimeout(startTimeout);
+      removeSplashFromWeb(); // Graceful hand-off to Flutter CanvasKit Splash
     });
   </script>
   <script src="flutter_bootstrap.js" async=""></script>
