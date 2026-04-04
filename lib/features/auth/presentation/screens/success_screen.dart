@@ -193,10 +193,10 @@ class _SuccessScreenState extends State<SuccessScreen>
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  Image.network(
+                                  Image.asset(
                                     isPatient
-                                        ? 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=1000&auto=format&fit=crop'
-                                        : 'https://images.unsplash.com/photo-1585435557343-3b092031a831?q=80&w=1000&auto=format&fit=crop',
+                                        ? 'assets/images/patient_success.jpg'
+                                        : 'assets/images/pharmacy_success.jpg',
                                     fit: BoxFit.cover,
                                   ),
                                   Container(
