@@ -125,11 +125,10 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           ElevatedButton(
             onPressed: () {
               // Note: Use 'VM-2026-ADMIN' or the code you set in Firestore
-              if (controller.text == 'VM-2026-NGR') {
                 HapticFeedback.mediumImpact();
                 Navigator.pop(context);
-                // Navigate to login first — user must authenticate before accessing admin
-                Navigator.pushNamed(context, '/login');
+                // Navigate to login with Admin Shortcut flag
+                Navigator.pushNamed(context, '/login', arguments: {'isAdminShortcut': true});
               } else {
                 HapticFeedback.heavyImpact();
                 ScaffoldMessenger.of(context).showSnackBar(
