@@ -491,6 +491,28 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                
+                // DEBUG ONLY: Bypass registration for testing
+                if (const bool.fromEnvironment('DEBUG', defaultValue: true))
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/success', arguments: {
+                        'role': widget.initialRole,
+                        'isReturningUser': false,
+                      });
+                    },
+                    child: Text(
+                      '(Debug) Bypass to Success Screen',
+                      style: GoogleFonts.inter(
+                        color: Colors.grey.withValues(alpha: 0.5),
+                        fontSize: 12,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // HIPAA Footer
                 Row(
