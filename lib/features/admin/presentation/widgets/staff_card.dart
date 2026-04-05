@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/models/user_profile.dart';
 
-/// Premium Staff Profile Card with Dubai LifeOS aesthetics.
+/// Premium Staff Profile Card with VailMeds aesthetics.
 class StaffCard extends StatelessWidget {
   final UserProfile staff;
   final VoidCallback? onEdit;

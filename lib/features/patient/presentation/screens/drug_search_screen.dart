@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'drug_details_screen.dart'; // Ensure this import matches your file path
+import '../../../../widgets/hover_card.dart';
 
 class DrugSearchScreen extends StatefulWidget {
   const DrugSearchScreen({super.key});
@@ -152,17 +153,25 @@ class _DrugSearchScreenState extends State<DrugSearchScreen> {
   }
 
   Widget _buildDrugCard(String brand, String name, String info, String price, bool inStock) {
-    return Opacity(
-      opacity: inStock ? 1.0 : 0.6,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
-        ),
+    return HoverCard(
+      onTap: inStock ? () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DrugDetailsScreen(
+              brand: brand,
+              name: name,
+              info: info,
+              price: price,
+              imageUrl: 'https://via.placeholder.com/300', // Placeholder
+            ),
+          ),
+        );
+      } : null,
+      borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.all(12),
+      child: Opacity(
+        opacity: inStock ? 1.0 : 0.6,
         child: Row(
           children: [
             _buildProductImage(inStock),
@@ -179,14 +188,31 @@ class _DrugSearchScreenState extends State<DrugSearchScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text("₦$price", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      // Pass data to the action button
-                      _buildActionButton(brand, name, info, price, inStock),
+                      _buildStatusChip(inStock),
                     ],
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(bool inStock) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: inStock ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        inStock ? 'IN STOCK' : 'OUT OF STOCK',
+        style: TextStyle(
+          color: inStock ? Colors.green : Colors.grey,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -216,32 +242,6 @@ class _DrugSearchScreenState extends State<DrugSearchScreen> {
           )
         ],
       ),
-    );
-  }
-
-  Widget _buildActionButton(String brand, String name, String info, String price, bool inStock) {
-    return ElevatedButton(
-      onPressed: inStock ? () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DrugDetailsScreen(
-              brand: brand,
-              name: name,
-              info: info,
-              price: price,
-              imageUrl: 'https://via.placeholder.com/300', // Placeholder
-            ),
-          ),
-        );
-      } : null,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: inStock ? primaryColor : Colors.grey.shade200,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Text(inStock ? 'View Details' : 'Notify Me', 
-        style: TextStyle(color: inStock ? Colors.white : Colors.grey, fontSize: 12)),
     );
   }
 

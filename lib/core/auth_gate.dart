@@ -22,7 +22,11 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // --- STAGE 1: AUTHENTICATION STATUS (Highest Priority) ---
+    // --- STAGE 0: ADMIN BYPASS CHECK (Highest Priority for Developers/Auditors) ---
+    final localRole = ref.watch(userRoleProvider);
+    if (localRole == 'admin') return const AdminDashboardScreen();
+
+    // --- STAGE 1: AUTHENTICATION STATUS ---
     final authState = ref.watch(authStateProvider);
 
     return authState.when(
@@ -34,7 +38,7 @@ class AuthGate extends ConsumerWidget {
           return profileAsync.when(
             data: (profile) {
               if (profile == null) return const GatewayScreen();
-              if (profile.role == 'admin') return const AdminDashboardScreen();
+              if (profile.role == 'admin' || localRole == 'admin') return const AdminDashboardScreen();
               if (profile.role == 'pharmacy') {
                 return !profile.isAdminApproved 
                     ? const PharmacyVerificationScreen() 

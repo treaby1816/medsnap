@@ -6,6 +6,7 @@ import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
 import '../../../../core/providers.dart';
 import '../../../../core/models/user_profile.dart';
+import '../../../../widgets/hover_card.dart';
 
 class GatewayScreen extends ConsumerStatefulWidget {
   const GatewayScreen({super.key});
@@ -403,13 +404,9 @@ class _PortalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Container(
+    return HoverCard(
+      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
       padding: const EdgeInsets.all(AppTheme.pagePadding),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        boxShadow: AppTheme.floatingShadow,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

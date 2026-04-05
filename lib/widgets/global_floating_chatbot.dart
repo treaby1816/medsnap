@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../core/theme.dart';
 
 // We track the current route here. 
 final currentRouteProvider = StateProvider<String>((ref) => '/');
@@ -44,6 +46,13 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
   ConsumerState<GlobalFloatingChatbot> createState() => _GlobalFloatingChatbotState();
 }
 
+class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> with TickerProviderStateMixin {
+  Offset _position = const Offset(0, 0);
+  bool _isInit = false;
+  bool _isHovering = false;
+  late final AnimationController _hoverController;
+  late final AnimationController _blinkController;
+  late final Animation<double> _hoverAnimation;
   bool _isChatOpen = false;
   final List<Map<String, String>> _messages = [
     {'role': 'bot', 'content': 'Hello! I\'m VailBot. How can I assist you today?'}
@@ -100,6 +109,27 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
     super.dispose();
   }
 
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unable to launch support app.')),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No supported communication app found.')),
+        );
+      }
+    }
+  }
+
   void _handleSendMessage() {
     final text = _chatController.text.trim();
     if (text.isEmpty) return;
@@ -151,16 +181,23 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
   Widget build(BuildContext context) {
     final currentRoute = ref.watch(currentRouteProvider);
 
-    // Routes where the chatbot should be visible
+    // Routes where the global support chatbot should be visible
     final visibleRoutes = [
-      '/',
+      '/', // Splash/Home
+      '/home',
       '/welcome',
       '/gateway',
       '/registration',
       '/login',
+      '/verification',
+      '/pharmacy-verification',
+      '/onboarding',
+      '/admin-dashboard',
       '/patient-dashboard',
       '/pharmacy-dashboard',
-      '/admin-dashboard',
+      '/orders',
+      '/profile',
+      '/order-history',
     ];
 
     final bool shouldShow = visibleRoutes.contains(currentRoute);
@@ -170,9 +207,10 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
         widget.child,
 
         if (shouldShow) ...[
-          // The Chat Overlay Window
+          // Chat Overlay Window
           if (_isChatOpen) _buildChatOverlay(),
 
+          // Floating Draggable Icon
           Positioned(
             left: _position.dx,
             top: _position.dy,
@@ -187,14 +225,23 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
                   _position = Offset(dx, dy);
                 });
               },
-              child: AnimatedBuilder(
-                animation: _hoverAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, _hoverAnimation.value),
-                    child: _buildChatbotWidget(isDragging: false),
-                  );
-                },
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _isHovering = true),
+                onExit: (_) => setState(() => _isHovering = false),
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _hoverAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, _hoverAnimation.value),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _isChatOpen = !_isChatOpen),
+                          child: _buildChatbotWidget(isDragging: false),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           ),
@@ -293,8 +340,8 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(16),
                             topRight: const Radius.circular(16),
-                            bottomLeft: Radius(isBot ? 0 : 16) as Radius,
-                            bottomRight: Radius(isBot ? 16 : 0) as Radius,
+                            bottomLeft: Radius.circular(isBot ? 0 : 16),
+                            bottomRight: Radius.circular(isBot ? 16 : 0),
                           ),
                         ),
                         constraints: BoxConstraints(maxWidth: size.width * 0.6),
@@ -316,9 +363,9 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    _buildQuickAction(Icons.phone_rounded, 'Call', () => Navigator.pushNamed(context, '/support')),
+                    _buildQuickAction(Icons.phone_rounded, 'Call', () => _launchUrl('tel:+2348012345678')),
                     const SizedBox(width: 8),
-                    _buildQuickAction(Icons.chat_rounded, 'WhatsApp', () => Navigator.pushNamed(context, '/support')),
+                    _buildQuickAction(Icons.chat_rounded, 'WhatsApp', () => _launchUrl('https://wa.me/2348012345678?text=Hello%20VailMeds%20Support')),
                   ],
                 ),
               ),
@@ -330,6 +377,7 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
                 ),
                 child: Row(
                   children: [
+                    const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: _chatController,
@@ -396,33 +444,43 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (!_isChatOpen)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(4),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 8),
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: _isHovering ? 1.0 : 0.0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(4),
                     ),
-                  ],
-                  border: Border.all(color: Colors.white, width: 1),
-                ),
-                child: Text(
-                  'How can I help you?',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.auto_awesome, color: AppTheme.primaryColor, size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Chat with VailBot',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

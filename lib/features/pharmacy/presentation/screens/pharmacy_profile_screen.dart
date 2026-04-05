@@ -12,6 +12,7 @@ import 'pharmacy_security_screen.dart';
 
 import '../../../../core/providers.dart';
 import '../../../../core/models/user_profile.dart';
+import '../../../../widgets/hover_card.dart';
 
 class PharmacyProfileScreen extends ConsumerWidget {
   const PharmacyProfileScreen({super.key});
@@ -223,12 +224,11 @@ class PharmacyProfileScreen extends ConsumerWidget {
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-            boxShadow: AppTheme.floatingShadow,
-          ),
+        HoverCard(
+          padding: EdgeInsets.zero,
+          liftAmount: -10,
+          scaleAmount: 1.01,
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
           child: Column(children: items),
         ),
       ],

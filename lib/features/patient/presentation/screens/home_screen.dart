@@ -8,6 +8,7 @@ import '../../../../core/theme.dart';
 import 'product_screen.dart';
 import '../../../../core/models/user_profile.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
+import '../../../../widgets/hover_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -171,76 +172,70 @@ class HomeScreen extends ConsumerWidget {
                           orElse: () => UserProfile(uid: product.pharmacyId, email: '', name: 'Pharmacy', role: 'pharmacy'),
                         ).displayName ?? 'Verified Pharmacy';
 
-                        return GestureDetector(
+                        return HoverCard(
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductScreen(product: product))),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: AppTheme.floatingShadow,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                                    child: Image.network(
-                                      product.imageUrl.isNotEmpty ? product.imageUrl : 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?q=80&w=400',
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[100], child: const Icon(Icons.medication, color: AppTheme.primaryColor)),
-                                    ),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                  child: Image.network(
+                                    product.imageUrl.isNotEmpty ? product.imageUrl : 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?q=80&w=400',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[100], child: const Icon(Icons.medication, color: AppTheme.primaryColor)),
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: SizedBox(
-                                    height: 70,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                        Row(
-                                          children: [
-                                            const Icon(Icons.storefront, size: 10, color: AppTheme.primaryColor),
-                                            const SizedBox(width: 4),
-                                            Expanded(child: Text(pharmacyName, style: const TextStyle(fontSize: 10, color: AppTheme.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                          ],
-                                        ),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text('\u20a6${product.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimaryColor)),
-                                            GestureDetector(
-                                              onTap: () {
-                                                ref.read(cartProvider.notifier).addItem({
-                                                  'id': product.id,
-                                                  'name': product.name,
-                                                  'price': product.price,
-                                                  'imageUrl': product.imageUrl,
-                                                  'pharmacyId': product.pharmacyId,
-                                                  'pharmacyName': pharmacyName,
-                                                });
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(content: Text('${product.name} added to cart!'), backgroundColor: AppTheme.primaryColor, behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1)),
-                                                );
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.all(6),
-                                                decoration: BoxDecoration(color: AppTheme.primaryColor, borderRadius: BorderRadius.circular(8)),
-                                                child: const Icon(Icons.add, color: Colors.white, size: 14),
-                                              ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: SizedBox(
+                                  height: 70,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.storefront, size: 10, color: AppTheme.primaryColor),
+                                          const SizedBox(width: 4),
+                                          Expanded(child: Text(pharmacyName, style: const TextStyle(fontSize: 10, color: AppTheme.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text('\u20a6${product.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimaryColor)),
+                                          GestureDetector(
+                                            onTap: () {
+                                              ref.read(cartProvider.notifier).addItem({
+                                                'id': product.id,
+                                                'name': product.name,
+                                                'price': product.price,
+                                                'imageUrl': product.imageUrl,
+                                                'pharmacyId': product.pharmacyId,
+                                                'pharmacyName': pharmacyName,
+                                              });
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('${product.name} added to cart!'), backgroundColor: AppTheme.primaryColor, behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1)),
+                                              );
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(color: AppTheme.primaryColor, borderRadius: BorderRadius.circular(8)),
+                                              child: const Icon(Icons.add, color: Colors.white, size: 14),
                                             ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -272,8 +267,10 @@ class HomeScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: GestureDetector(
+                child: HoverCard(
                   onTap: () => Navigator.pushNamed(context, '/scan'),
+                  borderRadius: BorderRadius.circular(24),
+                  glowColor: AppTheme.primaryColor,
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -283,7 +280,6 @@ class HomeScreen extends ConsumerWidget {
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: AppTheme.primaryGlow,
                     ),
                     child: Row(
                       children: [
@@ -429,8 +425,9 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     Text('Nearby Facilities', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
-                    GestureDetector(
+                    HoverCard(
                       onTap: () => Navigator.pushNamed(context, '/nearby'),
+                      borderRadius: BorderRadius.circular(20),
                       child: Container(
                         height: 160,
                         decoration: BoxDecoration(
@@ -439,9 +436,6 @@ class HomeScreen extends ConsumerWidget {
                             image: NetworkImage('https://images.unsplash.com/photo-1549463595-654db9756184?q=80&w=600&auto=format&fit=crop'),
                             fit: BoxFit.cover,
                           ),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
-                          ],
                         ),
                         child: Container(
                           decoration: BoxDecoration(
@@ -518,17 +512,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildNewsCard(BuildContext context, HealthArticle article) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+    return HoverCard(
+      borderRadius: BorderRadius.circular(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.05)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
       child: Row(
         children: [
           if (article.imageUrl != null)
@@ -593,7 +579,7 @@ class HomeScreen extends ConsumerWidget {
         ? ph.storeFrontImageUrl!
         : defaultStoreFront;
 
-    return GestureDetector(
+    return HoverCard(
       onTap: () => Navigator.pushNamed(
         context, 
         '/chat', 
@@ -602,8 +588,9 @@ class HomeScreen extends ConsumerWidget {
           'receiverName': ph.displayName ?? ph.storeName ?? 'Pharmacy',
         },
       ),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 5.0),
+        margin: const EdgeInsets.symmetric(horizontal: 0.0), // Margin handled by Carousel
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           image: DecorationImage(
@@ -611,7 +598,6 @@ class HomeScreen extends ConsumerWidget {
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken),
           ),
-          boxShadow: AppTheme.floatingShadow,
         ),
         child: Stack(
           children: [
@@ -681,7 +667,7 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),

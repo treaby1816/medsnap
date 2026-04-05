@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers.dart';
 import '../../../../widgets/glass_app_bar.dart';
+import '../../../../widgets/hover_card.dart';
 
 class PharmacyAnalyticsScreen extends ConsumerWidget {
   const PharmacyAnalyticsScreen({super.key});
@@ -105,13 +106,12 @@ class PharmacyAnalyticsScreen extends ConsumerWidget {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
+    return HoverCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.floatingShadow,
-      ),
+      liftAmount: -10,
+      scaleAmount: 1.04,
+      glowColor: color,
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -146,15 +146,15 @@ class PharmacyAnalyticsScreen extends ConsumerWidget {
   }
 
   Widget _buildChartCard(Widget chart) {
-    return Container(
-      height: 240,
+    return HoverCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppTheme.floatingShadow,
+      liftAmount: -15,
+      scaleAmount: 1.02,
+      borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        height: 240,
+        child: chart,
       ),
-      child: chart,
     );
   }
 
@@ -166,46 +166,40 @@ class PharmacyAnalyticsScreen extends ConsumerWidget {
     ];
 
     return Column(
-      children: products.map((p) => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
+      children: products.map((p) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: HoverCard(
+          padding: const EdgeInsets.all(16),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+          liftAmount: -6,
+          scaleAmount: 1.02,
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.medication_outlined, color: AppTheme.primaryColor, size: 20),
               ),
-              child: const Icon(Icons.medication_outlined, color: AppTheme.primaryColor, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(p['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text('${p['sales']!} units sold', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor)),
-                ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text('${p['sales']!} units sold', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor)),
+                  ],
+                ),
               ),
-            ),
-            Text(
-              p['growth']!,
-              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-          ],
+              Text(
+                p['growth']!,
+                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ],
+          ),
         ),
       )).toList(),
     );

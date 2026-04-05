@@ -63,8 +63,13 @@ class AppRouter {
       case login:
         return MaterialPageRoute(builder: (_) => const LoginScreen(), settings: settings);
       case registration:
-        final roleArg = (settings.arguments as String?) ?? 'patient';
-        return MaterialPageRoute(builder: (_) => RegistrationScreen(initialRole: roleArg), settings: settings);
+        String? roleArg;
+        if (settings.arguments is String) {
+          roleArg = settings.arguments as String;
+        } else if (settings.arguments is Map) {
+          roleArg = (settings.arguments as Map)['role'] as String?;
+        }
+        return MaterialPageRoute(builder: (_) => RegistrationScreen(initialRole: roleArg ?? 'patient'), settings: settings);
       case verification:
         return MaterialPageRoute(builder: (_) => const VerificationScreen(), settings: settings);
       case pharmacyVerification:
@@ -113,24 +118,29 @@ class AppRouter {
       case orderHistory:
         return MaterialPageRoute(builder: (_) => const OrderHistoryScreen(), settings: settings);
       case chat:
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            receiverId: args['receiverId'],
-            receiverName: args['receiverName'],
-          ),
-          settings: settings,
-        );
+        final args = settings.arguments;
+        if (args is Map) {
+          return MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              receiverId: args['receiverId'] ?? '',
+              receiverName: args['receiverName'] ?? 'Support',
+            ),
+            settings: settings,
+          );
+        }
+        return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text("Invalid Chat Arguments"))));
       case checkout:
         return MaterialPageRoute(builder: (_) => const CheckoutScreen(), settings: settings);
       
       // --- Dynamic Routes ---
       case product:
-        final productArg = settings.arguments as Product;
-        return MaterialPageRoute(
-          builder: (_) => ProductScreen(product: productArg),
-          settings: settings,
-        );
+        if (settings.arguments is Product) {
+          return MaterialPageRoute(
+            builder: (_) => ProductScreen(product: settings.arguments as Product),
+            settings: settings,
+          );
+        }
+        return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text("Product not found"))));
 
       case success:
         var userType = UserType.patient;

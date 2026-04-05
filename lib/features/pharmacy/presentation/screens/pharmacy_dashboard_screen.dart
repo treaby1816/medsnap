@@ -8,6 +8,9 @@ import '../../../../core/theme.dart';
 import 'pharmacy_inventory_screen.dart';
 import 'add_product_screen.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
+import '../../../../widgets/hover_card.dart';
+import '../../../../core/models/product_model.dart';
+import '../widgets/pharmacy_product_card.dart';
 
 class PharmacyDashboardScreen extends ConsumerStatefulWidget {
   const PharmacyDashboardScreen({super.key});
@@ -199,6 +202,96 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
               }
             ),
             const SizedBox(height: 32),
+            
+            // Live on Marketplace Gallery
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.shopping_bag_outlined, color: AppTheme.primaryColor, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Live on Marketplace',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _deepBlue,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PharmacyInventoryScreen()),
+                    );
+                  },
+                  child: Text(
+                    'View All',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 220,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('products')
+                    .where('pharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
+                    .orderBy('createdAt', descending: true)
+                    .limit(10)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                      itemCount: 3,
+                      itemBuilder: (_, __) => const ShimmerEffect(width: 160, height: 220, borderRadius: 16),
+                    );
+                  }
+                  
+                  final products = snapshot.data?.docs.map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList() ?? [];
+                  
+                  if (products.isEmpty) {
+                    return Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
+                      ),
+                      child: Center(
+                        child: Text("No products uploaded yet", style: GoogleFonts.inter(color: Colors.grey)),
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: products.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) {
+                      return SizedBox(
+                        width: 160,
+                        child: PharmacyProductCard(
+                          product: products[index],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
 
             // Live Order Queue
             Row(
@@ -300,20 +393,9 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                       }
                     }
 
-                    return Container(
+                    return HoverCard(
+                      borderRadius: BorderRadius.circular(16),
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.05),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-                      ),
                       child: Row(
                         children: [
                           Container(
@@ -425,19 +507,8 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
               ],
             ),
             const SizedBox(height: 8),
-            Container(
+            HoverCard(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                   .collection('products')
@@ -512,23 +583,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return HoverCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: backgroundColor.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        border: Border.all(
-          color: textColor.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
+      liftAmount: -12,
+      scaleAmount: 1.05,
+      backgroundColor: backgroundColor,
+      glowColor: backgroundColor,
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers.dart';
 import '../../../../core/models/product_model.dart';
 import '../../../../widgets/glass_app_bar.dart';
+import '../widgets/pharmacy_product_card.dart';
 import 'add_product_screen.dart';
 
 class PharmacyInventoryScreen extends ConsumerWidget {
@@ -66,7 +66,18 @@ class PharmacyInventoryScreen extends ConsumerWidget {
                   mainAxisSpacing: 16,
                 ),
                 itemCount: products.length,
-                itemBuilder: (context, index) => _ProductCard(product: products[index]),
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return PharmacyProductCard(
+                    product: product,
+                    onEdit: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Edit feature coming soon!')),
+                      );
+                    },
+                    onDelete: () => _showDeleteDialog(context, ref, product),
+                  );
+                },
               ),
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -109,89 +120,8 @@ class PharmacyInventoryScreen extends ConsumerWidget {
       ),
     );
   }
-}
 
-class _ProductCard extends ConsumerWidget {
-  final Product product;
-  const _ProductCard({required this.product});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Image
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: CachedNetworkImage(
-                imageUrl: product.imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: Colors.grey.shade200),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
-            ),
-          ),
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '₦${product.price.toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(
-                    color: AppTheme.primaryColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 20, color: AppTheme.textSecondaryColor),
-                      onPressed: () {
-                         ScaffoldMessenger.of(context).showSnackBar(
-                           const SnackBar(content: Text('Edit feature coming soon!')),
-                         );
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-                      onPressed: () => _showDeleteDialog(context, ref),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context, WidgetRef ref) {
+  void _showDeleteDialog(BuildContext context, WidgetRef ref, Product product) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

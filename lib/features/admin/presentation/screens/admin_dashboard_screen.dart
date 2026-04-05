@@ -16,7 +16,6 @@ import 'admin_analytics_screen.dart';
 import 'admin_inventory_screen.dart';
 import 'admin_staff_screen.dart';
 import 'admin_audit_ledger_screen.dart';
-import '../widgets/admin_chatbot_overlay.dart';
 
 /// The main Admin Dashboard screen — desktop-first layout with:
 ///  • Fixed sidebar navigation (left)
@@ -164,7 +163,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               );
             },
           ),
-          const AdminChatbotOverlay(),
         ],
       ),
     );

@@ -20,7 +20,7 @@ class SupportScreen extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: No compatible app found.')),
+          const SnackBar(content: Text('Error: No compatible app found.')),
         );
       }
     }

@@ -39,7 +39,7 @@ class AdminActivityFeed extends ConsumerWidget {
                   color: AppTheme.textPrimaryColor,
                 ),
               ),
-              const Icon(Icons.hub_rounded, size: 20, color: AppTheme.primaryColor),
+              const Icon(Icons.verified_user_rounded, size: 20, color: AppTheme.primaryColor),
             ],
           ),
           const SizedBox(height: 20),

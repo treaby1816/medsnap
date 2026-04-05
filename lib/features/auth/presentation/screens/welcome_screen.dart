@@ -124,11 +124,23 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              // Note: Use 'VM-2026-ADMIN' or the code you set in Firestore
+              if (controller.text == 'VM-2026-NGR') {
                 HapticFeedback.mediumImpact();
-                Navigator.pop(context);
-                // Navigate to login with Admin Shortcut flag
-                Navigator.pushNamed(context, '/login', arguments: {'isAdminShortcut': true});
+                Navigator.pop(context); // Close dialog
+                
+                // 1. Elevate Session Role
+                ref.read(userRoleProvider.notifier).setRole('admin');
+                
+                // 2. Direct Route to Dashboard (No Stress Bypass)
+                Navigator.pushNamedAndRemoveUntil(context, '/admin-dashboard', (route) => false);
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Admin Access Granted. Welcome back.'),
+                    backgroundColor: AppTheme.primaryColor,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               } else {
                 HapticFeedback.heavyImpact();
                 ScaffoldMessenger.of(context).showSnackBar(

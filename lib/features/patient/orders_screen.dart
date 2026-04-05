@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/providers.dart';
+import '../../widgets/hover_card.dart';
 
 class OrdersScreen extends ConsumerWidget {
   const OrdersScreen({super.key});
@@ -236,13 +237,8 @@ class OrdersScreen extends ConsumerWidget {
     final String status = order['status'] ?? 'Pending';
     final Timestamp? date = order['orderDate'] as Timestamp?;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade100),
-      ),
+    return HoverCard(
+      borderRadius: BorderRadius.circular(16),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: Container(

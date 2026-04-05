@@ -123,13 +123,13 @@ class _AdminChatbotOverlayState extends State<AdminChatbotOverlay> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.hub_rounded, color: Colors.white, size: 20),
+                    const Icon(Icons.medication_liquid_rounded, color: Colors.white, size: 20),
                     const SizedBox(width: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Dubai LifeOS Assistant',
+                          'VailMeds Assistant',
                           style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 13,
@@ -137,7 +137,7 @@ class _AdminChatbotOverlayState extends State<AdminChatbotOverlay> {
                           ),
                         ),
                         Text(
-                          'Clinical Command AI',
+                          'Clinical AI Concierge',
                           style: GoogleFonts.inter(
                             color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 10,

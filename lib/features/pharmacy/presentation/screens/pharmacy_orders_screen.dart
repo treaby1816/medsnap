@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers.dart';
 import '../../../../widgets/glass_app_bar.dart';
+import '../../../../widgets/hover_card.dart';
 
 class PharmacyOrdersScreen extends ConsumerWidget {
   const PharmacyOrdersScreen({super.key});
@@ -97,15 +98,13 @@ class PharmacyOrdersScreen extends ConsumerWidget {
               final total = order['totalAmount'] ?? 0.0;
               final items = order['items'] as List<dynamic>? ?? [];
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-                ),
-                child: Padding(
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: HoverCard(
                   padding: const EdgeInsets.all(16),
+                  borderRadius: BorderRadius.circular(16),
+                  liftAmount: -8,
+                  scaleAmount: 1.02,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

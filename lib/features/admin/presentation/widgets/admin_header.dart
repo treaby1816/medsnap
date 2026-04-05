@@ -49,49 +49,82 @@ class _AdminHeaderState extends State<AdminHeader> {
               if (MediaQuery.of(context).size.width >= 600)
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  width: _isSearchFocused ? 400 : 320,
-                  height: 44,
+                  width: _isSearchFocused ? 420 : 350,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: _isSearchFocused ? Colors.white : AppTheme.backgroundColor.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
+                    color: _isSearchFocused ? Colors.white : AppTheme.backgroundColor.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: _isSearchFocused ? AppTheme.primaryColor : AppTheme.borderColor,
+                      color: _isSearchFocused ? AppTheme.primaryColor : AppTheme.borderColor.withValues(alpha: 0.6),
                       width: _isSearchFocused ? 1.5 : 1,
                     ),
                     boxShadow: [
                       if (_isSearchFocused)
                         BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
                     ],
                   ),
                   child: Row(
                     children: [
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 16),
                       Icon(
                         Icons.search_rounded, 
-                        size: 20, 
+                        size: 22, 
                         color: _isSearchFocused ? AppTheme.primaryColor : AppTheme.textTertiaryColor
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Focus(
                           onFocusChange: (focused) => setState(() => _isSearchFocused = focused),
                           child: TextField(
-                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
+                            style: GoogleFonts.inter(
+                              fontSize: 14, 
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimaryColor,
+                            ),
                             decoration: InputDecoration(
                               hintText: 'Search patients, pharmacies, or logs...',
                               hintStyle: GoogleFonts.inter(
                                 fontSize: 13,
                                 color: AppTheme.textTertiaryColor,
+                                fontWeight: FontWeight.w500,
                               ),
                               border: InputBorder.none,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
                             ),
                           ),
+                        ),
+                      ),
+                      // ── Search Shortcut (Professional touch) ──
+                      if (!_isSearchFocused)
+                        Container(
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppTheme.borderColor),
+                          ),
+                          child: Text(
+                            'Ctrl + K',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textTertiaryColor,
+                            ),
+                          ),
+                        ),
+                      // ── Filter Icon ──
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.tune_rounded,
+                          size: 18,
+                          color: _isSearchFocused ? AppTheme.primaryColor : AppTheme.textTertiaryColor,
                         ),
                       ),
                     ],

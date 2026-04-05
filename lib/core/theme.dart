@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // ── Dubai LifeOS Palette ─────────────────────────────────────────
+  // ── VailMeds Palette ─────────────────────────────────────────
   static const Color primaryColor = Color(0xFFEC5B13);
   static const Color secondaryColor = Color(0xFFD97706); // Burnished Gold
   static const Color backgroundColor = Color(0xFFF8F6F6);
@@ -15,7 +15,7 @@ class AppTheme {
   static const Color textTertiaryColor = Color(0xFF94A3B8);
   static const Color borderColor = Color(0xFFE2E8F0);
 
-  // ── Dubai LifeOS Glassmorphism ───────────────────────────────
+  // ── VailMeds Glassmorphism ───────────────────────────────
   static const double glassBlur = 20.0;
   static double glassOpacity = 0.65;
   

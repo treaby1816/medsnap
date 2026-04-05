@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers/admin_providers.dart';
+import '../../../../widgets/hover_card.dart';
 
 class AdminStatsGrid extends ConsumerWidget {
   final Function(int)? onCardTap;
@@ -107,7 +108,6 @@ class _StatCard extends StatefulWidget {
 }
 
 class _StatCardState extends State<_StatCard> with SingleTickerProviderStateMixin {
-  bool _isHovered = false;
   late AnimationController _pulseController;
 
   @override
@@ -127,127 +127,99 @@ class _StatCardState extends State<_StatCard> with SingleTickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0.0, _isHovered ? -6.0 : 0.0, 0.0),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Container(
-              width: widget.width,
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: _isHovered ? AppTheme.primaryColor.withValues(alpha: 0.4) : AppTheme.borderColor.withValues(alpha: 0.8),
-                  width: _isHovered ? 1.5 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: _isHovered ? 0.08 : 0.03),
-                    blurRadius: _isHovered ? 32 : 16,
-                    offset: Offset(0, _isHovered ? 12 : 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Status Orb & Icon
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ScaleTransition(
-                            scale: Tween(begin: 1.0, end: 1.4).animate(
-                              CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-                            ),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: widget.badgeColor.withValues(alpha: 0.15),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: widget.badgeColor,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: widget.badgeColor.withValues(alpha: 0.6),
-                                  blurRadius: 8,
-                                )
-                              ],
-                            ),
-                          ),
+    return HoverCard(
+      onTap: widget.onTap,
+      borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(28),
+      child: SizedBox(
+        width: widget.width - 56, // Adjusted for HoverCard padding
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Status Orb & Icon
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ScaleTransition(
+                      scale: Tween(begin: 1.0, end: 1.4).animate(
+                        CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+                      ),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: widget.badgeColor.withValues(alpha: 0.15),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: widget.badgeColor,
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.badgeColor.withValues(alpha: 0.6),
+                            blurRadius: 8,
+                          )
                         ],
                       ),
-                      
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.backgroundColor,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.borderColor.withValues(alpha: 0.5)),
-                        ),
-                        child: Text(
-                          widget.badge,
-                          style: GoogleFonts.outfit(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: widget.badgeColor,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundColor,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.borderColor.withValues(alpha: 0.5)),
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Icon(widget.icon, size: 16, color: AppTheme.textSecondaryColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.label,
-                        style: GoogleFonts.outfit(
-                          fontSize: 13,
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.value,
+                  child: Text(
+                    widget.badge,
                     style: GoogleFonts.outfit(
-                      fontSize: 34,
+                      fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.textPrimaryColor,
-                      letterSpacing: -1,
+                      color: widget.badgeColor,
+                      letterSpacing: 0.8,
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Icon(widget.icon, size: 16, color: AppTheme.textSecondaryColor),
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    color: AppTheme.textSecondaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.value,
+              style: GoogleFonts.outfit(
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimaryColor,
+                letterSpacing: -1,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
-
