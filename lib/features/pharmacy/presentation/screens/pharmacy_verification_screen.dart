@@ -17,8 +17,9 @@ class PharmacyVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificationScreen> {
-  final _storeNameController = TextEditingController();
-  final _licenseController = TextEditingController();
+  final _pharmacistNameController = TextEditingController();
+  final _brandNameController = TextEditingController();
+  final _licenseNumberController = TextEditingController();
   final _emailController = TextEditingController();
   final List<TextEditingController> _tokenControllers =
       List.generate(6, (_) => TextEditingController());
@@ -31,8 +32,9 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
 
   @override
   void dispose() {
-    _storeNameController.dispose();
-    _licenseController.dispose();
+    _pharmacistNameController.dispose();
+    _brandNameController.dispose();
+    _licenseNumberController.dispose();
     _emailController.dispose();
     for (var c in _tokenControllers) { c.dispose(); }
     for (var f in _tokenFocusNodes) { f.dispose(); }
@@ -90,20 +92,29 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
                   validator: (v) => (v == null || v.isEmpty) ? 'Email is required' : null,
                 ),
                 const SizedBox(height: 24),
-                Text('Pharmacy / Store Name', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimaryColor)),
+                const SizedBox(height: 20),
+                Text('Pharmacist Full Name', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimaryColor)),
                 const SizedBox(height: 8),
                 TextFormField(
-                  controller: _storeNameController,
-                  decoration: const InputDecoration(hintText: 'Enter pharmacy name'),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Store name is required' : null,
+                  controller: _pharmacistNameController,
+                  decoration: const InputDecoration(hintText: 'Enter your legal name'),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Pharmacist name is required' : null,
+                ),
+                const SizedBox(height: 24),
+                Text('Pharmacy Brand Name', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimaryColor)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _brandNameController,
+                  decoration: const InputDecoration(hintText: 'Enter your pharmacy brand name'),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Brand name is required' : null,
                 ),
                 const SizedBox(height: 24),
                 Text('License or NPI Number', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimaryColor)),
                 const SizedBox(height: 8),
                 TextFormField(
-                  controller: _licenseController,
-                  decoration: const InputDecoration(hintText: 'Enter pharmacy license/NPI number'),
-                  validator: (v) => (v == null || v.isEmpty) ? 'License is required' : null,
+                  controller: _licenseNumberController,
+                  decoration: const InputDecoration(hintText: 'Enter license number'),
+                  validator: (v) => (v == null || v.isEmpty) ? 'License number is required' : null,
                 ),
                 const SizedBox(height: 24),
                 Text('License Photo', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimaryColor)),
@@ -206,9 +217,12 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
   Future<String?> _uploadImage(String uid) async {
     if (_licenseImage == null) return null;
     try {
-      final ref = FirebaseStorage.instance.ref().child('license_photos').child('$uid.jpg');
-      await ref.putFile(File(_licenseImage!.path));
-      return await ref.getDownloadURL();
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('pharmacy_licenses')
+          .child('$uid.jpg');
+      await storageRef.putFile(File(_licenseImage!.path));
+      return await storageRef.getDownloadURL();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -224,8 +238,16 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
       return;
     }
 
-    final storeName = _storeNameController.text.trim();
-    final license = _licenseController.text.trim();
+    if (_licenseImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload a photo of your pharmacy license.')),
+      );
+      return;
+    }
+
+    final pharmacistName = _pharmacistNameController.text.trim();
+    final brandName = _brandNameController.text.trim();
+    final licenseNumber = _licenseNumberController.text.trim();
     final token = _tokenControllers.map((c) => c.text).join();
 
     if (token.length < 6) {
@@ -235,117 +257,176 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
       return;
     }
 
-    final user = ref.read(authProvider);
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User session not found. Please log in again.')),
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
-    try {
-      String? photoUrl;
-      if (_licenseImage != null) {
-        photoUrl = await _uploadImage(user.uid);
-      }
 
-      await ref.read(authServiceProvider).submitVerificationRequest(
-            user.uid,
-            license,
-            token,
-            storeName: storeName,
-            npiNumber: license,
-            licensePhotoUrl: photoUrl,
-          );
+    try {
+      final authService = ref.read(authServiceProvider);
+      final user = authService.currentUser;
+      if (user == null) throw Exception('User session not found. Please log in again.');
+
+      final downloadUrl = await _uploadImage(user.uid);
+      if (downloadUrl == null) throw Exception('License upload failed.');
+
+      // Submit high-fidelity verification request
+      await authService.submitVerificationRequest(
+        user.uid,
+        licenseNumber,
+        token, // Used as accessToken for terminal sync
+        storeName: brandName,
+        licensePhotoUrl: downloadUrl,
+      );
+
+      // Also update displayName to pharmacist name
+      await authService.updateProfile(user.uid, {
+        'displayName': pharmacistName,
+      });
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification submitted!')),
+        const SnackBar(content: Text('License submitted for clinical review!')),
       );
       
+      // Refresh profile to trigger the 'Pending' UI
       ref.invalidate(userProfileProvider);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verification Error: $e')),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _debugAdminApprove() async {
-    final user = ref.read(authProvider);
+    final authService = ref.read(authServiceProvider);
+    final user = authService.currentUser;
     if (user == null) return;
 
     setState(() => _isLoading = true);
     try {
-      await ref.read(authServiceProvider).adminApprovePharmacy(user.uid);
+      await authService.adminApprovePharmacy(user.uid);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('DEBUG: Approved!')),
+        const SnackBar(content: Text('DEBUG: Application Approved!')),
       );
       ref.invalidate(userProfileProvider);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Debug Error: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Widget _buildPendingUI() {
-    return Center(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: const BoxDecoration(
+        color: AppTheme.backgroundColor,
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.timer_outlined, size: 64, color: AppTheme.primaryColor),
-          ),
+          _buildAnimatedTimerIcon(),
           const SizedBox(height: 32),
           Text(
-            'Review in Progress',
+            'Verification in Review',
             style: GoogleFonts.inter(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
+              color: const Color(0xFF0F172A),
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              'Our compliance team is verifying your license and NPI number. This usually takes 24-48 hours.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                color: AppTheme.textSecondaryColor,
-                height: 1.5,
-              ),
+          Text(
+            'High-fidelity verification in progress. Our clinical oversight team is reviewing your pharmaceutical license and brand credentials.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              color: AppTheme.textSecondaryColor,
+              height: 1.6,
             ),
           ),
           const SizedBox(height: 48),
-          TextButton(
-            onPressed: _debugAdminApprove,
-            child: Text(
-              'FORCE APPROVAL (DEBUG)',
-              style: GoogleFonts.inter(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: AppTheme.primaryColor),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'You will receive an email and SMS once your pharmacy command center is activated.',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Hidden debug trigger (Triple tap the info box to bypass in dev)
+          GestureDetector(
+            onLongPress: _debugAdminApprove, // Require long press for debug bypass
+            child: Container(
+              height: 40,
+              width: 100,
+              color: Colors.transparent,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAnimatedTimerIcon() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 120,
+          height: 120,
+          child: CircularProgressIndicator(
+            value: 0.7,
+            strokeWidth: 3,
+            backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+          ),
+        ),
+        Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.verified_user_outlined, size: 40, color: AppTheme.primaryColor),
+        ),
+      ],
     );
   }
 }

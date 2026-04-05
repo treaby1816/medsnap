@@ -59,15 +59,12 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
         if (mounted) {
           ref.read(userRoleProvider.notifier).setRole(profile.role);
           
-          if (profile.role == 'pharmacy' && !profile.isVerified) {
-            Navigator.of(context).pushReplacementNamed('/pharmacy-verification');
-          } else {
-            // ALWAYS show Success screen as requested by the user
-            Navigator.of(context).pushReplacementNamed('/success', arguments: {
-              'role': profile.role,
-              'isReturningUser': !authResult.isNewUser,
-            });
-          }
+          // ALWAYS show Success screen as requested by the user.
+          // The SuccessScreen handles individual role routing (e.g., to Verification for pharmacies).
+          Navigator.of(context).pushReplacementNamed('/success', arguments: {
+            'role': profile.role,
+            'isReturningUser': !authResult.isNewUser,
+          });
         }
       }
     } catch (e) {

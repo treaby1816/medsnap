@@ -1,21 +1,23 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/providers.dart';
 import '../../../../core/constants/enums.dart';
 
-class SuccessScreen extends StatefulWidget {
+class SuccessScreen extends ConsumerStatefulWidget {
   final UserType userType;
   final bool isReturningUser;
 
   const SuccessScreen({super.key, required this.userType, this.isReturningUser = false});
 
   @override
-  State<SuccessScreen> createState() => _SuccessScreenState();
+  ConsumerState<SuccessScreen> createState() => _SuccessScreenState();
 }
 
-class _SuccessScreenState extends State<SuccessScreen>
+class _SuccessScreenState extends ConsumerState<SuccessScreen>
     with TickerProviderStateMixin {
   late AnimationController _progressController;
   late AnimationController _checkController;
@@ -52,13 +54,19 @@ class _SuccessScreenState extends State<SuccessScreen>
     });
   }
 
-  void _navigateToDashboard() {
+  void _navigateToDashboard() async {
     if (!mounted) return;
 
     if (widget.userType == UserType.patient) {
       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
     } else {
-      Navigator.pushNamedAndRemoveUntil(context, '/pharmacy-dashboard', (route) => false);
+      // Check verification status before dashboard
+      final profile = ref.read(userProfileProvider).value;
+      if (profile == null || !profile.isAdminApproved) {
+        Navigator.pushNamedAndRemoveUntil(context, '/pharmacy-verification', (route) => false);
+      } else {
+        Navigator.pushNamedAndRemoveUntil(context, '/pharmacy-dashboard', (route) => false);
+      }
     }
   }
 

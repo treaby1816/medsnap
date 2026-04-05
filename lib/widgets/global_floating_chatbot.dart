@@ -63,19 +63,19 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   @override
   void initState() {
     super.initState();
-    _hoverController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+    _hoverController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _blinkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _hoverAnimation = Tween<double>(begin: 0, end: -10).animate(CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut));
     
-    _hoverAnimation = Tween<double>(begin: -5, end: 5).animate(
-      CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut),
-    );
-
-    _blinkController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
+    // Initialize position after frame is built to avoid half-hiding
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final size = MediaQuery.of(context).size;
+      setState(() {
+        // Positioned bottom-right but with enough padding to not be half-hidden
+        _position = Offset(size.width - 90, size.height - 200);
+        _isInit = true;
+      });
+    });
 
     _startBlinkCycle();
   }
@@ -183,21 +183,12 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
 
     // Routes where the global support chatbot should be visible
     final visibleRoutes = [
-      '/', // Splash/Home
-      '/home',
+      '/', // Splash/Gateway
       '/welcome',
       '/gateway',
       '/registration',
       '/login',
-      '/verification',
-      '/pharmacy-verification',
-      '/onboarding',
       '/admin-dashboard',
-      '/patient-dashboard',
-      '/pharmacy-dashboard',
-      '/orders',
-      '/profile',
-      '/order-history',
     ];
 
     final bool shouldShow = visibleRoutes.contains(currentRoute);
@@ -220,8 +211,9 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
               onDragEnd: (details) {
                 final size = MediaQuery.of(context).size;
                 setState(() {
-                  double dx = details.offset.dx.clamp(0, size.width - 80);
-                  double dy = details.offset.dy.clamp(0, size.height - 100);
+                  // Clamping to prevent half-hiding on edges
+                  double dx = details.offset.dx.clamp(20, size.width - 90);
+                  double dy = details.offset.dy.clamp(50, size.height - 120);
                   _position = Offset(dx, dy);
                 });
               },
