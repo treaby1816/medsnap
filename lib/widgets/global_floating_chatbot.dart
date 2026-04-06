@@ -17,7 +17,7 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
 }
 
 class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> with TickerProviderStateMixin {
-  Offset _position = const Offset(0, 0);
+  Offset? _position;
   bool _isHovering = false;
   late final AnimationController _hoverController;
   late final AnimationController _blinkController;
@@ -47,14 +47,6 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
       ..loadRequest(Uri.parse('https://vail-meds-v2-support.web.app')); // Point to your support bot url
-    
-    // Initial position: Bottom right
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final size = MediaQuery.of(context).size;
-      setState(() {
-        _position = Offset(size.width - 90, size.height - 180);
-      });
-    });
   }
 
   @override
@@ -75,6 +67,15 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
     // Hidden on Login, Splash, etc if you prefer, or global.
     // For now, let's keep it global but positioned safely.
     
+    final size = MediaQuery.of(context).size;
+    
+    // Initialize position only when size is available (to avoid 0,0 offscreen)
+    if (_position == null && size.width > 0) {
+      _position = Offset(size.width - 90, size.height - 180);
+    }
+    
+    final currentPos = _position ?? const Offset(20, 20);
+
     return Stack(
       children: [
         widget.child,
@@ -113,12 +114,15 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
           ),
         
         Positioned(
-          left: _position.dx,
-          top: _position.dy,
+          left: currentPos.dx,
+          top: currentPos.dy,
           child: GestureDetector(
             onPanUpdate: (details) {
               setState(() {
-                _position += details.delta;
+                _position = Offset(
+                  (currentPos.dx + details.delta.dx).clamp(0.0, size.width - 70),
+                  (currentPos.dy + details.delta.dy).clamp(0.0, size.height - 70),
+                );
               });
             },
             onTap: _toggleChat,
