@@ -1,25 +1,33 @@
-# ProGuard configuration for the Flutter application.
+# VailMeds v2 Security & Obfuscation ProGuard Rules
 
-# Firebase & Firestore: Critical for Auth and DB performance 
+# 1. Enable Hardened Obfuscation
+-repackageclasses ''
+-allowaccessmodification
+-printmapping mapping.txt
+
+# 2. Firebase & Core Google Services
 -keep class com.google.firebase.** { *; }
 -keep interface com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
 
-# Flutter Engine: Essential for app stability
+# 3. Flutter Engine & Plugins (Essential)
 -keep class io.flutter.** { *; }
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
+-keep class io.flutter.plugins.** { *; }
 
-# Lottie Animations: Protects visual "originality" and smooth movement
+# 4. Security SDKs (Root checking & Screen protection)
+-keep class com.gantix.rootcatcher.** { *; }
+-keep class com.screenprotector.** { *; }
+
+# 5. UI & Third-Party SDKs
 -keep class com.airbnb.lottie.** { *; }
-
-# Paystack & Payments: Ensures secure and reliable transaction logic
 -keep class com.paystack.plus.** { *; }
 -dontwarn com.paystack.plus.**
 
-# Google Fonts & UI: Keeps the premium Inter/Outfit aesthetic intact
--keep class com.google.android.gms.fonts.** { *; }
--keep class com.google.android.gms.common.** { *; }
-
-# General Stability: Avoids warnings from mixed library versions
+# 6. General Stability & Suppression
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -dontwarn javax.annotation.**
 -dontnote **
+-dontwarn com.google.android.gms.**
+

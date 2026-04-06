@@ -4,6 +4,18 @@ import 'package:flutter/foundation.dart';
 class AuditLogger {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  static Future<void> logEvent(String event, {Map<String, dynamic>? metadata}) async {
+    try {
+      await _firestore.collection('audit_logs').add({
+        'type': event,
+        'metadata': metadata,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error logging event: $e');
+    }
+  }
+
   static Future<void> logPharmacyApproval({
     required String licenseNumber,
     required String adminName,

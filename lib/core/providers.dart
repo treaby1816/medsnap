@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:vail_meds_v2/core/app_router.dart';
 
 // --- SERVICES ---
 import 'package:vail_meds_v2/core/services/auth_service.dart';
@@ -27,6 +28,7 @@ final agreedToPrivacyProvider = StateProvider<bool>((ref) => false);
 
 // --- SERVICE PROVIDERS ---
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+final routerProvider = Provider<AppRouter>((ref) => AppRouter());
 final locationServiceProvider = Provider<LocationService>((ref) => LocationService());
 final pharmacyServiceProvider = Provider<PharmacyService>((ref) => PharmacyService());
 final ocrServiceProvider = Provider<OCRService>((ref) => OCRService());

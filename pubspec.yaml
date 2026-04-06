@@ -23,10 +23,15 @@ dependencies:
   firebase_core: ^3.1.1 
   cloud_firestore: ^5.0.2 
   firebase_auth: ^5.1.2 
+  firebase_messaging: ^15.1.1 
   firebase_storage: ^12.1.2 
   google_sign_in: ^6.2.1
   
-  # Utilities, Storage & Compression
+  # Utilities, Storage & Security
+  flutter_secure_storage: ^9.2.2 
+  webview_flutter: ^4.10.1 
+  root_checker_plus: any
+  screen_protector: any
   image_picker: ^1.1.2 
   flutter_image_compress: ^2.3.0 
   flutter_image_compress_web: ^0.1.1
@@ -40,7 +45,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   # Payments (Modern Nigeria 2026)
-  flutter_paystack_plus: ^2.5.0 # FIXED: Modern replacement for flutter_paystack
+  flutter_paystack_plus: ^2.5.0 
   
   # Document & Notifications
   pdf: ^3.10.8
@@ -74,9 +79,10 @@ flutter_launcher_icons:
   min_sdk_size: 21
   
 flutter_native_splash:
-  color: "#EC5B13"
+  color: "#42A5F5"
   image: "assets/images/logo2.png"
   android_12:
     image: "assets/images/logo2.png"
-    icon_background_color: "#EC5B13"
-    color: "#EC5B13"
+    icon_background_color: "#42A5F5"
+    color: "#42A5F5"
+  icon_size: 280

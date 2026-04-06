@@ -6,6 +6,7 @@ import 'package:vail_meds_v2/core/theme.dart';
 import 'package:vail_meds_v2/core/constants/enums.dart';
 import 'package:vail_meds_v2/core/providers.dart';
 import 'package:vail_meds_v2/core/providers/loading_provider.dart';
+import 'package:vail_meds_v2/core/widgets/responsive_wrapper.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -167,7 +168,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           }
           ref.read(userRoleProvider.notifier).setRole(profile.role);
           if (mounted) {
-            Navigator.popUntil(context, (route) => route.isFirst);
+            // Route through Success screen which handles per-role navigation
+            Navigator.pushNamedAndRemoveUntil(context, '/success', (_) => false, arguments: {
+              'role': profile.role,
+              'isReturningUser': true,
+            });
           }
         }
       }
@@ -229,202 +234,184 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     final String roleArg = (args == 'pharmacy' || (args is Map && args['role'] == 'pharmacy')) ? 'pharmacy' : 'patient';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F6),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.pop(context);
-            } else {
-              ref.read(onboardingStageProvider.notifier).state = 'welcome';
-            }
-          },
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 20),
-                Center(
-                  child: Container(
-                    width: 80, height: 80,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1), 
-                      shape: BoxShape.circle,
+    return VailMedsScaffold(
+      showAppBar: true,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 20),
+            Center(
+              child: Container(
+                width: 80, height: 80,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1), 
+                  shape: BoxShape.circle,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0), 
+                  child: Image.asset('assets/images/logo2.png', fit: BoxFit.contain),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              roleArg == 'pharmacy' ? 'Pharmacy Portal' : 'Welcome Back',
+              style: GoogleFonts.inter(
+                fontSize: 28, 
+                fontWeight: FontWeight.w800, 
+                color: const Color(0xFF0F172A), 
+                letterSpacing: -0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              roleArg == 'pharmacy' ? 'Admin Access & Order Management' : 'Sign in to your VailMeds account',
+              style: GoogleFonts.inter(fontSize: 16, color: AppTheme.textSecondaryColor),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white, 
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.05), 
+                    blurRadius: 20, 
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('Email Address'),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: _emailController, 
+                    hint: 'Enter your email', 
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress, 
+                    enabled: !currentLoading,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildLabel('Password'),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: _passwordController, 
+                    hint: 'Enter your password', 
+                    icon: Icons.lock_outline,
+                    isPassword: true, 
+                    obscureText: _obscureText, 
+                    enabled: !currentLoading,
+                    onSuffixTap: () => setState(() => _obscureText = !_obscureText),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: currentLoading ? null : () {},
+                      child: Text(
+                        'Forgot Password?', 
+                        style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
+                      ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0), 
-                      child: Image.asset('assets/images/logo2.png', fit: BoxFit.contain),
-                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  roleArg == 'pharmacy' ? 'Pharmacy Portal' : 'Welcome Back',
-                  style: GoogleFonts.inter(
-                    fontSize: 28, 
-                    fontWeight: FontWeight.w800, 
-                    color: const Color(0xFF0F172A), 
-                    letterSpacing: -0.5,
+                  const SizedBox(height: 24),
+                  _buildButton(
+                    text: roleArg == 'pharmacy' ? 'Sign In as Pharmacy' : 'Sign In as Patient',
+                    isPrimary: true, 
+                    isLoading: currentLoading,
+                    onPressed: () => _handleLogin(roleArg == 'pharmacy' ? UserType.pharmacy : UserType.patient),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  roleArg == 'pharmacy' ? 'Admin Access & Order Management' : 'Sign in to your VailMeds account',
-                  style: GoogleFonts.inter(fontSize: 16, color: AppTheme.textSecondaryColor),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white, 
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.05), 
-                        blurRadius: 20, 
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('Email Address'),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        controller: _emailController, 
-                        hint: 'Enter your email', 
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress, 
-                        enabled: !currentLoading,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildLabel('Password'),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        controller: _passwordController, 
-                        hint: 'Enter your password', 
-                        icon: Icons.lock_outline,
-                        isPassword: true, 
-                        obscureText: _obscureText, 
-                        enabled: !currentLoading,
-                        onSuffixTap: () => setState(() => _obscureText = !_obscureText),
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: currentLoading ? null : () {},
-                          child: Text(
-                            'Forgot Password?', 
-                            style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
+                  if (roleArg != 'pharmacy') ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildSquareSocialBtn(
+                          iconWidget: const Text(
+                            'G', 
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
                           ),
+                          label: 'Google', 
+                          onTap: currentLoading ? null : _handleGoogleSignIn,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildButton(
-                        text: roleArg == 'pharmacy' ? 'Sign In as Pharmacy' : 'Sign In as Patient',
-                        isPrimary: true, 
-                        isLoading: currentLoading,
-                        onPressed: () => _handleLogin(roleArg == 'pharmacy' ? UserType.pharmacy : UserType.patient),
-                      ),
-                      if (roleArg != 'pharmacy') ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildSquareSocialBtn(
-                              iconWidget: const Text(
-                                'G', 
-                                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
-                              ),
-                              label: 'Google', 
-                              onTap: currentLoading ? null : _handleGoogleSignIn,
-                            ),
-                            const SizedBox(width: 20),
-                            _buildSquareSocialBtn(
-                              iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
-                              label: 'Apple', 
-                              tagText: 'Soon', 
-                              onTap: null,
-                            ),
-                          ],
+                        const SizedBox(width: 20),
+                        _buildSquareSocialBtn(
+                          iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
+                          label: 'Apple', 
+                          tagText: 'Soon', 
+                          onTap: null,
                         ),
                       ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: Column(
-                    children: [
-                      if (roleArg == 'pharmacy')
-                        TextButton(
-                          onPressed: currentLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'pharmacy'),
-                          child: Text(
-                            'Register as Pharmacy Executive', 
-                            style: GoogleFonts.inter(color: AppTheme.primaryColor, fontSize: 15, fontWeight: FontWeight.bold),
-                          ),
-                        )
-                      else ...[
-                        TextButton(
-                          onPressed: currentLoading ? null : () => _handleLogin(UserType.pharmacy),
-                          child: Text(
-                            'Sign In as Pharmacy Executive', 
-                            style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: currentLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'pharmacy'),
-                          child: Text(
-                            'Register as Pharmacy Executive', 
-                            style: GoogleFonts.inter(color: AppTheme.primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  alignment: WrapAlignment.center, 
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text("Patient? ", style: GoogleFonts.inter(color: Colors.grey[600])),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: Column(
+                children: [
+                  if (roleArg == 'pharmacy')
                     TextButton(
-                      onPressed: currentLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'patient'),
-                      child: const Text(
-                        'Create Account', 
-                        style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                      onPressed: currentLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'pharmacy'),
+                      child: Text(
+                        'Register as Pharmacy Executive', 
+                        style: GoogleFonts.inter(color: AppTheme.primaryColor, fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    )
+                  else ...[
+                    TextButton(
+                      onPressed: currentLoading ? null : () => _handleLogin(UserType.pharmacy),
+                      child: Text(
+                        'Sign In as Pharmacy Executive', 
+                        style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: currentLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'pharmacy'),
+                      child: Text(
+                        'Register as Pharmacy Executive', 
+                        style: GoogleFonts.inter(color: AppTheme.primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 32),
-                Center(
-                  child: GestureDetector(
-                    onTap: _handleVersionTap,
-                    child: Text(
-                      'v2.0.1+${DateTime.now().year}', 
-                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[400], fontWeight: FontWeight.w600),
-                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center, 
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text("Patient? ", style: GoogleFonts.inter(color: Colors.grey[600])),
+                TextButton(
+                  onPressed: currentLoading ? null : () => Navigator.pushNamed(context, '/registration', arguments: 'patient'),
+                  child: const Text(
+                    'Create Account', 
+                    style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 16),
               ],
             ),
-          ),
+            const SizedBox(height: 32),
+            Center(
+              child: GestureDetector(
+                onTap: _handleVersionTap,
+                child: Text(
+                  'v2.0.1+${DateTime.now().year}', 
+                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[400], fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );

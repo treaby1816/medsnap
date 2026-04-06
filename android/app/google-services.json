@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "870868324526-gc6jnvf9roohnqpp8pkueml2m8tgd94m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vailmeds.v2",
+            "certificate_hash": "cd2d8d4ff7532595fe4efc18a9cec4bfbfa93852"
+          }
+        },
+        {
           "client_id": "870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com",
           "client_type": 3
         }
