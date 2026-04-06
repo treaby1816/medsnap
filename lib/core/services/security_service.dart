@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:root_checker_plus/root_checker_plus.dart';
-import 'package:screen_protector/screen_protector.dart';
+import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 import 'dart:developer' as developer;
 
 class SecurityService {
@@ -37,19 +37,21 @@ class SecurityService {
 
   static Future<void> _enableScreenProtection() async {
     try {
-      await ScreenProtector.protectDataLeakageWithColor(const Color(0xFF42A5F5));
-      await ScreenProtector.preventScreenshotOn();
-      developer.log('Screen protection enabled.', name: 'SecurityService');
+      if (!kIsWeb && Platform.isAndroid) {
+        await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+        developer.log('Screen protection (FLAG_SECURE) enabled.', name: 'SecurityService');
+      }
     } catch (e) {
       developer.log('Error enabling screen protection: $e', name: 'SecurityService');
     }
   }
 
   static Future<void> disableScreenProtection() async {
-    if (kIsWeb) return;
     try {
-      await ScreenProtector.preventScreenshotOff();
-      developer.log('Screen protection disabled.', name: 'SecurityService');
+      if (!kIsWeb && Platform.isAndroid) {
+        await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+        developer.log('Screen protection (FLAG_SECURE) disabled.', name: 'SecurityService');
+      }
     } catch (e) {
       developer.log('Error disabling screen protection: $e', name: 'SecurityService');
     }

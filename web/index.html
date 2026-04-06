@@ -17,102 +17,88 @@
   <title>VailMeds</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&amp;display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   
   <script src="https://accounts.google.com/gsi/client" async="" defer=""></script>
   
   
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+  
+  
   <style id="splash-screen-style">
-    html, body {
-      height: 100%;
+    html {
+      height: 100%
+    }
+
+    body {
       margin: 0;
-      background-color: #EC5B13;
-      overflow: hidden;
-      font-family: 'Inter', sans-serif;
+      min-height: 100%;
+      background-color: #42A5F5;
+          background-size: 100% 100%;
     }
 
-    #native-splash {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: #EC5B13;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      transition: opacity 0.5s ease;
-    }
-    
-    .splash-logo {
-      width: 180px;
-      height: 180px;
-      animation: pulse 2s infinite ease-in-out;
-      margin-bottom: 32px;
-    }
-
-    .splash-text {
-      font-size: 42px;
-      font-weight: 700;
-      color: white;
-      letter-spacing: -1.0px;
-      margin: 0 0 12px 0;
-    }
-
-    .loader-track {
-      width: 40px;
-      height: 2px;
-      background-color: rgba(255, 255, 255, 0.24);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .loader-bar {
+    .center {
+      margin: 0;
       position: absolute;
-      top: 0;
+      top: 50%;
+      left: 50%;
+      -ms-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+    }
+
+    .contain {
+      display:block;
+      width:100%; height:100%;
+      object-fit: contain;
+    }
+
+    .stretch {
+      display:block;
+      width:100%; height:100%;
+    }
+
+    .cover {
+      display:block;
+      width:100%; height:100%;
+      object-fit: cover;
+    }
+
+    .bottom {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      -ms-transform: translate(-50%, 0);
+      transform: translate(-50%, 0);
+    }
+
+    .bottomLeft {
+      position: absolute;
+      bottom: 0;
       left: 0;
-      height: 100%;
-      background-color: white;
-      width: 50%;
-      animation: load 1.5s infinite ease-in-out;
     }
 
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-      100% { transform: scale(1); }
-    }
-
-    @keyframes load {
-      0% { left: -50%; }
-      100% { left: 100%; }
+    .bottomRight {
+      position: absolute;
+      bottom: 0;
+      right: 0;
     }
   </style>
   <script id="splash-screen-script">
     function removeSplashFromWeb() {
-      // 1. Remove auto-generated splash if it exists
       document.getElementById("splash")?.remove();
       document.getElementById("splash-branding")?.remove();
-      
-      // 2. Remove our custom instant HTML splash gracefully
-      const nativeSplash = document.getElementById('native-splash');
-      if (nativeSplash) {
-        nativeSplash.style.transition = 'opacity 0.6s ease-out';
-        nativeSplash.style.opacity = '0';
-        setTimeout(() => nativeSplash.remove(), 600);
-      }
-
       document.body.style.background = "transparent";
-      document.body.style.overflow = "auto";
     }
   </script>
 </head>
 <body>
+  <picture id="splash">
+      <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
+      <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
+      <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
+  </picture>
   <!-- INSTANT HTML SPLASH (Mirrors Flutter UI exactly) -->
   <div id="native-splash">
     <img class="splash-logo" src="assets/assets/images/logo2.png" alt="V">

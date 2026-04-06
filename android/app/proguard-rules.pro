@@ -17,7 +17,7 @@
 
 # 4. Security SDKs (Root checking & Screen protection)
 -keep class com.gantix.rootcatcher.** { *; }
--keep class com.screenprotector.** { *; }
+-keep class io.flutter.plugins.flutter_windowmanager.** { *; }
 
 # 5. UI & Third-Party SDKs
 -keep class com.airbnb.lottie.** { *; }

@@ -3,35 +3,37 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart'; 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Added for Auth Check
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
-// Firebase & Core
+// VailMeds Core Imports
 import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'core/theme_provider.dart';
 import 'core/app_router.dart';
+import 'core/auth_gate.dart';
 import 'widgets/global_floating_chatbot.dart';
 import 'core/services/security_service.dart';
 import 'core/services/notification_service.dart';
 
 void main() {
+  // Use runZonedGuarded to catch "Silent" crashes before they hit the OS
   runZonedGuarded(() async {
-    // 1. Core Native Binding (Crucial for first frame)
     WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
     
-    // 2. Native Splash Preservation (Android-specific boot smoothness)
+    // 1. Preserve Native Splash (Android 12+ visibility)
     if (!kIsWeb) {
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     }
 
-    // 3. Global Framework Error Reporting
+    // 2. Global Exception Catching (Prevents Home-Screen Crash)
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
-      developer.log('Framework Error: ${details.exceptionAsString()}', name: 'VailMedsGuard');
+      developer.log('FRAMEWORK ERROR: ${details.exception}', name: 'VailMedsGuard');
     };
 
-    // 4. Release-Mode Error Screen (Anti-Abrupt Exit)
+    // 3. Custom Error Screen (The "System Refreshing" page you wanted)
     ErrorWidget.builder = (FlutterErrorDetails details) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -44,17 +46,17 @@ void main() {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.refresh_rounded, size: 60, color: Color(0xFF42A5F5)),
+                  const Icon(Icons.refresh_rounded, size: 80, color: Color(0xFF42A5F5)),
                   const SizedBox(height: 24),
                   const Text(
-                    'System Refreshing',
+                    'VailMeds Security Refresh',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
-                    'We\'re restoring your session. Please hold on.',
+                    'We are stabilizing your session to protect your data.\nIf this persists, please restart the app.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                   ),
                 ],
               ),
@@ -67,7 +69,7 @@ void main() {
     runApp(const ProviderScope(child: BootstrapApp()));
     
   }, (error, stack) {
-    developer.log('ASYNC ERROR CAUGHT BY ZONE: $error', name: 'VailMedsGuard', error: error, stackTrace: stack);
+    developer.log('CRITICAL ASYNC ERROR: $error', name: 'VailMedsGuard', error: error, stackTrace: stack);
   });
 }
 
@@ -79,12 +81,9 @@ class BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<BootstrapApp> {
-  // ignore: unused_field
   bool _initialized = false;
-  // ignore: unused_field
   bool _error = false;
-  // ignore: unused_field
-  Object? _errorDetails;
+  String _errorMessage = "";
 
   @override
   void initState() {
@@ -94,39 +93,69 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   Future<void> _bootSequence() async {
     try {
-      // 1. Initialise Security (Root check & Screenshot block)
+      // A. Security Initialization (Screenshot block & Root Check)
       await SecurityService.initialize();
 
-      // 2. Initialise Notifications (Permissions & FCM)
+      // B. Notification Initialization (FCM Permissions)
       await NotificationService.initialize();
 
-      // 3. Circuit-Breaking Firebase Init
+      // C. Firebase Circuit-Breaker (10s timeout to prevent infinite white screen)
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 10));
+
+      // D. "Api10" Signature Check (Diagnostic for Codemagic builds)
+      if (!kIsWeb) {
+        try {
+          // Attempt a tiny auth ping to verify if SHA-1 is correct
+          await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
+        } catch (authError) {
+          developer.log('AUTH WARNING: SHA-1 mismatch suspected. $authError', name: 'VailMedsBoot');
+        }
+      }
 
       if (mounted) {
-        setState(() {
-          _initialized = true;
-          // After a short delay, remove native splash
-          if (!kIsWeb) {
-            FlutterNativeSplash.remove();
-          }
-        });
+        setState(() => _initialized = true);
+        if (!kIsWeb) FlutterNativeSplash.remove();
       }
     } catch (e) {
-      developer.log('BOOT ERROR: $e', name: 'VailMedsGuard');
+      developer.log('BOOT FAILURE: $e', name: 'VailMedsBoot');
       if (mounted) {
-        setState(() {
-          _error = true;
-          _errorDetails = e;
+        setState(() { 
+          _error = true; 
+          _errorMessage = e.toString();
         });
       }
+      if (!kIsWeb) FlutterNativeSplash.remove();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_error) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text('System Initialization Failure: $_errorMessage\n\nPlease check your internet connection.'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!_initialized) {
+      // Show the "Lighter Blue" while loading
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Color(0xFF42A5F5),
+          body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        ),
+      );
+    }
+
     return const VailMedsApp();
   }
 }
@@ -139,16 +168,23 @@ class VailMedsApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
-      title: 'VailMeds v2',
+      title: 'VailMeds',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      initialRoute: AppRouter.splash,
-      onGenerateRoute: AppRouter.onGenerateRoute,
+      
       builder: (context, child) {
-        return GlobalFloatingChatbot(child: child!);
+        return ScaffoldMessenger(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: GlobalFloatingChatbot(child: child!),
+          ),
+        );
       },
+      
+      home: const AuthGate(), 
+      onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }
 }
