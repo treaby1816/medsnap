@@ -280,8 +280,8 @@ class TransactionReceipt {
   /// Creates a TransactionReceipt from a Firestore order document.
   static Future<TransactionReceipt?> fromOrderDoc(DocumentSnapshot doc) async {
     try {
-      final data = doc.data() as Map<String, dynamic>? ?? {}?;
-      if (data == null) return null;
+      final data = doc.data() as Map<String, dynamic>? ?? {};
+      if (data.isEmpty) return null;
 
       final itemsList = (data['items'] as List<dynamic>?)?.map((item) {
         final m = item as Map<String, dynamic>;
