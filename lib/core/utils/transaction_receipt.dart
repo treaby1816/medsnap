@@ -280,7 +280,7 @@ class TransactionReceipt {
   /// Creates a TransactionReceipt from a Firestore order document.
   static Future<TransactionReceipt?> fromOrderDoc(DocumentSnapshot doc) async {
     try {
-      final data = doc.data() as Map<String, dynamic>?;
+      final data = doc.data() as Map<String, dynamic>? ?? {}?;
       if (data == null) return null;
 
       final itemsList = (data['items'] as List<dynamic>?)?.map((item) {
@@ -336,3 +336,4 @@ class TransactionReceipt {
 
   static String _formatCurrency(double amount) => '₦${NumberFormat('#,##0.00').format(amount)}';
 }
+

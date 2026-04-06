@@ -83,7 +83,7 @@ class OrdersScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   itemCount: orders.length,
                   itemBuilder: (context, index) {
-                    final order = orders[index].data() as Map<String, dynamic>;
+                    final order = orders[index].data() as Map<String, dynamic>? ?? {};
                     return _buildOrderHistoryCard(order);
                   },
                 );
@@ -345,3 +345,4 @@ class OrdersScreen extends ConsumerWidget {
     );
   }
 }
+

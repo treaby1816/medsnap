@@ -34,7 +34,7 @@ class OrderHistoryScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
-              final order = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+              final order = snapshot.data!.docs[index].data() as Map<String, dynamic>? ?? {};
               return _buildOrderCard(context, order);
             },
           );
@@ -117,3 +117,4 @@ class OrderHistoryScreen extends StatelessWidget {
     );
   }
 }
+

@@ -146,7 +146,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                     
                     if (orderSnap.hasData) {
                       for (var doc in orderSnap.data!.docs) {
-                        final data = doc.data() as Map<String, dynamic>;
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
                         if (data['status'] == 'Pending') pending++;
                         if (data['status'] == 'Ready') pickups++;
                       }
@@ -154,7 +154,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
 
                     if (productSnap.hasData) {
                       for (var doc in productSnap.data!.docs) {
-                        final data = doc.data() as Map<String, dynamic>;
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
                         final stock = data['stockCount'] ?? 0;
                         final max = data['maxStock'] ?? 0;
                         if (max > 0 && (stock / max) < 0.2) lowStockCount++;
@@ -259,7 +259,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                     );
                   }
                   
-                  final products = snapshot.data?.docs.map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList() ?? [];
+                  final products = snapshot.data?.docs.map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>? ?? {}, doc.id)).toList() ?? [];
                   
                   if (products.isEmpty) {
                     return Container(
@@ -347,8 +347,8 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                 // Sort client-side
                 final docs = List<QueryDocumentSnapshot>.from(rawDocs);
                 docs.sort((a, b) {
-                  final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-                  final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                  final aTime = (a.data() as Map<String, dynamic>? ?? {})['createdAt'] as Timestamp?;
+                  final bTime = (b.data() as Map<String, dynamic>? ?? {})['createdAt'] as Timestamp?;
                   return (bTime?.toDate() ?? DateTime(0)).compareTo(aTime?.toDate() ?? DateTime(0));
                 });
 
@@ -377,7 +377,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                   itemCount: docs.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
+                    final data = docs[index].data() as Map<String, dynamic>? ?? {};
                     final docId = docs[index].id;
                     final time = data['createdAt'] as Timestamp?;
                     
@@ -536,7 +536,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                   
                   return Column(
                      children: productDocs.map((doc) {
-                       final data = doc.data() as Map<String, dynamic>;
+                       final data = doc.data() as Map<String, dynamic>? ?? {};
                        final name = data['name'] ?? 'Product';
                        final stock = data['stockCount'] ?? 0;
                        final max = data['maxStock'] ?? 100;
@@ -684,3 +684,4 @@ class _InventoryItem extends StatelessWidget {
     );
   }
 }
+

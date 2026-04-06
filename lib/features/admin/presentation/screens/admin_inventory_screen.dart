@@ -156,7 +156,7 @@ class _AdminInventoryScreenState extends ConsumerState<AdminInventoryScreen> wit
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
 
         final products = snapshot.data!.docs
-            .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+            .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>? ?? {}, doc.id))
             .where((p) => p.name.toLowerCase().contains(_searchQuery) || p.pharmacyName.toLowerCase().contains(_searchQuery))
             .toList();
 
@@ -296,3 +296,4 @@ class _AdminInventoryScreenState extends ConsumerState<AdminInventoryScreen> wit
     );
   }
 }
+

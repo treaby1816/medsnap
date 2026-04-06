@@ -13,7 +13,7 @@ class SupportService {
     }
 
     return query.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => SupportTicket.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+        .map((doc) => SupportTicket.fromMap(doc.data() as Map<String, dynamic>? ?? {}, doc.id))
         .toList());
   }
 
@@ -99,3 +99,4 @@ class SupportService {
     await messageRef.set(message.toMap());
   }
 }
+

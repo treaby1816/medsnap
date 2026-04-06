@@ -368,7 +368,7 @@ class _PatientSearchScreenState extends State<PatientSearchScreen> {
           }
 
           final docs = snapshot.data!.docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data() as Map<String, dynamic>? ?? {};
             final name = (data['name'] ?? '').toString().toLowerCase();
             final brand = (data['brand'] ?? '').toString().toLowerCase();
             final category = data['category'] ?? '';
@@ -391,7 +391,7 @@ class _PatientSearchScreenState extends State<PatientSearchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: docs.length,
             itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
+              final data = docs[index].data() as Map<String, dynamic>? ?? {};
               final String medId = docs[index].id;
               return _ProductCard(
                 medId: medId,
@@ -814,3 +814,4 @@ class _SuccessDialog extends StatelessWidget {
     );
   }
 }
+

@@ -92,7 +92,7 @@ class PharmacyOrdersScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppTheme.pagePadding),
             itemCount: orders.length,
             itemBuilder: (context, index) {
-              final order = orders[index].data() as Map<String, dynamic>;
+              final order = orders[index].data() as Map<String, dynamic>? ?? {};
               final orderId = orders[index].id;
               final status = order['status'] ?? 'Pending';
               final total = order['totalAmount'] ?? 0.0;
@@ -193,3 +193,4 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 }
+

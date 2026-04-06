@@ -16,7 +16,7 @@ class AdModel {
   });
 
   factory AdModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     return AdModel(
       id: doc.id,
       imageUrl: data['imageUrl'] ?? "",
@@ -45,7 +45,7 @@ class JobModel {
   });
 
   factory JobModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     return JobModel(
       id: doc.id,
       role: data['role'] ?? "Pharmacist",
@@ -94,3 +94,4 @@ class PublicService {
         .snapshots();
   }
 }
+
