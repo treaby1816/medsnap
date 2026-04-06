@@ -99,6 +99,7 @@ class AuthService {
       final profile = UserProfile(
         uid: cred.user!.uid,
         email: email,
+        name: 'New User',
         role: role,
         createdAt: DateTime.now(),
       );
@@ -206,5 +207,16 @@ class AuthService {
       'approvedAt': FieldValue.serverTimestamp(),
     });
     await AuditLogger.logEvent('PHARMACY_APPROVED_BY_ADMIN', metadata: {'uid': uid});
+  }
+
+  Future<void> adminRejectPharmacy(String uid, String reason) async {
+    await _firestore.collection('users').doc(uid).update({
+      'isAdminApproved': false,
+      'isVerificationPending': false,
+      'verificationStatus': 'rejected',
+      'rejectionReason': reason,
+      'rejectedAt': FieldValue.serverTimestamp(),
+    });
+    await AuditLogger.logEvent('PHARMACY_REJECTED_BY_ADMIN', metadata: {'uid': uid, 'reason': reason});
   }
 }
