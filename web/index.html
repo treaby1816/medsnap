@@ -1,15 +1,17 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html>
+<head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="A high-fidelity pharmacy app for VailMeds.">
   
   <meta name="google-signin-client_id" content="870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="vail_meds_v2">
+  <meta name="apple-mobile-web-app-title" content="VailMeds">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <link rel="icon" type="image/png" href="favicon.png">
@@ -18,88 +20,93 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   
   <script src="https://accounts.google.com/gsi/client" async="" defer=""></script>
   
-  
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-  
   
   <style id="splash-screen-style">
     html {
-      height: 100%
+      height: 100%;
     }
 
     body {
+      background-color: #EC5B13 !important; /* HARDWARE ORANGE */
       margin: 0;
+      padding: 0;
       min-height: 100%;
-      background-color: #42A5F5;
-          background-size: 100% 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
     }
 
-    .center {
+    #native-splash {
+      background-color: #EC5B13 !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    .splash-logo {
+      width: 240px; /* Even bigger Logo as requested */
+      height: auto;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 10px 25px rgba(0,0,0,0.1));
+      border-radius: 24px; /* Beautiful rounded corners */
+      /* Advanced filters to suppress deep blue and pop the V + shape */
+      filter: brightness(1.2) contrast(1.25) drop-shadow(0 15px 30px rgba(0,0,0,0.2));
+    }
+
+    .splash-text {
+      color: white;
+      font-size: 36px;
+      font-weight: 900;
       margin: 0;
+      letter-spacing: -1px;
+      text-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+
+    .loader-track {
+      width: 240px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      margin-top: 40px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loader-bar {
+      width: 120px;
+      height: 100%;
+      background: white;
+      border-radius: 10px;
       position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
+      left: -120px;
+      animation: load 2s infinite ease-in-out;
     }
 
-    .contain {
-      display:block;
-      width:100%; height:100%;
-      object-fit: contain;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
-    .stretch {
-      display:block;
-      width:100%; height:100%;
-    }
-
-    .cover {
-      display:block;
-      width:100%; height:100%;
-      object-fit: cover;
-    }
-
-    .bottom {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      -ms-transform: translate(-50%, 0);
-      transform: translate(-50%, 0);
-    }
-
-    .bottomLeft {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-    }
-
-    .bottomRight {
-      position: absolute;
-      bottom: 0;
-      right: 0;
+    @keyframes load {
+      0% { left: -120px; width: 30%; }
+      50% { width: 70%; }
+      100% { left: 240px; width: 30%; }
     }
   </style>
-  <script id="splash-screen-script">
-    function removeSplashFromWeb() {
-      document.getElementById("splash")?.remove();
-      document.getElementById("splash-branding")?.remove();
-      document.body.style.background = "transparent";
-    }
-  </script>
 </head>
 <body>
-  <picture id="splash">
-      <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
-      <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
-      <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
-  </picture>
-  <!-- INSTANT HTML SPLASH (Mirrors Flutter UI exactly) -->
   <div id="native-splash">
     <img class="splash-logo" src="assets/assets/images/logo2.png" alt="V">
     <h1 class="splash-text">VailMeds</h1>
@@ -107,20 +114,29 @@
       <div class="loader-bar"></div>
     </div>
   </div>
-  <!-- Native Web Splash physically scrubbed. Hands rendering directly to Flutter Canvaskit payload. -->
+
   <script>
-    // --- FORCED RENDERER (Circuit Breaker) ---
-    // Specifically hardcoded to bypass CLI flag dependencies.
+    function removeSplashFromWeb() {
+      const nativeSplash = document.getElementById('native-splash');
+      if (nativeSplash) {
+        nativeSplash.style.transition = 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+        nativeSplash.style.opacity = '0';
+        nativeSplash.style.transform = 'scale(0.9) translateY(-20px)';
+        setTimeout(() => nativeSplash.remove(), 600);
+      }
+      document.body.style.background = "transparent";
+      document.body.style.overflow = "auto";
+    }
+
     window.flutterConfiguration = {
       renderer: "html",
     };
 
-    // Listener for Dart's custom signal
     window.addEventListener("flutter-engine-started", (event) => {
-      console.log("BOOT SUCCESS: Flutter engine confirmed active.");
-      removeSplashFromWeb(); // Graceful hand-off to Flutter CanvasKit Splash
+      console.log("BOOT SUCCESS: Flutter engine active.");
+      removeSplashFromWeb();
     });
   </script>
   <script src="flutter_bootstrap.js" async=""></script>
-
-</body></html>
+</body>
+</html>

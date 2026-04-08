@@ -17,13 +17,16 @@ class AdminStatsGrid extends ConsumerWidget {
     return statsAsync.when(
       data: (stats) => LayoutBuilder(
         builder: (context, constraints) {
-          final cardWidth = (constraints.maxWidth - 48) / 4; // 3 gaps × 16
+          final cardWidth = constraints.maxWidth < 600 
+            ? (constraints.maxWidth - 16) / 2 // 2 columns for mobile
+            : (constraints.maxWidth - 48) / 4; // 4 columns for desktop
+            
           return Wrap(
             spacing: 16,
             runSpacing: 16,
             children: [
               _StatCard(
-                width: cardWidth < 180 ? constraints.maxWidth / 2 - 8 : cardWidth,
+                width: constraints.maxWidth < 400 ? constraints.maxWidth : cardWidth, // 1 column for very small
                 icon: Icons.person_rounded,
                 gradient: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
                 label: 'Total Patients',

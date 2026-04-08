@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vail_meds_v2/core/theme.dart';
 
 class VailMedsScaffold extends StatelessWidget {
   final Widget body;

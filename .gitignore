@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# JVM crash replays
+replay_pid*.log
+
+# Analysis / debug dump files
+*_analyze*.txt
+*_errors*.txt
+*_err*.txt
+*_scan*.txt
+audit_report.txt
+file_list.txt

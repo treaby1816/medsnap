@@ -73,32 +73,63 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               return Scaffold(
                 backgroundColor: AppTheme.backgroundColor,
                 appBar: isDesktop ? null : AppBar(
-                  backgroundColor: AppTheme.backgroundColor,
+                  backgroundColor: Colors.white,
                   elevation: 0,
+                  scrolledUnderElevation: 0,
                   iconTheme: const IconThemeData(color: AppTheme.primaryColor),
+                  centerTitle: false,
                   title: Text(
                     _sectionLabels[_selectedIndex] ?? 'Admin Dashboard', 
-                    style: GoogleFonts.outfit(color: AppTheme.textPrimaryColor, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.outfit(
+                      color: AppTheme.textPrimaryColor, 
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none_rounded),
+                      onPressed: () => _showNotificationsDialog(context),
+                    ),
+                    InkWell(
+                      onTap: () => _showProfileDialog(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                          child: const Icon(Icons.person_rounded, size: 18, color: AppTheme.primaryColor),
+                        ),
+                      ),
+                    ),
+                  ],
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(1),
+                    child: Container(color: AppTheme.borderColor.withValues(alpha: 0.5), height: 1),
                   ),
                 ),
-                drawer: isDesktop ? null : Drawer(child: sidebar),
+                drawer: isDesktop ? null : Drawer(
+                  width: AdminSidebar.width,
+                  child: sidebar,
+                ),
                 body: Row(
                   children: [
                     // ── Sidebar (Desktop only) ──
                     if (isDesktop) sidebar,
-
+ 
                     // ── Main Content ──
                     Expanded(
                       child: Column(
                         children: [
-                          // ── Glassmorphism Header ──
-                          AdminHeader(
-                            adminName: profile?.displayName ?? 'Dr. Alistair Vail',
-                            adminRole: profile?.role.toUpperCase() ?? 'SUPER ADMIN',
-                            onProfileTap: () => _showProfileDialog(context),
-                            onSettingsTap: () => _showSettingsDialog(context),
-                            onNotificationsTap: () => _showNotificationsDialog(context),
-                          ),
+                          // ── Glassmorphism Header (Desktop only as AppBar handles mobile) ──
+                          if (isDesktop)
+                            AdminHeader(
+                              adminName: profile?.displayName ?? 'Dr. Alistair Vail',
+                              adminRole: profile?.role.toUpperCase() ?? 'SUPER ADMIN',
+                              onProfileTap: () => _showProfileDialog(context),
+                              onSettingsTap: () => _showSettingsDialog(context),
+                              onNotificationsTap: () => _showNotificationsDialog(context),
+                            ),
 
                           // ── Back Navigation Bar (when not on Dashboard) ──
                           if (_selectedIndex != 0)

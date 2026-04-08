@@ -130,15 +130,26 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
                     ),
                     child: _licenseImage != null
                         ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             child: Image.file(File(_licenseImage!.path), fit: BoxFit.cover, width: double.infinity),
                           )
                         : Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.add_a_photo_outlined, color: AppTheme.primaryColor, size: 32),
-                              const SizedBox(height: 8),
-                              Text('Tap to upload license photo', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondaryColor)),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.upload_file_rounded, color: AppTheme.primaryColor, size: 32),
+                              ),
+                              const SizedBox(height: 12),
+                              Text('Official Pharmacy License', 
+                                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryColor)),
+                              const SizedBox(height: 4),
+                              Text('Upload high-resolution image or PDF', 
+                                style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondaryColor)),
                             ],
                           ),
                   ),
@@ -171,17 +182,26 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 56),
+                    minimumSize: const Size(double.infinity, 64),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
+                    elevation: 8,
+                    shadowColor: AppTheme.primaryColor.withValues(alpha: 0.4),
                   ),
                   child: _isLoading
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(
-                          'Submit for Approval',
-                          style: GoogleFonts.inter(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.security_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Secure Verification Request',
+                              style: GoogleFonts.inter(
+                                  fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                            ),
+                          ],
                         ),
                 ),
                 const SizedBox(height: 20),

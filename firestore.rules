@@ -16,7 +16,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return getUserData().role == 'admin';
+      return getUserData().role == 'admin' || getUserData().role == 'super_admin';
     }
     
     function isPharmacy() {
@@ -52,9 +52,9 @@ service cloud.firestore {
 
       allow update: if request.auth != null && (
         // Path A: Regular users updating non-sensitive fields
-        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdminApproved', 'isVerified'])) ||
-        // Path B: Admins can update 'isAdminApproved' for any user 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAdminApproved', 'approvedAt', 'isVerified', 'verificationStatus', 'approvedBy', 'role']))
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdminApproved', 'isVerified', 'verificationStatus', 'approvedAt', 'approvedBy'])) ||
+        // Path B: Admins can update 'isAdminApproved' and related fields
+        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAdminApproved', 'approvedAt', 'isVerified', 'verificationStatus', 'approvedBy', 'role', 'pharmacistName', 'storeName']))
       );
     }
 

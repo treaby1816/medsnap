@@ -60,7 +60,7 @@ final userProfileProvider = StreamProvider<UserProfile?>((ref) {
       .collection('users')
       .doc(user.uid)
       .snapshots()
-      .map((doc) => doc.exists ? UserProfile.fromMap(doc.data()!, doc.id) : null);
+      .map((doc) => doc.exists ? UserProfile.fromMap(doc.data() ?? {}, doc.id) : null);
 });
 
 // Fixed: Explicitly using the Product from core/models

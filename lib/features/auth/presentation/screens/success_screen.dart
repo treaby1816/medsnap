@@ -60,13 +60,8 @@ class _SuccessScreenState extends ConsumerState<SuccessScreen>
     if (widget.userType == UserType.patient) {
       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
     } else {
-      // Check verification status before dashboard
-      final profile = ref.read(userProfileProvider).value;
-      if (profile == null || !profile.isAdminApproved) {
-        Navigator.pushNamedAndRemoveUntil(context, '/pharmacy-verification', (route) => false);
-      } else {
-        Navigator.pushNamedAndRemoveUntil(context, '/pharmacy-dashboard', (route) => false);
-      }
+      // FORCE verification gate for pharmacies at the finish line
+      Navigator.pushNamedAndRemoveUntil(context, '/pharmacy-verification', (route) => false);
     }
   }
 

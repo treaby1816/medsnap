@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/providers.dart';
 import '../../../../widgets/glass_app_bar.dart';
 
 class PharmacySecurityScreen extends ConsumerStatefulWidget {
@@ -62,6 +63,7 @@ class _PharmacySecurityScreenState extends ConsumerState<PharmacySecurityScreen>
 
   @override
   Widget build(BuildContext context) {
+    final userProfile = ref.watch(userProfileProvider).value;
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: GlassAppBar(
@@ -88,6 +90,48 @@ class _PharmacySecurityScreenState extends ConsumerState<PharmacySecurityScreen>
       body: ListView(
         padding: const EdgeInsets.all(AppTheme.pagePadding),
         children: [
+          _buildSecurityTile(
+            context,
+            icon: Icons.verified_user_rounded,
+            title: 'Identity Verification',
+            subtitle: userProfile?.isAdminApproved == true 
+                ? 'Your identity and license are verified' 
+                : (userProfile?.isVerificationPending == true 
+                    ? 'Verification is currently under clinical review' 
+                    : 'Complete your clinical identity verification'),
+            onTap: () {
+              if (userProfile?.isAdminApproved != true) {
+                Navigator.pushNamed(context, '/pharmacy-verification');
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Your account is already verified.'), behavior: SnackBarBehavior.floating),
+                );
+              }
+            },
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: userProfile?.isAdminApproved == true 
+                    ? Colors.green.withValues(alpha: 0.1) 
+                    : (userProfile?.isVerificationPending == true 
+                        ? Colors.orange.withValues(alpha: 0.1) 
+                        : Colors.red.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                userProfile?.isAdminApproved == true 
+                    ? 'VERIFIED' 
+                    : (userProfile?.isVerificationPending == true ? 'PENDING' : 'REQUIRED'),
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: userProfile?.isAdminApproved == true 
+                      ? Colors.green 
+                      : (userProfile?.isVerificationPending == true ? Colors.orange : Colors.red),
+                ),
+              ),
+            ),
+          ),
           _buildSecurityTile(
             context,
             icon: Icons.lock_outline_rounded,

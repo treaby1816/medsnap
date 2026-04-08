@@ -1,11 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:vail_meds_v2/core/theme.dart';
+import 'dart:developer' as developer;
 
 // We track the current route here. 
 final currentRouteProvider = StateProvider<String>((ref) => '/');
+
+class AppRouteObserver extends NavigatorObserver {
+  final WidgetRef ref;
+  AppRouteObserver(this.ref);
+
+  void _updateRoute(Route<dynamic>? route) {
+    if (route == null) return;
+    final name = route.settings.name;
+    if (name != null) {
+      // Ensure we don't trigger a build during a build
+      Future.microtask(() {
+        try {
+          ref.read(currentRouteProvider.notifier).state = name;
+        } catch (e) {
+          developer.log('AppRouteObserver error: $e', name: 'VailMeds');
+        }
+      });
+    }
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _updateRoute(route);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _updateRoute(previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    _updateRoute(newRoute);
+  }
+}
 
 class GlobalFloatingChatbot extends ConsumerStatefulWidget {
   final Widget child;
@@ -24,29 +61,57 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   late final Animation<double> _hoverAnimation;
   bool _isChatOpen = false;
   
-  late final WebViewController _webController;
+  WebViewController? _webController;
+  late bool _isWebViewLoading;
 
   @override
   void initState() {
     super.initState();
-    _hoverController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+    _isWebViewLoading = !kIsWeb; // Don't show spinner indefinitely on Web
+    _hoverController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _blinkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _hoverAnimation = Tween<double>(begin: 0, end: -10).animate(CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut));
+    
+    if (!kIsWeb) {
+      _webController = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setBackgroundColor(const Color(0x00000000))
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageStarted: (_) => setState(() => _isWebViewLoading = true),
+            onPageFinished: (_) => setState(() => _isWebViewLoading = false),
+          ),
+        )
+        ..loadRequest(Uri.parse('https://chatbot.vailmeds.com/support'));
+    }
 
-    _blinkController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
+    // Initialize position relative to bottom-right after frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        final size = MediaQuery.of(context).size;
+        if (size.width > 0 && size.height > 0) {
+          setState(() {
+            // Initial relative position: 20px from right, 100px from bottom
+            _position = const Offset(20, 100);
+          });
+        }
+      } catch (e) {
+        developer.log('Chatbot position init error: $e', name: 'VailMeds');
+      }
+    });
 
-    _hoverAnimation = Tween<double>(begin: 0, end: 15).animate(
-      CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut),
-    );
+    _startBlinkCycle();
+  }
 
-    _webController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
-      ..loadRequest(Uri.parse('https://vail-meds-v2-support.web.app')); // Point to your support bot url
+  void _startBlinkCycle() async {
+    while (mounted) {
+      await Future.delayed(Duration(seconds: 2 + (DateTime.now().millisecond % 4)));
+      if (mounted) {
+        await _blinkController.forward();
+        await _blinkController.reverse();
+      }
+    }
   }
 
   @override
@@ -56,216 +121,274 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
     super.dispose();
   }
 
-  void _toggleChat() {
-    setState(() {
-      _isChatOpen = !_isChatOpen;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Hidden on Login, Splash, etc if you prefer, or global.
-    // For now, let's keep it global but positioned safely.
-    
-    final size = MediaQuery.of(context).size;
-    
-    // Initialize position only when size is available (to avoid 0,0 offscreen)
-    if (_position == null && size.width > 0) {
-      _position = Offset(size.width - 90, size.height - 180);
-    }
-    
-    final currentPos = _position ?? const Offset(20, 20);
+    final currentRoute = ref.watch(currentRouteProvider);
+
+    final visibleRoutes = [
+      '/', '/welcome', '/gateway', '/registration', '/login', '/admin-dashboard',
+    ];
+
+    final bool shouldShow = visibleRoutes.contains(currentRoute);
 
     return Stack(
       children: [
         widget.child,
-        if (_isChatOpen)
+
+        if (shouldShow) ...[
+          if (_isChatOpen) _buildChatOverlay(),
+
           Positioned(
-            right: 20,
-            bottom: 100,
-            child: Material(
-              elevation: 20,
-              borderRadius: BorderRadius.circular(24),
-              clipBehavior: Clip.antiAlias,
-              child: Container(
-                width: 380,
-                height: 600,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _buildChatHeader(),
-                    Expanded(
-                      child: WebViewWidget(controller: _webController),
-                    ),
-                  ],
+            right: _position?.dx ?? 20,
+            bottom: _position?.dy ?? 100,
+            child: Draggable(
+              feedback: _buildChatbotWidget(isDragging: true),
+              childWhenDragging: const SizedBox.shrink(),
+              onDragEnd: (details) {
+                final size = MediaQuery.of(context).size;
+                setState(() {
+                  // Details.offset is top-left absolute. Convert to bottom-right relative.
+                  // Mascot size is approx 68x68 (container in _buildChatbotWidget)
+                  const widgetSize = 88.0; 
+                  
+                  double relRight = size.width - details.offset.dx - widgetSize;
+                  double relBottom = size.height - details.offset.dy - widgetSize;
+                  
+                  // Clamp to screen edges with 20px margin
+                  relRight = relRight.clamp(20, size.width - widgetSize);
+                  relBottom = relBottom.clamp(20, size.height - widgetSize - 50);
+                  
+                  _position = Offset(relRight, relBottom);
+                });
+              },
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _isHovering = true),
+                onExit: (_) => setState(() => _isHovering = false),
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _hoverAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, _hoverAnimation.value),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _isChatOpen = !_isChatOpen),
+                          child: _buildChatbotWidget(isDragging: false),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
           ),
-        
-        Positioned(
-          left: currentPos.dx,
-          top: currentPos.dy,
-          child: GestureDetector(
-            onPanUpdate: (details) {
-              setState(() {
-                _position = Offset(
-                  (currentPos.dx + details.delta.dx).clamp(0.0, size.width - 70),
-                  (currentPos.dy + details.delta.dy).clamp(0.0, size.height - 70),
-                );
-              });
-            },
-            onTap: _toggleChat,
-            child: MouseRegion(
-              onEnter: (_) => setState(() => _isHovering = true),
-              onExit: (_) => setState(() => _isHovering = false),
-              child: AnimatedBuilder(
-                animation: _hoverAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, -_hoverAnimation.value),
-                    child: _buildVailBotMascot(),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
+        ],
       ],
     );
   }
 
-  Widget _buildChatHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppTheme.primaryColor, AppTheme.primaryColor.withOpacity(0.8)],
+  Widget _buildChatOverlay() {
+    final size = MediaQuery.of(context).size;
+    final bool isSmallScreen = size.width < 600;
+
+    return Positioned(
+      right: isSmallScreen ? 10 : ((_position?.dx ?? 20) + 0),
+      bottom: (_position?.dy ?? 100) + 80,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: isSmallScreen ? size.width - 40 : 350,
+          height: 500,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 30,
+                spreadRadius: 5,
+                offset: const Offset(0, 10),
+              ),
+            ],
+            border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white24,
+                      child: Icon(Icons.support_agent_rounded, size: 20, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'VailBot AI Support',
+                            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          Text(
+                            'Hardware Accelerated',
+                            style: GoogleFonts.inter(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                      onPressed: () => setState(() => _isChatOpen = false),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    if (_webController != null) WebViewWidget(controller: _webController!),
+                    if (_webController == null)
+                      Center(
+                        child: Text(
+                          'Chatbot UI is optimized for mobile.',
+                          style: GoogleFonts.inter(color: Colors.black54),
+                        )
+                      ),
+                    if (_isWebViewLoading)
+                      const Center(child: CircularProgressIndicator(color: Color(0xFF42A5F5))),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Row(
+    );
+  }
+
+  Widget _buildChatbotWidget({required bool isDragging}) {
+    return Material(
+      color: Colors.transparent,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Colors.white24,
-              shape: Box_Circle,
-            ),
-            child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'VailBot Support',
-                style: GoogleFonts.outfit(
+          if (!_isChatOpen)
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isHovering ? 1.0 : 0.0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(4),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2), width: 1),
                 ),
-              ),
-              Text(
-                'Always online',
-                style: GoogleFonts.outfit(
-                  color: Colors.white70,
-                  fontSize: 12,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome, color: AppTheme.primaryColor, size: 14),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Chat with VailBot',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.close_rounded, color: Colors.white),
-            onPressed: () => setState(() => _isChatOpen = false),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVailBotMascot() {
-    return Container(
-      width: 70,
-      height: 70,
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor,
-        shape: Box_Circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.4),
-            blurRadius: 20,
-            spreadRadius: 2,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Inner glow
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: Box_Circle,
-              gradient: RadialGradient(
-                colors: [
-                  Colors.white.withOpacity(0.2),
-                  Colors.transparent,
-                ],
               ),
             ),
+          AnimatedBuilder(
+            animation: _hoverAnimation,
+            builder: (context, child) {
+              final hoverNormalized = (_hoverAnimation.value + 5) / 10;
+              final scaleValue = 1.0 + (0.05 * hoverNormalized);
+              
+              return Transform.scale(
+                scale: _isChatOpen ? 0.9 : scaleValue,
+                child: Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: _isChatOpen 
+                        ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
+                        : [const Color(0xFFEC5B13), const Color(0xFFFACC15)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_isChatOpen ? const Color(0xFF0F172A) : const Color(0xFFFACC15)).withValues(alpha: 0.2 + (0.4 * hoverNormalized)),
+                        blurRadius: 15 + (10 * hoverNormalized),
+                        spreadRadius: 2 + (4 * hoverNormalized),
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 3,
+                    ),
+                  ),
+                  child: isDragging 
+                    ? Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.pan_tool_alt_rounded, color: Colors.white, size: 24),
+                      )
+                    : Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            _isChatOpen ? Icons.close_rounded : Icons.support_agent_rounded,
+                            size: 36,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                ),
+              );
+            },
           ),
-          // Eyes
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildEye(),
-              const SizedBox(width: 8),
-              _buildEye(),
-            ],
-          ),
-          // Interactive Ring
-          if (_isHovering)
-            _buildAnimatedRing(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildEye() {
-    return Container(
-      width: 10,
-      height: 10,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: Box_Circle,
-      ),
-    );
-  }
-
-  Widget _buildAnimatedRing() {
-    return Container(
-      width: 68,
-      height: 68,
-      decoration: BoxDecoration(
-        shape: Box_Circle,
-        border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
       ),
     );
   }
 }
-
-// Fixed constant for circle shape to avoid common linting errors with older flutter versions
-const Box_Circle = BoxShape.circle;

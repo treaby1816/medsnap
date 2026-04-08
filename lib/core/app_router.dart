@@ -10,6 +10,7 @@ import 'package:vail_meds_v2/features/auth/presentation/screens/login_screen.dar
 // Features - Navigation
 import 'package:vail_meds_v2/features/home/presentation/screens/main_navigation_screen.dart';
 import 'package:vail_meds_v2/features/screens.dart';
+import 'package:vail_meds_v2/core/auth_gate.dart';
 
 
 
@@ -55,7 +56,7 @@ class AppRouter {
     switch (settings.name) {
       // --- Auth & Core ---
       case splash:
-        return MaterialPageRoute(builder: (_) => const SplashScreen(), settings: settings);
+        return MaterialPageRoute(builder: (_) => const AuthGate(), settings: settings);
       case welcome:
         return MaterialPageRoute(builder: (_) => const WelcomeScreen(), settings: settings);
       case gateway:

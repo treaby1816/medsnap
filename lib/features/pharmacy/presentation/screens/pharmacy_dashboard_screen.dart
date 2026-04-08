@@ -127,7 +127,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
             ),
             const SizedBox(height: 24),
             
-            // Executive Stats Row
+            // Executive Stats Grid (Responsive)
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('orders')
@@ -161,41 +161,43 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                       }
                     }
 
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _StatCard(
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final bool isSmallMobile = constraints.maxWidth < 400;
+                        final bool isMobile = constraints.maxWidth < 600;
+                        
+                        return GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: isSmallMobile ? 1 : (isMobile ? 2 : 3),
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: isSmallMobile ? 3 : 1.5,
+                          children: [
+                            _StatCard(
                               title: 'New Orders',
                               value: pending.toString().padLeft(2, '0'),
                               backgroundColor: AppTheme.primaryColor,
                               textColor: Colors.white,
                               icon: Icons.receipt_long,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatCard(
+                            _StatCard(
                               title: 'Pickups',
                               value: pickups.toString().padLeft(2, '0'),
                               backgroundColor: Colors.white,
                               textColor: const Color(0xFF1E293B),
                               icon: Icons.shopping_bag_outlined,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatCard(
+                            _StatCard(
                               title: 'Low Stock',
                               value: lowStockCount.toString().padLeft(2, '0'),
                               backgroundColor: const Color(0xFFFEE2E2),
                               textColor: const Color(0xFFDC2626),
                               icon: Icons.warning_amber_rounded,
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        );
+                      }
                     );
                   }
                 );
