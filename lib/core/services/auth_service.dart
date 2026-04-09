@@ -293,6 +293,6 @@ class AuthService {
       developer.log('Error fetching Admin Master Key: $e', name: 'VailMedsAuth');
     }
     // FALLBACK: Ensure the developer can always access the dashboard via the emergency bypass
-    return 'VM-2026-NGR';
+    return 'VM-2026-NGR'.trim();
   }
 }

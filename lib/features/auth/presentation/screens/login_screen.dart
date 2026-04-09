@@ -124,7 +124,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               final masterKey = await authService.getAdminMasterKey();
 
               // 3. Direct Verification
-              if (masterKey != null && inputCode == masterKey) {
+              if (masterKey != null && inputCode.trim() == masterKey.trim()) {
                 // 2. Set Admin Role in Session
                 ref.read(userRoleProvider.notifier).setRole('admin');
                 
