@@ -171,9 +171,9 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           crossAxisCount: isSmallMobile ? 1 : (isMobile ? 2 : 3),
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: isSmallMobile ? 3 : 1.5,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: isSmallMobile ? 2.8 : 2.2,
                           children: [
                             _StatCard(
                               title: 'New Orders',

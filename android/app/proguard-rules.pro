@@ -30,4 +30,6 @@
 -dontwarn javax.annotation.**
 -dontnote **
 -dontwarn com.google.android.gms.**
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
 

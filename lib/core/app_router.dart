@@ -9,6 +9,7 @@ import 'package:vail_meds_v2/features/auth/presentation/screens/login_screen.dar
 
 // Features - Navigation
 import 'package:vail_meds_v2/features/home/presentation/screens/main_navigation_screen.dart';
+import 'package:vail_meds_v2/features/patient/presentation/screens/health_news_screen.dart';
 import 'package:vail_meds_v2/features/screens.dart';
 import 'package:vail_meds_v2/core/auth_gate.dart';
 
@@ -42,6 +43,7 @@ class AppRouter {
   static const String orderHistory = '/order-history';
   static const String chat = '/chat';
   static const String checkout = '/checkout';
+  static const String healthNews = '/health-news';
 
   // --- PHARMACY ROUTES ---
   static const String pharmacyDashboard = '/pharmacy-dashboard';
@@ -132,6 +134,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text("Invalid Chat Arguments"))));
       case checkout:
         return MaterialPageRoute(builder: (_) => const CheckoutScreen(), settings: settings);
+      case healthNews:
+        return MaterialPageRoute(builder: (_) => const HealthNewsScreen(), settings: settings);
       
       // --- Dynamic Routes ---
       case product:

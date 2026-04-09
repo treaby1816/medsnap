@@ -100,7 +100,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
     if (!_initialized && kIsWeb) {
       // On web, show a minimal themed loading state while Firebase boots
       return Container(
-        color: AppTheme.primaryColor,
+        color: const Color(0xFFEC5B13),
         child: const Center(
           child: CircularProgressIndicator(color: Colors.white),
         ),

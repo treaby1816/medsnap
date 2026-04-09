@@ -118,8 +118,7 @@ CONSTRAINTS:
 
 final chatbotProvider = StateNotifierProvider<ChatbotService, List<ChatbotMessage>>((ref) {
   final service = ChatbotService();
-  // Hardcode the key for production stability
-  const apiKey = 'AIzaSyB9K07Jcwfe4_3aJoAggdo_XQdal5pJZu0';
-  service.initialize(apiKey); 
+  // HARDCODED: Initializing with the verified production key
+  service.initialize('AIzaSyB9K07Jcwfe4_3aJoAggdo_XQdal5pJZu0'); 
   return service;
 });

@@ -80,13 +80,13 @@ flutter_launcher_icons:
   min_sdk_size: 21
   
 flutter_native_splash:
-  color: "#81D4FA"
+  color: "#EC5B13"
   image: "assets/images/logo2.png"
   android_12:
     image: "assets/images/logo2.png"
-    icon_background_color: "#81D4FA"
-    color: "#81D4FA"
-  icon_size: 320
+    icon_background_color: "#EC5B13"
+    color: "#EC5B13"
+  icon_size: 480
 
 dependency_overrides:
   google_sign_in_web: 0.12.4+3

@@ -131,20 +131,7 @@ class ChatService {
   }) async {
     final chatId = _getChatId(senderId, receiverId);
     try {
-      final message = ChatMessage(
-        id: '',
-        senderId: senderId,
-        receiverId: receiverId,
-        text: text,
-        timestamp: DateTime.now(),
-      );
-      await _firestore
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .add(message.toMap());
-      
-      // Update chat document with last message & increment unread for receiver
+      // 1. Ensure the parent chat document exists first (crucial for security rules)
       await _firestore.collection('chats').doc(chatId).set({
         'lastMessage': text,
         'lastTimestamp': FieldValue.serverTimestamp(),
@@ -161,6 +148,20 @@ class ChatService {
           receiverId: FieldValue.increment(1),
         },
       }, SetOptions(merge: true));
+
+      // 2. Add the actual message to the subcollection
+      final message = ChatMessage(
+        id: '',
+        senderId: senderId,
+        receiverId: receiverId,
+        text: text,
+        timestamp: DateTime.now(),
+      );
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .add(message.toMap());
       
     } catch (e) {
       debugPrint('Error sending message: $e');

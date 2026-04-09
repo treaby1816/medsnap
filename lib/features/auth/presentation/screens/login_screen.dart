@@ -261,8 +261,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Center(
               child: Container(
                 width: 80, height: 80,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1), 
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEC5B13), 
                   shape: BoxShape.circle,
                 ),
                 child: Padding(

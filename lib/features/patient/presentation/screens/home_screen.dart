@@ -482,8 +482,33 @@ class HomeScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Real-time Health Insights', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const Icon(Icons.bolt, color: Colors.amber, size: 20),
+                        Text('Trending Now', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        const Icon(Icons.trending_up, color: AppTheme.primaryColor, size: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    healthNews.when(
+                      data: (articles) => CarouselSlider(
+                        options: CarouselOptions(
+                          height: 160,
+                          viewportFraction: 0.85,
+                          enlargeCenterPage: true,
+                          autoPlay: true,
+                        ),
+                        items: articles.take(5).map((article) => _buildTrendingCard(context, article)).toList(),
+                      ),
+                      loading: () => const ShimmerEffect(width: double.infinity, height: 160, borderRadius: 24),
+                      error: (e, s) => Text('Error: $e'),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Health Intelligence', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        TextButton(
+                          onPressed: () => Navigator.pushNamed(context, '/health-news'),
+                          child: const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -697,4 +722,51 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildTrendingCard(BuildContext context, HealthArticle article) {
+    return HoverCard(
+      onTap: () => Navigator.pushNamed(context, '/health-news'),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          image: article.imageUrl != null ? DecorationImage(
+            image: NetworkImage(article.imageUrl!),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.4), BlendMode.darken),
+          ) : null,
+          color: article.imageUrl == null ? AppTheme.primaryColor : null,
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'TRENDING',
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              article.title,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
