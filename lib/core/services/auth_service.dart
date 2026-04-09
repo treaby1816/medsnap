@@ -281,11 +281,13 @@ class AuthService {
       developer.log('Admin Rejection Error: $e', name: 'VailMedsAuth');
       rethrow;
     }
+  }
+
   Future<String?> getAdminMasterKey() async {
     try {
-      final doc = await _firestore.collection('app_settings').doc('security').get();
+      final doc = await _firestore.collection('app_settings').doc('admin_config').get();
       if (doc.exists) {
-        return doc.data()?['adminMasterKey'] as String?;
+        return doc.data()?['master_access_code'] as String?;
       }
     } catch (e) {
       developer.log('Error fetching Admin Master Key: $e', name: 'VailMedsAuth');

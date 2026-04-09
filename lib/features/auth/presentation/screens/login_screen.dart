@@ -115,11 +115,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               final inputCode = pinController.text.trim();
               if (inputCode.isEmpty) return;
               
-              // 1. Fetch Dynamic Key from Firestore
+              // 1. Capture services before the async gap to satisfy the linter
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              
+              // 2. Fetch Dynamic Key from Firestore
               final authService = ref.read(authServiceProvider);
               final masterKey = await authService.getAdminMasterKey();
 
-              // 2. Direct Verification
+              // 3. Direct Verification
               if (masterKey != null && inputCode == masterKey) {
                 // 2. Set Admin Role in Session
                 ref.read(userRoleProvider.notifier).setRole('admin');
@@ -127,19 +131,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // 3. Immediate Direct Navigation (With Mount Check)
                 if (!mounted) return;
                 
-                Navigator.pop(dialogContext); // Close dialog
-                ScaffoldMessenger.of(context).showSnackBar(
+                navigator.pop(); // Close dialog
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Access Granted. Routing to Admin Center...'),
                     backgroundColor: Color(0xFFEC5B13),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
-                Navigator.pushNamedAndRemoveUntil(context, '/admin-dashboard', (route) => false);
+                navigator.pushNamedAndRemoveUntil('/admin-dashboard', (route) => false);
               } else {
                 HapticFeedback.heavyImpact();
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Invalid Master Token or Connection Error.'),
                     backgroundColor: Colors.redAccent,

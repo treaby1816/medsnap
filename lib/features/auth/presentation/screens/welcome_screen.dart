@@ -127,23 +127,27 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               final enteredCode = controller.text.trim();
               if (enteredCode.isEmpty) return;
 
-              // 1. Fetch Dynamic Key from Firestore
+              // 1. Capture services before the async gap to satisfy the linter
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+
+              // 2. Fetch Dynamic Key from Firestore
               final authService = ref.read(authServiceProvider);
               final masterKey = await authService.getAdminMasterKey();
 
-              // 2. Verify
+              // 3. Verify
               if (masterKey != null && enteredCode == masterKey) {
                 HapticFeedback.mediumImpact();
                 if (!mounted) return;
-                Navigator.pop(context); // Close dialog
+                navigator.pop(); // Close dialog
                 
-                // 1. Elevate Session Role
+                // Elevate Session Role
                 ref.read(userRoleProvider.notifier).setRole('admin');
                 
-                // 2. Direct Route to Dashboard (No Stress Bypass)
-                Navigator.pushNamedAndRemoveUntil(context, '/admin-dashboard', (route) => false);
+                // Direct Route to Dashboard
+                navigator.pushNamedAndRemoveUntil('/admin-dashboard', (route) => false);
                 
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Admin Access Granted. Welcome back.'),
                     backgroundColor: AppTheme.primaryColor,
@@ -153,7 +157,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               } else {
                 HapticFeedback.heavyImpact();
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Invalid Access Code or Connection Error'),
                     backgroundColor: Colors.redAccent,
