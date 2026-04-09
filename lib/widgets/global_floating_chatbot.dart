@@ -90,8 +90,8 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
         final size = MediaQuery.of(context).size;
         if (size.width > 0 && size.height > 0) {
           setState(() {
-            // Initial relative position: 20px from right, 100px from bottom
-            _position = const Offset(20, 100);
+            // Initial relative position: 24px from LEFT, 100px from bottom
+            _position = const Offset(24, 100);
           });
         }
       } catch (e) {
@@ -137,7 +137,7 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
           if (_isChatOpen) _buildChatOverlay(),
 
           Positioned(
-            right: _position?.dx ?? 20,
+            left: _position?.dx ?? 24,
             bottom: _position?.dy ?? 100,
             child: Draggable(
               feedback: _buildChatbotWidget(isDragging: true),
@@ -149,14 +149,14 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                   // Mascot size is approx 68x68 (container in _buildChatbotWidget)
                   const widgetSize = 88.0; 
                   
-                  double relRight = size.width - details.offset.dx - widgetSize;
+                  double relLeft = details.offset.dx;
                   double relBottom = size.height - details.offset.dy - widgetSize;
                   
-                  // Clamp to screen edges with 20px margin
-                  relRight = relRight.clamp(20, size.width - widgetSize);
+                  // Clamp to screen edges with 24px margin
+                  relLeft = relLeft.clamp(24, size.width - widgetSize - 24);
                   relBottom = relBottom.clamp(20, size.height - widgetSize - 50);
                   
-                  _position = Offset(relRight, relBottom);
+                  _position = Offset(relLeft, relBottom);
                 });
               },
               child: MouseRegion(
@@ -189,7 +189,7 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
     final bool isSmallScreen = size.width < 600;
 
     return Positioned(
-      right: isSmallScreen ? 10 : ((_position?.dx ?? 20) + 0),
+      left: isSmallScreen ? 10 : ((_position?.dx ?? 24) + 0),
       bottom: (_position?.dy ?? 100) + 80,
       child: Material(
         color: Colors.transparent,
@@ -281,7 +281,7 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
       color: Colors.transparent,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!_isChatOpen)
             AnimatedOpacity(
@@ -295,8 +295,8 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(4),
+                    bottomLeft: Radius.circular(4),
+                    bottomRight: Radius.circular(20),
                   ),
                   boxShadow: [
                     BoxShadow(

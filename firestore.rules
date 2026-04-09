@@ -51,10 +51,18 @@ service cloud.firestore {
                     && (!('isAdminApproved' in request.resource.data.keys()) || request.resource.data.isAdminApproved == false);
 
       allow update: if request.auth != null && (
-        // Path A: Regular users updating non-sensitive fields
-        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdminApproved', 'isVerified', 'verificationStatus', 'approvedAt', 'approvedBy'])) ||
-        // Path B: Admins can update 'isAdminApproved' and related fields
-        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAdminApproved', 'approvedAt', 'isVerified', 'verificationStatus', 'approvedBy', 'role', 'pharmacistName', 'storeName']))
+        // Path A: Users updating their own profile
+        (request.auth.uid == userId && 
+         // NEVER allow users to self-approve or change roles
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdminApproved', 'isVerified', 'approvedAt', 'approvedBy']) &&
+         // Allow verificationStatus ONLY IF moving to 'pending'
+         (
+           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus']) ||
+           (request.resource.data.verificationStatus == 'pending')
+         )
+        ) ||
+        // Path B: Admins managing user approval and statuses
+        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdminApproved', 'approvedAt', 'isVerified', 'verificationStatus', 'approvedBy', 'role', 'pharmacistName', 'storeName', 'rejectionReason', 'rejectedAt']))
       );
     }
 

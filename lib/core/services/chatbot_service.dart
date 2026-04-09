@@ -49,9 +49,11 @@ CONSTRAINTS:
 
   void initialize(String apiKey) {
     if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY') {
-      developer.log('ChatbotService: No API key provided, running in Mock mode.', name: 'VailBot');
+      developer.log('ChatbotService: No API key provided (GEMINI_API_KEY environment variable is empty). Running in Mock mode.', name: 'VailBot');
       return;
     }
+    
+    developer.log('ChatbotService: Gemini API key detected. Initializing AI...', name: 'VailBot');
     
     try {
       _model = GenerativeModel(
