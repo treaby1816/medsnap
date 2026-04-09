@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../core/theme.dart';
 import '../../../core/providers.dart';
 import '../../../widgets/glass_app_bar.dart';
@@ -16,7 +17,7 @@ class ScanPrescriptionScreen extends ConsumerStatefulWidget {
 }
 
 class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen> {
-  File? _imageFile;
+  XFile? _imageFile;
   bool _isProcessing = false;
   String? _extractedDrug;
   final ImagePicker _picker = ImagePicker();
@@ -26,7 +27,7 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFile = pickedFile;
         _extractedDrug = null;
       });
       _processPrescription();
@@ -39,11 +40,14 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
 
     try {
       final ocrService = ref.read(ocrServiceProvider);
-      final result = await ocrService.extractDrugName(_imageFile!);
-      
-      setState(() {
-        _extractedDrug = result;
-      });
+      // Wait, ocrService might expect 'File'. If so, we pass a dynamic or convert it appropriately later. 
+      // For now passing File in native, or throwing in web.
+      if (!kIsWeb) {
+        final result = await ocrService.extractDrugName(File(_imageFile!.path));
+        setState(() {
+          _extractedDrug = result;
+        });
+      }
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -61,9 +65,9 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
         title: Text(
           'Smart Scan',
           style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimaryColor,
+             fontSize: 18,
+             fontWeight: FontWeight.bold,
+             color: AppTheme.textPrimaryColor,
           ),
         ),
       ),
@@ -72,66 +76,66 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 20),
-            // Scanner Viewport
-            Container(
-              height: 350,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1), width: 2),
-                image: _imageFile != null
-                    ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
-                    : null,
-              ),
-              child: _imageFile == null
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.document_scanner_outlined, size: 64, color: AppTheme.primaryColor.withValues(alpha: 0.5)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Align Prescription within frame',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            color: AppTheme.textSecondaryColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    )
-                  : (_isProcessing 
-                      ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
-                      : null),
-            ),
-            const SizedBox(height: 32),
+             const SizedBox(height: 20),
+             // Scanner Viewport
+             Container(
+               height: 350,
+               decoration: BoxDecoration(
+                 color: Colors.white,
+                 borderRadius: BorderRadius.circular(24),
+                 border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1), width: 2),
+                 image: _imageFile != null && !kIsWeb
+                     ? DecorationImage(image: FileImage(File(_imageFile!.path)), fit: BoxFit.cover)
+                     : null,
+               ),
+               child: _imageFile == null
+                   ? Column(
+                       mainAxisAlignment: MainAxisAlignment.center,
+                       children: [
+                         Icon(Icons.document_scanner_outlined, size: 64, color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+                         const SizedBox(height: 16),
+                         Text(
+                           'Align Prescription within frame',
+                           textAlign: TextAlign.center,
+                           style: GoogleFonts.inter(
+                             fontSize: 16,
+                             color: AppTheme.textSecondaryColor,
+                             fontWeight: FontWeight.w500,
+                           ),
+                         ),
+                       ],
+                     )
+                   : (_isProcessing 
+                       ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+                       : null),
+             ),
+             const SizedBox(height: 32),
 
-            // Controls
-            Row(
-              children: [
-                Expanded(
-                  child: _buildScanButton(
-                    icon: Icons.camera_alt,
-                    label: 'Use Camera',
-                    onTap: () => _pickImage(ImageSource.camera),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildScanButton(
-                    icon: Icons.photo_library,
-                    label: 'Upload Image',
-                    onTap: () => _pickImage(ImageSource.gallery),
-                  ),
-                ),
-              ],
-            ),
+             // Controls
+             Row(
+               children: [
+                 Expanded(
+                   child: _buildScanButton(
+                     icon: Icons.camera_alt,
+                     label: 'Use Camera',
+                     onTap: () => _pickImage(ImageSource.camera),
+                   ),
+                 ),
+                 const SizedBox(width: 16),
+                 Expanded(
+                   child: _buildScanButton(
+                     icon: Icons.photo_library,
+                     label: 'Upload Image',
+                     onTap: () => _pickImage(ImageSource.gallery),
+                   ),
+                 ),
+               ],
+             ),
 
-            if (_extractedDrug != null) ...[
-              const SizedBox(height: 40),
-              _buildResultCard(),
-            ],
+             if (_extractedDrug != null) ...[
+               const SizedBox(height: 40),
+               _buildResultCard(),
+             ],
           ],
         ),
       ),

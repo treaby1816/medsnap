@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as p;
@@ -7,16 +7,22 @@ class ProductService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Uses { } which means the UI MUST use labels like imageFile:
   Future<String?> uploadProductImage({
-    required File imageFile, 
+    required dynamic imageFile, 
     required String productName,
   }) async {
     try {
-      String extension = p.extension(imageFile.path);
+      String extension = '.jpg'; // Fallback
+      try { extension = p.extension(imageFile.path ?? imageFile.name); } catch(_) {}
       String fileName = '${productName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}$extension';
       Reference ref = _storage.ref().child('inventory/images/$fileName');
-      await ref.putFile(imageFile);
+      
+      if (kIsWeb) {
+        final bytes = await imageFile.readAsBytes();
+        await ref.putData(bytes);
+      } else {
+        await ref.putFile(imageFile);
+      }
       return await ref.getDownloadURL();
     } catch (e) {
       return null;

@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
 import '../../../../core/providers.dart';
@@ -128,7 +129,7 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
-                    child: _licenseImage != null
+                    child: _licenseImage != null && !kIsWeb
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: Image.file(File(_licenseImage!.path), fit: BoxFit.cover, width: double.infinity),
@@ -241,7 +242,12 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
           .ref()
           .child('pharmacy_licenses')
           .child('$uid.jpg');
-      await storageRef.putFile(File(_licenseImage!.path));
+      if (kIsWeb) {
+        final bytes = await _licenseImage!.readAsBytes();
+        await storageRef.putData(bytes);
+      } else {
+        await storageRef.putFile(File(_licenseImage!.path));
+      }
       return await storageRef.getDownloadURL();
     } catch (e) {
       if (mounted) {

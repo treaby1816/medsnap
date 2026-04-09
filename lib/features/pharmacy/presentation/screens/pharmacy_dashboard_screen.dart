@@ -11,6 +11,7 @@ import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../widgets/hover_card.dart';
 import '../../../../core/models/product_model.dart';
 import '../widgets/pharmacy_product_card.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PharmacyDashboardScreen extends ConsumerStatefulWidget {
   const PharmacyDashboardScreen({super.key});
@@ -560,7 +561,139 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                 }
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
+            _buildSupportSection(),
+            const SizedBox(height: 100), // Space for bottom navigation
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSupportSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white12,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Technical Support',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Direct human assistance',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: Colors.white60,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _SupportButton(
+                  icon: Icons.phone_in_talk_rounded,
+                  label: 'Call Helpdesk',
+                  onTap: () => _launchUrl('tel:+2348012345678'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SupportButton(
+                  icon: Icons.chat_bubble_rounded,
+                  label: 'WhatsApp',
+                  onTap: () => _launchUrl('https://wa.me/2348012345678'),
+                  color: const Color(0xFF22C55E),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+}
+
+class _SupportButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+
+  const _SupportButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color?.withValues(alpha: 0.1) ?? Colors.white10,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color?.withValues(alpha: 0.3) ?? Colors.white10),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color ?? Colors.white, size: 20),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: color ?? Colors.white,
+              ),
+            ),
           ],
         ),
       ),

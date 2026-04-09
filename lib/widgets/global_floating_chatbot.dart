@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:vail_meds_v2/core/theme.dart';
+import 'package:vail_meds_v2/widgets/vail_chat_interface.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:developer' as developer;
 
 // We track the current route here. 
@@ -61,31 +62,28 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   late final Animation<double> _hoverAnimation;
   bool _isChatOpen = false;
   
-  WebViewController? _webController;
-  late bool _isWebViewLoading;
+  // Removed WebViewController
 
   @override
   void initState() {
     super.initState();
-    _isWebViewLoading = !kIsWeb; // Don't show spinner indefinitely on Web
-    _hoverController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-    _blinkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
-    _hoverAnimation = Tween<double>(begin: 0, end: -10).animate(CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut));
     
-    if (!kIsWeb) {
-      _webController = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(const Color(0x00000000))
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onPageStarted: (_) => setState(() => _isWebViewLoading = true),
-            onPageFinished: (_) => setState(() => _isWebViewLoading = false),
-          ),
-        )
-        ..loadRequest(Uri.parse('https://chatbot.vailmeds.com/support'));
-    }
+    // 1. Initialize Animation Controllers
+    _hoverController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
 
-    // Initialize position relative to bottom-right after frame
+    _hoverAnimation = Tween<double>(begin: -5, end: 5).animate(
+      CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut),
+    );
+
+    _blinkController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 150)
+    );
+
+    // 2. Initialize position relative to bottom-right after frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
@@ -250,33 +248,32 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                       ),
                     ),
                     IconButton(
+                      icon: const Icon(Icons.phone_in_talk_rounded, color: Colors.greenAccent, size: 18),
+                      tooltip: 'Call Human Support',
+                      onPressed: () => _launchHumanContact(),
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
                       onPressed: () => setState(() => _isChatOpen = false),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    if (_webController != null) WebViewWidget(controller: _webController!),
-                    if (_webController == null)
-                      Center(
-                        child: Text(
-                          'Chatbot UI is optimized for mobile.',
-                          style: GoogleFonts.inter(color: Colors.black54),
-                        )
-                      ),
-                    if (_isWebViewLoading)
-                      const Center(child: CircularProgressIndicator(color: Color(0xFF42A5F5))),
-                  ],
-                ),
+              const Expanded(
+                child: VailChatInterface(),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _launchHumanContact() async {
+    final uri = Uri.parse('tel:+2348012345678');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   Widget _buildChatbotWidget({required bool isDragging}) {

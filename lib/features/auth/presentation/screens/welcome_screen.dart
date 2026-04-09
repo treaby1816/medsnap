@@ -123,9 +123,18 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             child: Text('Cancel', style: TextStyle(color: Colors.grey.shade400)),
           ),
           ElevatedButton(
-            onPressed: () {
-              if (controller.text == 'VM-2026-NGR') {
+            onPressed: () async {
+              final enteredCode = controller.text.trim();
+              if (enteredCode.isEmpty) return;
+
+              // 1. Fetch Dynamic Key from Firestore
+              final authService = ref.read(authServiceProvider);
+              final masterKey = await authService.getAdminMasterKey();
+
+              // 2. Verify
+              if (masterKey != null && enteredCode == masterKey) {
                 HapticFeedback.mediumImpact();
+                if (!mounted) return;
                 Navigator.pop(context); // Close dialog
                 
                 // 1. Elevate Session Role
@@ -143,10 +152,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 );
               } else {
                 HapticFeedback.heavyImpact();
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Invalid Access Code'),
+                    content: Text('Invalid Access Code or Connection Error'),
                     backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
                   ),
                 );
               }

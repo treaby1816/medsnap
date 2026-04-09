@@ -30,8 +30,8 @@ dependencies:
   # Utilities, Storage & Security
   flutter_secure_storage: ^9.2.2 
   webview_flutter: ^4.10.1 
-  root_checker_plus: any
-  screen_protector: any
+  # root_checker_plus: any
+  # screen_protector: any
   image_picker: ^1.1.2 
   flutter_image_compress: ^2.3.0 
 
@@ -59,6 +59,7 @@ dependencies:
   intl: ^0.20.2
   geolocator: ^14.0.2
   flutter_native_splash: ^2.4.7
+  google_generative_ai: ^0.4.5
 
 dev_dependencies:
   flutter_test:

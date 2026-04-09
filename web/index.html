@@ -119,6 +119,7 @@
     function removeSplashFromWeb() {
       const nativeSplash = document.getElementById('native-splash');
       if (nativeSplash) {
+        console.log("Removing splash HTML...");
         nativeSplash.style.transition = 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
         nativeSplash.style.opacity = '0';
         nativeSplash.style.transform = 'scale(0.9) translateY(-20px)';
@@ -132,10 +133,13 @@
       renderer: "html",
     };
 
-    window.addEventListener("flutter-engine-started", (event) => {
-      console.log("BOOT SUCCESS: Flutter engine active.");
+    window.addEventListener("flutter-first-frame", (event) => {
+      console.log("BOOT SUCCESS: Flutter first frame rendered.");
       removeSplashFromWeb();
     });
+    
+    // Fallback: If it drastically fails, we reveal the canvas after 30 seconds
+    setTimeout(removeSplashFromWeb, 30000);
   </script>
   <script src="flutter_bootstrap.js" async=""></script>
 </body>

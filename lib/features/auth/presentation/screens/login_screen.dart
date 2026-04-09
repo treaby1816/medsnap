@@ -113,9 +113,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ElevatedButton(
             onPressed: () async {
               final inputCode = pinController.text.trim();
+              if (inputCode.isEmpty) return;
               
-              // 1. Direct Verification (Instant)
-              if (inputCode == 'VM-2026-NGR' || inputCode == '987654') {
+              // 1. Fetch Dynamic Key from Firestore
+              final authService = ref.read(authServiceProvider);
+              final masterKey = await authService.getAdminMasterKey();
+
+              // 2. Direct Verification
+              if (masterKey != null && inputCode == masterKey) {
                 // 2. Set Admin Role in Session
                 ref.read(userRoleProvider.notifier).setRole('admin');
                 
@@ -133,7 +138,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Navigator.pushNamedAndRemoveUntil(context, '/admin-dashboard', (route) => false);
               } else {
                 HapticFeedback.heavyImpact();
-                _showErrorSnackBar('Invalid Master Token. Access Denied.');
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invalid Master Token or Connection Error.'),
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

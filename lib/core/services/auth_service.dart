@@ -100,10 +100,16 @@ class AuthService {
       
       // FRIENDLY ERROR HANDLING: Prevents abrupt crashes
       String errorMsg = "Sign-in failed. Please try again.";
-      if (e.toString().contains('10') || e.toString().contains('DEVELOPER_ERROR')) {
-        errorMsg = "Security Signature Mismatch (Api10). The app signature does not match Firebase.";
-      } else if (e.toString().contains('network_error')) {
+      final String eStr = e.toString();
+      
+      if (eStr.contains('10') || eStr.contains('DEVELOPER_ERROR')) {
+        errorMsg = "Security Signature Mismatch (Api10). Please ensure your SHA-1 fingerprint is registered in Firebase Console.";
+      } else if (eStr.contains('redirect_uri_mismatch')) {
+        errorMsg = "Auth Configuration Error: Redirect URI Mismatch. Check Google Cloud Console Authorized URIs.";
+      } else if (eStr.contains('network_error')) {
         errorMsg = "Network error. Please check your internet connection.";
+      } else if (eStr.contains('popup_closed_by_user')) {
+        errorMsg = "Sign-in cancelled.";
       }
       
       throw Exception(errorMsg);
@@ -275,5 +281,15 @@ class AuthService {
       developer.log('Admin Rejection Error: $e', name: 'VailMedsAuth');
       rethrow;
     }
+  Future<String?> getAdminMasterKey() async {
+    try {
+      final doc = await _firestore.collection('app_settings').doc('security').get();
+      if (doc.exists) {
+        return doc.data()?['adminMasterKey'] as String?;
+      }
+    } catch (e) {
+      developer.log('Error fetching Admin Master Key: $e', name: 'VailMedsAuth');
+    }
+    return null;
   }
 }

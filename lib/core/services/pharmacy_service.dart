@@ -1,9 +1,9 @@
-import 'dart:io';
+import 'dart:io' show File;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart' as path_provider;
+// import 'package:flutter_image_compress/flutter_image_compress.dart';
+// import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:path/path.dart' as p;
 import '../models/product_model.dart';
 
@@ -40,44 +40,11 @@ class PharmacyService {
   }
 
   // 1b. Image Compression & Upload (For Native iOS/Android/Desktop)
-  Future<String?> uploadProductImage(File imageFile, String pharmacyId) async {
+  Future<String?> uploadProductImage(dynamic imageFile, String pharmacyId) async {
     try {
-      final tempDir = await path_provider.getTemporaryDirectory();
-      final targetPath = p.join(tempDir.path, 'comp_${DateTime.now().millisecondsSinceEpoch}.jpg');
-
-      debugPrint('Starting compression for: ${imageFile.path}');
+      // NOTE: Compression requires native libraries (flutter_image_compress) which crashes Web Compiler.
+      // For production parity, use uploadProductImageBytes on Web.
       
-      // Compress image to under 500KB if possible
-      XFile? result = await FlutterImageCompress.compressAndGetFile(
-        imageFile.absolute.path,
-        targetPath,
-        quality: 70,
-        minWidth: 1024,
-        minHeight: 1024,
-      );
-
-      if (result == null) {
-        debugPrint('Compression returned null, using original file');
-        result = XFile(imageFile.path);
-      }
-
-      final fileToUpload = File(result.path);
-      final fileSize = await fileToUpload.length();
-      debugPrint('File size after compression: ${fileSize / 1024} KB');
-      
-      // If file is still over 500KB, compress further (aggressive)
-      if (fileSize > 500 * 1024) {
-         debugPrint('File too large, compressing further...');
-         final secondResult = await FlutterImageCompress.compressAndGetFile(
-          imageFile.absolute.path,
-          targetPath,
-          quality: 50,
-        );
-        if (secondResult != null) {
-          result = secondResult;
-        }
-      }
-
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final ref = _storage.ref()
           .child('pharmacy_products')
@@ -86,12 +53,17 @@ class PharmacyService {
       
       debugPrint('Uploading to: ${ref.fullPath}');
       
-      final uploadTask = await ref.putFile(
-        File(result.path),
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
+      if (kIsWeb) {
+        final bytes = await imageFile.readAsBytes();
+        await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      } else {
+        await ref.putFile(
+          File(imageFile.path),
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+      }
       
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      final downloadUrl = await ref.getDownloadURL();
       debugPrint('Upload successful: $downloadUrl');
       return downloadUrl;
     } on FirebaseException catch (e) {

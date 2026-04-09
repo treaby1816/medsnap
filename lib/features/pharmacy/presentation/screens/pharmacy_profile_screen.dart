@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -290,7 +291,12 @@ class _ImageUploadTileState extends ConsumerState<_ImageUploadTile> {
       if (user == null) throw Exception('User not logged in');
 
       final refStorage = FirebaseStorage.instance.ref().child('${widget.storagePath}/${user.uid}.jpg');
-      await refStorage.putFile(File(image.path));
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        await refStorage.putData(bytes);
+      } else {
+        await refStorage.putFile(File(image.path));
+      }
       final url = await refStorage.getDownloadURL();
 
       await ref.read(authServiceProvider).updateProfile(user.uid, {
