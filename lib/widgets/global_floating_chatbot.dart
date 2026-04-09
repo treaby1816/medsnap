@@ -313,7 +313,7 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                     const Icon(Icons.auto_awesome, color: AppTheme.primaryColor, size: 14),
                     const SizedBox(width: 8),
                     Text(
-                      'Chat with VailBot',
+                      'Chat with VailBot (v2.2-L)',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

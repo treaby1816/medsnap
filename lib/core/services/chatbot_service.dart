@@ -118,9 +118,8 @@ CONSTRAINTS:
 
 final chatbotProvider = StateNotifierProvider<ChatbotService, List<ChatbotMessage>>((ref) {
   final service = ChatbotService();
-  // We use String.fromEnvironment to allow passing the key during build/run 
-  // via --dart-define=GEMINI_API_KEY=your_key
-  const apiKey = String.fromEnvironment('GEMINI_API_KEY');
+  // Hardcode the key for production stability
+  const apiKey = 'AIzaSyB9K07Jcwfe4_3aJoAggdo_XQdal5pJZu0';
   service.initialize(apiKey); 
   return service;
 });
