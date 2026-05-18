@@ -21,8 +21,8 @@ class Medication {
     this.isUrgent = false,
   });
 
-  // Convert Firestore Document to Medication Object
-  factory Medication.fromFirestore(Map<String, dynamic> data, String id) {
+  // Convert Data to Medication Object
+  factory Medication.fromMap(Map<String, dynamic> data, String id) {
     return Medication(
       id: id,
       name: data['name'] ?? '',

@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vail_meds_v2/core/app_router.dart';
 
 // --- SERVICES ---
@@ -43,7 +42,7 @@ final healthNewsProvider = FutureProvider<List<HealthArticle>>((ref) async {
 
 // --- AUTH & ROLE MANAGEMENT ---
 final authStateProvider = StreamProvider<User?>((ref) {
-  return ref.watch(authServiceProvider).authStateChanges;
+  return ref.watch(authServiceProvider).authStateChanges.map((state) => state.session?.user);
 });
 
 final authProvider = Provider<User?>((ref) {
@@ -51,16 +50,16 @@ final authProvider = Provider<User?>((ref) {
   return authState.value;
 });
 
-// StreamProvider for real-time profile updates (essential for verification status)
+// StreamProvider for real-time profile updates
 final userProfileProvider = StreamProvider<UserProfile?>((ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value(null);
   
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .snapshots()
-      .map((doc) => doc.exists ? UserProfile.fromMap(doc.data() ?? {}, doc.id) : null);
+  return Supabase.instance.client
+      .from('users')
+      .stream(primaryKey: ['id'])
+      .eq('id', user.id)
+      .map((maps) => maps.isNotEmpty ? UserProfile.fromMap(maps.first, user.id) : null);
 });
 
 // Fixed: Explicitly using the Product from core/models
@@ -86,24 +85,24 @@ final userRoleProvider = NotifierProvider<UserRoleNotifier, String?>(UserRoleNot
 final unreadChatCountProvider = StreamProvider<int>((ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value(0);
-  return ref.watch(chatServiceProvider).getTotalUnreadCount(user.uid);
+  return ref.watch(chatServiceProvider).getTotalUnreadCount(user.id);
 });
 
 final conversationsProvider = StreamProvider<List<ChatConversation>>((ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value([]);
-  return ref.watch(chatServiceProvider).getConversations(user.uid);
+  return ref.watch(chatServiceProvider).getConversations(user.id);
 });
 
 // --- PHARMACY DISCOVERY & CHAT ---
 final verifiedPharmaciesProvider = StreamProvider<List<UserProfile>>((ref) {
-  return FirebaseFirestore.instance
-      .collection('users')
-      .where('role', isEqualTo: 'pharmacy')
-      .where('isAdminApproved', isEqualTo: true)
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => UserProfile.fromMap(doc.data(), doc.id))
+  return Supabase.instance.client
+      .from('users')
+      .stream(primaryKey: ['id'])
+      .eq('role', 'pharmacy')
+      .map((maps) => maps
+          .where((m) => m['isAdminApproved'] == true)
+          .map((map) => UserProfile.fromMap(map, map['id']?.toString() ?? map['uid']?.toString()))
           .toList());
 });
 
@@ -255,8 +254,17 @@ final selectedCategoryProvider = StateProvider<String>((ref) => 'All Products');
 final drugSearchQueryProvider = StateProvider<String>((ref) => '');
 
 final drugDatabaseProvider = FutureProvider<List<Product>>((ref) async {
-  final snapshot = await FirebaseFirestore.instance.collection('products').get();
-  return snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
+  final maps = await Supabase.instance.client.from('inventory').select();
+  return maps.map((map) {
+    final mappedData = {
+      'id': map['id'],
+      'pharmacyId': map['pharmacy_id'],
+      'name': map['drug_name'],
+      'price': map['price'],
+      'createdAt': map['updated_at'] ?? map['created_at'],
+    };
+    return Product.fromMap(mappedData, map['id'].toString());
+  }).toList();
 });
 
 final filteredByBrandProductsProvider = Provider<List<Product>>((ref) {
@@ -283,19 +291,25 @@ final isUploadingProvider = StateProvider<bool>((ref) => false);
 
 // --- GLOBAL PRODUCT DISCOVERY ---
 final allProductsProvider = StreamProvider<List<Product>>((ref) {
-  // The Clinical Moat: Products must belong to an ADMIN APPROVED pharmacy
   final verifiedPharmaciesAsync = ref.watch(verifiedPharmaciesProvider);
-  final approvedIds = verifiedPharmaciesAsync.value?.map((p) => p.uid).toSet() ?? {};
+  final approvedIds = verifiedPharmaciesAsync.value?.map((p) => p.uid).toList() ?? [];
   
-  return FirebaseFirestore.instance
-      .collection('products')
-      .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map((snapshot) {
-        // Stream all products, but filter locally against approved IDs to avoid the 30-clause 'whereIn' Firestore limitation
-        final allFetched = snapshot.docs.map((doc) => Product.fromMap(doc.data(), doc.id)).toList();
-        if (approvedIds.isEmpty) return <Product>[]; // Block everything if no approved pharmacies exist
-        
-        return allFetched.where((product) => approvedIds.contains(product.pharmacyId)).toList();
+  if (approvedIds.isEmpty) return Stream.value(<Product>[]);
+
+  return Supabase.instance.client
+      .from('inventory')
+      .stream(primaryKey: ['id'])
+      .inFilter('pharmacy_id', approvedIds)
+      .map((maps) {
+        return maps.map((map) {
+          final mappedData = {
+            'id': map['id'],
+            'pharmacyId': map['pharmacy_id'],
+            'name': map['drug_name'],
+            'price': map['price'],
+            'createdAt': map['updated_at'] ?? map['created_at'],
+          };
+          return Product.fromMap(mappedData, map['id'].toString());
+        }).toList();
       });
 });

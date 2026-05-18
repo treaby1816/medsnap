@@ -59,6 +59,8 @@ class AppRouter {
       // --- Auth & Core ---
       case splash:
         return MaterialPageRoute(builder: (_) => const AuthGate(), settings: settings);
+      case '/admin': // Deep link entry point
+        return MaterialPageRoute(builder: (_) => const AdminDashboardScreen(), settings: settings);
       case welcome:
         return MaterialPageRoute(builder: (_) => const WelcomeScreen(), settings: settings);
       case gateway:

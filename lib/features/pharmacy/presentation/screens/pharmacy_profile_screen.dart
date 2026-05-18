@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
 
@@ -290,16 +290,16 @@ class _ImageUploadTileState extends ConsumerState<_ImageUploadTile> {
       final user = ref.read(authProvider);
       if (user == null) throw Exception('User not logged in');
 
-      final refStorage = FirebaseStorage.instance.ref().child('${widget.storagePath}/${user.uid}.jpg');
+      final path = '${widget.storagePath}/${user.id}.jpg';
       if (kIsWeb) {
         final bytes = await image.readAsBytes();
-        await refStorage.putData(bytes);
+        await Supabase.instance.client.storage.from('pharmacy_images').uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true));
       } else {
-        await refStorage.putFile(File(image.path));
+        await Supabase.instance.client.storage.from('pharmacy_images').upload(path, File(image.path), fileOptions: const FileOptions(upsert: true));
       }
-      final url = await refStorage.getDownloadURL();
+      final url = Supabase.instance.client.storage.from('pharmacy_images').getPublicUrl(path);
 
-      await ref.read(authServiceProvider).updateProfile(user.uid, {
+      await ref.read(authServiceProvider).updateProfile(user.id, {
         widget.fieldName: url,
       });
 

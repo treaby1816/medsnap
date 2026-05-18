@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers.dart';
 import '../../../../widgets/glass_app_bar.dart';
@@ -18,10 +17,10 @@ class _PharmacySecurityScreenState extends ConsumerState<PharmacySecurityScreen>
   bool _isBiometricEnabled = false;
 
   void _resetPassword() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null && user.email != null) {
+    final userProfile = ref.read(userProfileProvider).value;
+    if (userProfile != null && userProfile.email.isNotEmpty) {
       try {
-        await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email!);
+        await ref.read(authServiceProvider).sendPasswordResetEmail(userProfile.email);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

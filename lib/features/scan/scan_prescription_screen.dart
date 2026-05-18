@@ -43,9 +43,9 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
       // Wait, ocrService might expect 'File'. If so, we pass a dynamic or convert it appropriately later. 
       // For now passing File in native, or throwing in web.
       if (!kIsWeb) {
-        final result = await ocrService.extractDrugName(File(_imageFile!.path));
+        final result = await ocrService.scanPrescription(File(_imageFile!.path));
         setState(() {
-          _extractedDrug = result;
+          _extractedDrug = result['drug_name'];
         });
       }
     } finally {

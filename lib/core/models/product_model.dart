@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+// Supabase returns timestamps as strings
 class Product {
   final String id;
   final String name;
@@ -39,7 +38,7 @@ class Product {
       stockCount: map['stockCount'] ?? 0,
       maxStock: map['maxStock'] ?? 0,
       category: map['category'] ?? 'General',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime) : DateTime.now(),
     );
   }
 
@@ -54,7 +53,7 @@ class Product {
       'stockCount': stockCount,
       'maxStock': maxStock,
       'category': category,
-      'createdAt': createdAt,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

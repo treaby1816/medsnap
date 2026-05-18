@@ -29,7 +29,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     HapticFeedback.lightImpact();
     
     ref.read(chatServiceProvider).sendMessage(
-      user.uid,
+      user.id,
       widget.receiverId,
       _messageController.text.trim(),
     );
@@ -42,7 +42,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return const Scaffold(body: Center(child: Text('Please log in to chat.')));
     }
     
-    final currentUserId = user.uid;
+    final currentUserId = user.id;
     final messagesStream = ref.watch(chatServiceProvider).getMessages(currentUserId, widget.receiverId);
 
     return Scaffold(

@@ -1,13 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 
 // ─────────────────────────────────────────────────────────────────────
-// SECURITY LOGGING — Logs unauthorized access attempts to Firestore
+// SECURITY LOGGING — Logs unauthorized access attempts to Supabase
 // ─────────────────────────────────────────────────────────────────────
 
 class SecurityLogger {
-  static final _firestore = FirebaseFirestore.instance;
+  static final _supabase = Supabase.instance.client;
 
   /// Logs an unauthorized access attempt to /security_logs.
   static Future<void> logUnauthorizedAccess({
@@ -15,32 +14,31 @@ class SecurityLogger {
     String? details,
   }) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      await _firestore.collection('security_logs').add({
-        'uid': user?.uid ?? 'anonymous',
+      final user = _supabase.auth.currentUser;
+      await _supabase.from('security_logs').insert({
+        'uid': user?.id ?? 'anonymous',
         'email': user?.email ?? 'unknown',
-        'attemptedAction': attemptedAction,
+        'attempted_action': attemptedAction,
         'details': details,
-        'timestamp': FieldValue.serverTimestamp(),
         'platform': kIsWeb ? 'web' : 'mobile',
       });
-      debugPrint('Security Event: $attemptedAction by ${user?.uid}');
+      debugPrint('Security Event: $attemptedAction by ${user?.id}');
     } catch (e) {
       debugPrint('Failed to log security event: $e');
     }
   }
 
-  /// Checks if the current user is an admin from Firestore.
+  /// Checks if the current user is an admin from Supabase.
   /// Returns false if no user or not admin.
   static Future<bool> verifyAdminAccess() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return false;
 
     try {
-      final doc = await _firestore.collection('users').doc(user.uid).get();
-      if (!doc.exists) return false;
+      final doc = await _supabase.from('users').select('role').eq('id', user.id).maybeSingle();
+      if (doc == null) return false;
 
-      final role = doc.data()?['role'] ?? 'patient';
+      final role = doc['role'] ?? 'patient';
       return role == 'admin' || role == 'super_admin';
     } catch (e) {
       debugPrint('Admin verification failed: $e');

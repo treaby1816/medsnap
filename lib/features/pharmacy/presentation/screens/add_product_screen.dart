@@ -57,7 +57,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       final pharmacyService = ref.read(pharmacyServiceProvider);
       
       // 1. Upload Image via Bytes
-      final imageUrl = await pharmacyService.uploadProductImageBytes(_imageBytes!, user.uid, _imageExt);
+      final imageUrl = await pharmacyService.uploadProductImageBytes(_imageBytes!, user.id, _imageExt);
 
       // 2. Save Product to Firestore
       final userProfile = ref.read(userProfileProvider).value;
@@ -70,7 +70,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
         'stockCount': int.parse(_stockController.text.trim()),
         'maxStock': int.parse(_maxStockController.text.trim()),
         'imageUrl': imageUrl,
-        'pharmacyId': user.uid,
+        'pharmacyId': user.id,
         'pharmacyName': storeName,
       });
 

@@ -17,24 +17,8 @@ class GatewayScreen extends ConsumerStatefulWidget {
 
 class _GatewayScreenState extends ConsumerState<GatewayScreen> {
   bool _isLoading = false;
-  bool _agreedToTerms = false;
-  bool _agreedToPrivacy = false;
-
-  void _showAgreementWarning() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Please agree to both the Terms of Use and Privacy Policy to continue.'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   Future<void> _handleGoogleSignIn(String role) async {
-    if (!_agreedToTerms || !_agreedToPrivacy) {
-      _showAgreementWarning();
-      return;
-    }
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
@@ -42,14 +26,14 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
 
       if (authResult.user != null && mounted) {
         // Find existing profile
-        UserProfile? profile = await authService.getUserProfile(authResult.user!.uid);
+        UserProfile? profile = await authService.getUserProfile(authResult.user!.id);
         
         if (profile == null) {
           // Fallback if sync failed internally
           profile = UserProfile(
-            uid: authResult.user!.uid,
+            uid: authResult.user!.id,
             email: authResult.user!.email ?? '',
-            name: authResult.user!.displayName ?? 'New User',
+            name: (authResult.user!.userMetadata?['full_name'] ?? authResult.user!.userMetadata?['name']) ?? 'New User',
             role: role,
             isVerified: false,
           );
@@ -91,7 +75,11 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded,
               color: AppTheme.textPrimaryColor, size: 20),
           onPressed: () {
-            ref.read(onboardingStageProvider.notifier).state = 'welcome';
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              ref.read(onboardingStageProvider.notifier).state = 'welcome';
+            }
           },
         ),
         title: Row(
@@ -176,80 +164,7 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // --- BEFORE YOU CONTINUE BLOCK ---
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderColor, width: 1.5),
-                      color: Colors.white,
-                      boxShadow: AppTheme.floatingShadow,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'BEFORE YOU CONTINUE',
-                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: AppTheme.textSecondaryColor),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: Checkbox(
-                                value: _agreedToTerms,
-                                onChanged: (val) {
-                                  final newVal = val ?? false;
-                                  setState(() => _agreedToTerms = newVal);
-                                  ref.read(agreedToTermsProvider.notifier).state = newVal;
-                                },
-                                activeColor: AppTheme.primaryColor,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor, fontSize: 13)),
-                            GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, '/terms'),
-                              child: Text(
-                                'Terms of Use',
-                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor, fontSize: 13),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: Checkbox(
-                                value: _agreedToPrivacy,
-                                onChanged: (val) {
-                                  final newVal = val ?? false;
-                                  setState(() => _agreedToPrivacy = newVal);
-                                  ref.read(agreedToPrivacyProvider.notifier).state = newVal;
-                                },
-                                activeColor: AppTheme.primaryColor,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor, fontSize: 13)),
-                            GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, '/privacy'),
-                              child: Text(
-                                'Privacy Policy',
-                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor, fontSize: 13),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+
 
                   // Patient Portal Card
                   _PortalCard(
@@ -260,10 +175,6 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                         'Access prescriptions, find nearby pharmacies, and manage your health profile.',
                     buttonLabel: 'Enter Patient Portal',
                     onPortalPressed: () {
-                      if (!_agreedToTerms || !_agreedToPrivacy) {
-                        _showAgreementWarning();
-                        return;
-                      }
                       Navigator.of(context).pushNamed('/registration');
                     },
                     onGooglePressed: () => _handleGoogleSignIn('patient'),
@@ -278,10 +189,6 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
                         'Manage inventory, verify prescriptions, and connect with patients.',
                     buttonLabel: 'Enter Pharmacy Portal',
                     onPortalPressed: () {
-                      if (!_agreedToTerms || !_agreedToPrivacy) {
-                        _showAgreementWarning();
-                        return;
-                      }
                       Navigator.of(context).pushNamed('/registration', arguments: 'pharmacy');
                     },
                     onGooglePressed: () => _handleGoogleSignIn('pharmacy'),
@@ -452,6 +359,17 @@ class _PortalCard extends StatelessWidget {
                 onTap: null,
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'By continuing, you agree to our Terms of Use and Privacy Policy.',
+                style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiaryColor),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
         ],
       ),

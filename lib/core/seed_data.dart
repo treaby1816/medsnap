@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> seedProducts() async {
-  final firestore = FirebaseFirestore.instance;
+  final supabase = Supabase.instance.client;
   
   final products = [
     {
@@ -15,7 +15,7 @@ Future<void> seedProducts() async {
       'stockCount': 50,
       'maxStock': 100,
       'category': 'Pain Relief',
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': DateTime.now().toIso8601String(),
     },
     {
       'name': 'Vitamin C 1000mg',
@@ -27,7 +27,7 @@ Future<void> seedProducts() async {
       'stockCount': 30,
       'maxStock': 50,
       'category': 'Supplements',
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': DateTime.now().toIso8601String(),
     },
     {
       'name': 'Cod Liver Oil',
@@ -39,7 +39,7 @@ Future<void> seedProducts() async {
       'stockCount': 20,
       'maxStock': 30,
       'category': 'Supplements',
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': DateTime.now().toIso8601String(),
     },
     {
       'name': 'Vicks VapoRub',
@@ -51,13 +51,11 @@ Future<void> seedProducts() async {
       'stockCount': 40,
       'maxStock': 60,
       'category': 'Cold & Flu',
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': DateTime.now().toIso8601String(),
     },
   ];
 
-  for (var product in products) {
-    await firestore.collection('products').add(product);
-  }
+  await supabase.from('products').insert(products);
   
   debugPrint('Successfully seeded ${products.length} products.');
 }

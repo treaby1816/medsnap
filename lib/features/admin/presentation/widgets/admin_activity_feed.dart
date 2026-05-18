@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Using Supabase timestamps which are Strings
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers/admin_providers.dart';
@@ -31,14 +31,18 @@ class AdminActivityFeed extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Audit Telemetry',
-                style: GoogleFonts.inter(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimaryColor,
+              Expanded(
+                child: Text(
+                  'Audit Telemetry',
+                  style: GoogleFonts.inter(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimaryColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               const Icon(Icons.verified_user_rounded, size: 20, color: AppTheme.primaryColor),
             ],
           ),
@@ -113,8 +117,8 @@ class AdminActivityFeed extends ConsumerWidget {
 
   String _formatTimestamp(dynamic timestamp) {
     if (timestamp == null) return 'REAL-TIME';
-    if (timestamp is Timestamp) {
-      final dt = timestamp.toDate();
+    if (timestamp is String) {
+      final dt = DateTime.parse(timestamp);
       final diff = DateTime.now().difference(dt);
       if (diff.inMinutes < 60) return '${diff.inMinutes}M AGO';
       if (diff.inHours < 24) return '${diff.inHours}H AGO';

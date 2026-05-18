@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/providers.dart';
@@ -43,11 +43,11 @@ class OrdersScreen extends ConsumerWidget {
                       style: TextStyle(color: Colors.grey, fontSize: 16)),
                   );
                 }
-                return StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('orders')
-                      .where('userId', isEqualTo: currentUser.uid)
-                      .snapshots(),
+                return StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: Supabase.instance.client
+                      .from('orders')
+                      .stream(primaryKey: ['id'])
+                      .eq('userId', currentUser.id),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       debugPrint('Firestore Error: ${snapshot.error}');
@@ -74,16 +74,16 @@ class OrdersScreen extends ConsumerWidget {
                       child: CircularProgressIndicator(color: AppTheme.primaryColor));
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return cartItems.isEmpty ? _buildEmptyState() : const SizedBox.shrink();
                 }
 
-                final orders = snapshot.data!.docs;
+                final orders = snapshot.data!;
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   itemCount: orders.length,
                   itemBuilder: (context, index) {
-                    final order = orders[index].data() as Map<String, dynamic>? ?? {};
+                    final order = orders[index];
                     return _buildOrderHistoryCard(order);
                   },
                 );
@@ -235,7 +235,7 @@ class OrdersScreen extends ConsumerWidget {
     final String medName = items.isNotEmpty ? items[0]['name'] : 'Medication Order';
     final double price = (order['totalAmount'] ?? 0.0).toDouble();
     final String status = order['status'] ?? 'Pending';
-    final Timestamp? date = order['orderDate'] as Timestamp?;
+    final DateTime? date = order['orderDate'] != null ? DateTime.tryParse(order['orderDate']) : null;
 
     return HoverCard(
       borderRadius: BorderRadius.circular(16),
@@ -258,7 +258,7 @@ class OrdersScreen extends ConsumerWidget {
           children: [
             Text(
               date != null
-                  ? "${date.toDate().day}/${date.toDate().month}/${date.toDate().year}"
+                  ? "${date.day}/${date.month}/${date.year}"
                   : "Processing...",
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             ),

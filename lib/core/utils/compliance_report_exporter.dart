@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -27,14 +27,14 @@ class ComplianceReportExporter {
     try {
       List<UserProfile> pharmacies = [];
       try {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('role', isEqualTo: 'pharmacy')
-            .where('isAdminApproved', isEqualTo: true)
-            .get();
+        final data = await Supabase.instance.client
+            .from('users')
+            .select()
+            .eq('role', 'pharmacy')
+            .eq('isAdminApproved', true);
 
-        pharmacies = snapshot.docs
-            .map((doc) => UserProfile.fromMap(doc.data(), doc.id))
+        pharmacies = (data as List<dynamic>)
+            .map((doc) => UserProfile.fromMap(doc, doc['id']?.toString() ?? doc['uid']?.toString()))
             .toList();
       } catch (e) {
         // FALLBACK: Use high-fidelity mock data if permission denied

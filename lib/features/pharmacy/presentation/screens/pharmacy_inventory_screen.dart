@@ -19,7 +19,7 @@ class PharmacyInventoryScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: Text('Please log in')));
     }
 
-    final productsAsync = ref.watch(pharmacyProductsProvider(user.uid));
+    final productsAsync = ref.watch(pharmacyProductsProvider(user.id));
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,

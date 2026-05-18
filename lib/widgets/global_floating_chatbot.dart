@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:vail_meds_v2/core/theme.dart';
@@ -61,14 +60,12 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
   late final AnimationController _blinkController;
   late final Animation<double> _hoverAnimation;
   bool _isChatOpen = false;
-  
-  // Removed WebViewController
+  Offset? _chatPosition;
 
   @override
   void initState() {
     super.initState();
     
-    // 1. Initialize Animation Controllers
     _hoverController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -83,15 +80,14 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
         duration: const Duration(milliseconds: 150)
     );
 
-    // 2. Initialize position relative to bottom-right after frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
         final size = MediaQuery.of(context).size;
         if (size.width > 0 && size.height > 0) {
           setState(() {
-            // Initial relative position: 24px from LEFT, 100px from bottom
             _position = const Offset(24, 100);
+            _chatPosition = const Offset(24, 200); // Initial chat window position
           });
         }
       } catch (e) {
@@ -139,23 +135,15 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
           Positioned(
             left: _position?.dx ?? 24,
             bottom: _position?.dy ?? 100,
-            child: Draggable(
-              feedback: _buildChatbotWidget(isDragging: true),
-              childWhenDragging: const SizedBox.shrink(),
-              onDragEnd: (details) {
+            child: GestureDetector(
+              onPanUpdate: (details) {
                 final size = MediaQuery.of(context).size;
                 setState(() {
-                  // Details.offset is top-left absolute. Convert to bottom-right relative.
-                  // Mascot size is approx 68x68 (container in _buildChatbotWidget)
                   const widgetSize = 88.0; 
-                  
-                  double relLeft = details.offset.dx;
-                  double relBottom = size.height - details.offset.dy - widgetSize;
-                  
-                  // Clamp to screen edges with 24px margin
-                  relLeft = relLeft.clamp(24, size.width - widgetSize - 24);
-                  relBottom = relBottom.clamp(20, size.height - widgetSize - 50);
-                  
+                  double relLeft = details.globalPosition.dx - (widgetSize / 2);
+                  double relBottom = size.height - details.globalPosition.dy - (widgetSize / 2);
+                  relLeft = relLeft.clamp(24.0, size.width - widgetSize - 24.0);
+                  relBottom = relBottom.clamp(20.0, size.height - widgetSize - 50.0);
                   _position = Offset(relLeft, relBottom);
                 });
               },
@@ -168,9 +156,23 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                     builder: (context, child) {
                       return Transform.translate(
                         offset: Offset(0, _hoverAnimation.value),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _isChatOpen = !_isChatOpen),
-                          child: _buildChatbotWidget(isDragging: false),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isChatOpen = !_isChatOpen;
+                                if (_isChatOpen) {
+                                  // Reset chat position near the button
+                                  _chatPosition = Offset(
+                                    (_position?.dx ?? 24) + 10,
+                                    (_position?.dy ?? 100) + 80,
+                                  );
+                                }
+                              });
+                            },
+                            child: _buildChatbotWidget(isDragging: false),
+                          ),
                         ),
                       );
                     },
@@ -189,12 +191,13 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
     final bool isSmallScreen = size.width < 600;
 
     return Positioned(
-      left: isSmallScreen ? 10 : ((_position?.dx ?? 24) + 0),
-      bottom: (_position?.dy ?? 100) + 80,
+      left: isSmallScreen ? 10 : (_chatPosition?.dx ?? 24),
+      bottom: isSmallScreen ? null : (_chatPosition?.dy ?? 180),
+      top: isSmallScreen ? 100 : null,
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: isSmallScreen ? size.width - 40 : 350,
+          width: isSmallScreen ? size.width - 20 : 350,
           height: 500,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -211,52 +214,79 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
           ),
           child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.white24,
-                      child: Icon(Icons.support_agent_rounded, size: 20, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'VailBot AI Support',
-                            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                          Text(
-                            'Hardware Accelerated',
-                            style: GoogleFonts.inter(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.w600),
-                          ),
-                        ],
+              GestureDetector(
+                onPanUpdate: (details) {
+                  final size = MediaQuery.of(context).size;
+                  setState(() {
+                    double relLeft = details.globalPosition.dx - 175; // Half of chat width
+                    double relBottom = size.height - details.globalPosition.dy - 25; // Half of header height
+                    relLeft = relLeft.clamp(10.0, size.width - 360.0);
+                    relBottom = relBottom.clamp(10.0, size.height - 510.0);
+                    _chatPosition = Offset(relLeft, relBottom);
+                  });
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.move,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        topRight: Radius.circular(24),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.phone_in_talk_rounded, color: Colors.greenAccent, size: 18),
-                      tooltip: 'Call Human Support',
-                      onPressed: () => _launchHumanContact(),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.white24,
+                          child: Icon(Icons.support_agent_rounded, size: 20, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'VailBot AI Support',
+                                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              Text(
+                                'Hardware Accelerated',
+                                style: GoogleFonts.inter(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _launchHumanContact(),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.phone_in_talk_rounded, color: Colors.greenAccent, size: 18),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => setState(() => _isChatOpen = false),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
-                      onPressed: () => setState(() => _isChatOpen = false),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               const Expanded(

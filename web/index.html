@@ -29,103 +29,114 @@
   
   
   <style id="splash-screen-style">
-    html {
-      height: 100%
-    }
-
     body {
       margin: 0;
-      min-height: 100%;
-      background-color: #42A5F5;
-          background-size: 100% 100%;
+      min-height: 100vh;
+      background-color: #EC5B13;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+    .splash-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .loader-wrapper {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 24px;
+    }
+    .grid-loader {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      width: 100%;
+      height: 100%;
+    }
+    .grid-cell {
+      background-color: #FFFFFF;
+      border-radius: 4px;
+      animation: pulse-cell 1.5s infinite ease-in-out;
+    }
+    .grid-cell:nth-child(1) { animation-delay: 0.0s; }
+    .grid-cell:nth-child(2) { animation-delay: 0.1s; }
+    .grid-cell:nth-child(3) { animation-delay: 0.2s; }
+    .grid-cell:nth-child(4) { animation-delay: 0.1s; }
+    .grid-cell:nth-child(5) { animation-delay: 0.2s; }
+    .grid-cell:nth-child(6) { animation-delay: 0.3s; }
+    .grid-cell:nth-child(7) { animation-delay: 0.2s; }
+    .grid-cell:nth-child(8) { animation-delay: 0.3s; }
+    .grid-cell:nth-child(9) { animation-delay: 0.4s; }
+
+    @keyframes pulse-cell {
+      0%, 100% { opacity: 0.3; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1); }
     }
 
-    .center {
-      margin: 0;
+    .logo-overlay {
       position: absolute;
       top: 50%;
       left: 50%;
-      -ms-transform: translate(-50%, -50%);
       transform: translate(-50%, -50%);
-    }
-
-    .contain {
-      display:block;
-      width:100%; height:100%;
+      width: 95%;
+      height: 95%;
       object-fit: contain;
+      mix-blend-mode: darken;
+      z-index: 10;
     }
 
-    .stretch {
-      display:block;
-      width:100%; height:100%;
+    .splash-text {
+      font-weight: 900;
+      font-size: 28px;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+      animation: pulse-text 2s infinite ease-in-out;
     }
-
-    .cover {
-      display:block;
-      width:100%; height:100%;
-      object-fit: cover;
-    }
-
-    .bottom {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      -ms-transform: translate(-50%, 0);
-      transform: translate(-50%, 0);
-    }
-
-    .bottomLeft {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-    }
-
-    .bottomRight {
-      position: absolute;
-      bottom: 0;
-      right: 0;
+    @keyframes pulse-text {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
     }
   </style>
   <script id="splash-screen-script">
     function removeSplashFromWeb() {
-      document.getElementById("splash")?.remove();
-      document.getElementById("splash-branding")?.remove();
-      document.body.style.background = "transparent";
-    }
-  </script>
-</head>
-<body>
-  <picture id="splash">
-      <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
-      <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
-      <img class="center" aria-hidden="true" src="splash/img/light-1x.png" alt="">
-  </picture>
-  
-  <div id="native-splash">
-    <img class="splash-logo" src="assets/assets/images/logo2.png" alt="V">
-    <h1 class="splash-text">VailMeds</h1>
-    <div class="loader-track">
-      <div class="loader-bar"></div>
-    </div>
-  </div>
-
-  <script>
-    function removeSplashFromWeb() {
       const nativeSplash = document.getElementById('native-splash');
       if (nativeSplash) {
-        console.log("Removing splash HTML...");
-        nativeSplash.style.transition = 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+        nativeSplash.style.transition = 'opacity 0.2s ease-out';
         nativeSplash.style.opacity = '0';
-        nativeSplash.style.transform = 'scale(0.9) translateY(-20px)';
-        setTimeout(() => nativeSplash.remove(), 600);
+        setTimeout(() => nativeSplash.remove(), 200);
       }
       document.body.style.background = "transparent";
       document.body.style.overflow = "auto";
     }
+  </script>
+</head>
+<body>
+  
+  <div id="native-splash" class="splash-container">
+    <div class="loader-wrapper">
+      <div class="grid-loader">
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+      </div>
+      <img class="logo-overlay" src="assets/images/logo2.png" alt="VailMeds Logo">
+    </div>
+    <div class="splash-text">VailMeds</div>
+  </div>
 
-    window.flutterConfiguration = {
-      renderer: "html",
-    };
+  <script>
+
 
     window.addEventListener("flutter-first-frame", (event) => {
       console.log("BOOT SUCCESS: Flutter first frame rendered.");

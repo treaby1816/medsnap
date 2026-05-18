@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+// Supabase returns timestamps as strings
 class OrderModel {
   final String id;
   final String patientId;
@@ -31,7 +30,7 @@ class OrderModel {
               .toList() ?? [],
       totalAmount: (map['totalAmount'] as num?)?.toDouble() ?? 0.0,
       status: map['status'] ?? 'pending',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime) : DateTime.now(),
       deliveryAddress: map['deliveryAddress'],
     );
   }
@@ -43,7 +42,7 @@ class OrderModel {
       'items': items.map((item) => item.toMap()).toList(),
       'totalAmount': totalAmount,
       'status': status,
-      'createdAt': createdAt,
+      'createdAt': createdAt.toIso8601String(),
       'deliveryAddress': deliveryAddress,
     };
   }

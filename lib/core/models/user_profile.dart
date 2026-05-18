@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+// Supabase returns timestamps as strings
 class UserProfile {
   final String uid;
   final String email;
@@ -78,7 +77,7 @@ class UserProfile {
       licenseNumber: map['licenseNumber'],
       licensePhotoUrl: map['licensePhotoUrl'],
       accessToken: map['accessToken'],
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime?) : null,
       insuranceProvider: map['insuranceProvider'],
       insuranceID: map['insuranceID'],
       healthRecords: map['healthRecords'],
@@ -110,7 +109,7 @@ class UserProfile {
       'licenseNumber': licenseNumber,
       'licensePhotoUrl': licensePhotoUrl,
       'accessToken': accessToken,
-      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'createdAt': createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
       'insuranceProvider': insuranceProvider,
       'insuranceID': insuranceID,
       'healthRecords': healthRecords,

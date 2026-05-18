@@ -1,11 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as p;
 
 class ProductService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final _supabase = Supabase.instance.client;
 
   Future<String?> uploadProductImage({
     required dynamic imageFile, 
@@ -15,15 +13,15 @@ class ProductService {
       String extension = '.jpg'; // Fallback
       try { extension = p.extension(imageFile.path ?? imageFile.name); } catch(_) {}
       String fileName = '${productName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}$extension';
-      Reference ref = _storage.ref().child('inventory/images/$fileName');
+      String path = 'inventory/images/$fileName';
       
       if (kIsWeb) {
         final bytes = await imageFile.readAsBytes();
-        await ref.putData(bytes);
+        await _supabase.storage.from('products').uploadBinary(path, bytes);
       } else {
-        await ref.putFile(imageFile);
+        await _supabase.storage.from('products').upload(path, imageFile);
       }
-      return await ref.getDownloadURL();
+      return _supabase.storage.from('products').getPublicUrl(path);
     } catch (e) {
       return null;
     }
@@ -36,24 +34,28 @@ class ProductService {
     required int initialStock,
     String? imageUrl,
   }) async {
-    await _firestore.collection('products').add({
+    await _supabase.from('products').insert({
       'storeId': storeId,
       'name': name,
       'nameLower': name.toLowerCase(),
       'price': price,
       'stockQuantity': initialStock,
       'imageUrl': imageUrl ?? "",
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': DateTime.now().toIso8601String(),
     });
   }
 
   Future<void> updateStock({required String productId, required int addedQuantity}) async {
-    await _firestore.collection('products').doc(productId).update({
-      'stockQuantity': FieldValue.increment(addedQuantity),
-    });
+    // In Supabase we typically use an RPC to increment, or we fetch and update.
+    // For simplicity, assuming there's an RPC or we use a basic update.
+    final data = await _supabase.from('products').select('stockQuantity').eq('id', productId).single();
+    int current = data['stockQuantity'] ?? 0;
+    await _supabase.from('products').update({
+      'stockQuantity': current + addedQuantity,
+    }).eq('id', productId);
   }
 
   Future<void> deleteProduct(String productId) async {
-    await _firestore.collection('products').doc(productId).delete();
+    await _supabase.from('products').delete().eq('id', productId);
   }
 }

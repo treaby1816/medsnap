@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers.dart';
 import '../../../../core/theme.dart';
@@ -27,9 +27,9 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
   void _processOrder(String orderId) {
     HapticFeedback.mediumImpact();
     // Simulate updating the order
-    FirebaseFirestore.instance.collection('orders').doc(orderId).update({
+    Supabase.instance.client.from('orders').update({
       'status': 'preparing'
-    }).then((_) {
+    }).eq('id', orderId).then((_) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -129,33 +129,31 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
             const SizedBox(height: 24),
             
             // Executive Stats Grid (Responsive)
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('orders')
-                  .where('globalPharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
-                  .snapshots(),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: Supabase.instance.client
+                  .from('orders')
+                  .stream(primaryKey: ['id'])
+                  .eq('globalPharmacyId', ref.watch(authProvider)?.id ?? ''),
               builder: (context, orderSnap) {
-                return StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('products')
-                      .where('pharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
-                      .snapshots(),
+                return StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: Supabase.instance.client
+                      .from('products')
+                      .stream(primaryKey: ['id'])
+                      .eq('pharmacyId', ref.watch(authProvider)?.id ?? ''),
                   builder: (context, productSnap) {
                     int pending = 0;
                     int pickups = 0;
                     int lowStockCount = 0;
                     
                     if (orderSnap.hasData) {
-                      for (var doc in orderSnap.data!.docs) {
-                        final data = doc.data() as Map<String, dynamic>? ?? {};
+                      for (var data in orderSnap.data!) {
                         if (data['status'] == 'Pending') pending++;
                         if (data['status'] == 'Ready') pickups++;
                       }
                     }
 
                     if (productSnap.hasData) {
-                      for (var doc in productSnap.data!.docs) {
-                        final data = doc.data() as Map<String, dynamic>? ?? {};
+                      for (var data in productSnap.data!) {
                         final stock = data['stockCount'] ?? 0;
                         final max = data['maxStock'] ?? 0;
                         if (max > 0 && (stock / max) < 0.2) lowStockCount++;
@@ -245,13 +243,13 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
             const SizedBox(height: 12),
             SizedBox(
               height: 220,
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('products')
-                    .where('pharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
-                    .orderBy('createdAt', descending: true)
-                    .limit(10)
-                    .snapshots(),
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: Supabase.instance.client
+                    .from('products')
+                    .stream(primaryKey: ['id'])
+                    .eq('pharmacyId', ref.watch(authProvider)?.id ?? '')
+                    .order('createdAt', ascending: false)
+                    .limit(10),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return ListView.separated(
@@ -262,7 +260,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                     );
                   }
                   
-                  final products = snapshot.data?.docs.map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>? ?? {}, doc.id)).toList() ?? [];
+                  final products = snapshot.data?.map((doc) => Product.fromMap(doc, doc['id'].toString())).toList() ?? [];
                   
                   if (products.isEmpty) {
                     return Container(
@@ -313,12 +311,11 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
               ],
             ),
             const SizedBox(height: 16),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('orders')
-                  .where('globalPharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
-                  .where('status', isEqualTo: 'Pending')
-                  .snapshots(),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: Supabase.instance.client
+                  .from('orders')
+                  .stream(primaryKey: ['id'])
+                  .eq('globalPharmacyId', ref.watch(authProvider)?.id ?? ''),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Container(
@@ -346,13 +343,13 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                   return const SizedBox.shrink();
                 }
                 
-                final rawDocs = snapshot.data!.docs;
+                final rawDocs = snapshot.data!.where((d) => d['status'] == 'Pending').toList();
                 // Sort client-side
-                final docs = List<QueryDocumentSnapshot>.from(rawDocs);
+                final docs = List<Map<String, dynamic>>.from(rawDocs);
                 docs.sort((a, b) {
-                  final aTime = (a.data() as Map<String, dynamic>? ?? {})['createdAt'] as Timestamp?;
-                  final bTime = (b.data() as Map<String, dynamic>? ?? {})['createdAt'] as Timestamp?;
-                  return (bTime?.toDate() ?? DateTime(0)).compareTo(aTime?.toDate() ?? DateTime(0));
+                  final aTime = a['createdAt'] != null ? DateTime.tryParse(a['createdAt']) : null;
+                  final bTime = b['createdAt'] != null ? DateTime.tryParse(b['createdAt']) : null;
+                  return (bTime ?? DateTime(0)).compareTo(aTime ?? DateTime(0));
                 });
 
                 if (docs.isEmpty) {
@@ -380,13 +377,13 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                   itemCount: docs.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>? ?? {};
-                    final docId = docs[index].id;
-                    final time = data['createdAt'] as Timestamp?;
+                    final data = docs[index];
+                    final docId = docs[index]['id'].toString();
+                    final time = data['createdAt'] != null ? DateTime.tryParse(data['createdAt']) : null;
                     
                     String timeString = 'Recently';
                     if (time != null) {
-                      final diff = DateTime.now().difference(time.toDate());
+                      final diff = DateTime.now().difference(time);
                       if (diff.inMinutes < 60) {
                         timeString = '${diff.inMinutes == 0 ? 1 : diff.inMinutes}m ago';
                       } else if (diff.inHours < 24) {
@@ -512,12 +509,12 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
             const SizedBox(height: 8),
             HoverCard(
               padding: const EdgeInsets.all(20),
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                  .collection('products')
-                  .where('pharmacyId', isEqualTo: ref.watch(authProvider)?.uid)
-                  .limit(5)
-                  .snapshots(),
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: Supabase.instance.client
+                  .from('products')
+                  .stream(primaryKey: ['id'])
+                  .eq('pharmacyId', ref.watch(authProvider)?.id ?? '')
+                  .limit(5),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return Column(
@@ -527,7 +524,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                       )),
                     );
                   }
-                  final productDocs = snapshot.data!.docs;
+                  final productDocs = snapshot.data!;
                   if (productDocs.isEmpty) {
                     return Center(
                       child: Padding(
@@ -539,7 +536,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                   
                   return Column(
                      children: productDocs.map((doc) {
-                       final data = doc.data() as Map<String, dynamic>? ?? {};
+                       final data = doc;
                        final name = data['name'] ?? 'Product';
                        final stock = data['stockCount'] ?? 0;
                        final max = data['maxStock'] ?? 100;

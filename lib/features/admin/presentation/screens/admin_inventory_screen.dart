@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../core/models/product_model.dart';
@@ -149,14 +149,14 @@ class _AdminInventoryScreenState extends ConsumerState<AdminInventoryScreen> wit
   }
 
   Widget _buildStreamContent() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('products').snapshots(),
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: Supabase.instance.client.from('products').stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text('Data Stream Error: ${snapshot.error}'));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
 
-        final products = snapshot.data!.docs
-            .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>? ?? {}, doc.id))
+        final products = snapshot.data!
+            .map((doc) => Product.fromMap(doc, doc['id'].toString()))
             .where((p) => p.name.toLowerCase().contains(_searchQuery) || p.pharmacyName.toLowerCase().contains(_searchQuery))
             .toList();
 

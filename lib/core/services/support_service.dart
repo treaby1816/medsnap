@@ -1,32 +1,32 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/support_ticket.dart';
 
 class SupportService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
 
   /// Stream of all tickets, optionally filtered by userType (PATIENT/PHARMACY).
   Stream<List<SupportTicket>> getTicketsStream({String? userTypeFilter}) {
-    Query query = _firestore.collection('tickets').orderBy('updatedAt', descending: true);
+    var query = _supabase.from('tickets').stream(primaryKey: ['id']).order('updatedAt', ascending: false);
     
     if (userTypeFilter != null && userTypeFilter != 'all') {
-      query = query.where('userType', isEqualTo: userTypeFilter.toUpperCase());
+      // Stream filtering in Supabase is slightly different, usually eq()
+      query = _supabase.from('tickets').stream(primaryKey: ['id']).eq('userType', userTypeFilter.toUpperCase()).order('updatedAt', ascending: false);
     }
 
-    return query.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => SupportTicket.fromMap(doc.data() as Map<String, dynamic>? ?? {}, doc.id))
+    return query.map((maps) => maps
+        .map((doc) => SupportTicket.fromMap(doc, doc['id'].toString()))
         .toList());
   }
 
   /// Stream of messages for a specific ticket.
   Stream<List<TicketMessage>> getMessagesStream(String ticketId) {
-    return _firestore
-        .collection('tickets')
-        .doc(ticketId)
-        .collection('messages')
-        .orderBy('timestamp', descending: false)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => TicketMessage.fromMap(doc.data(), doc.id))
+    return _supabase
+        .from('ticket_messages')
+        .stream(primaryKey: ['id'])
+        .eq('ticketId', ticketId)
+        .order('timestamp', ascending: true)
+        .map((maps) => maps
+            .map((doc) => TicketMessage.fromMap(doc, doc['id'].toString()))
             .toList());
   }
 
@@ -38,10 +38,7 @@ class SupportService {
     required String content,
     bool isInternal = false,
   }) async {
-    final batch = _firestore.batch();
-    final ticketRef = _firestore.collection('tickets').doc(ticketId);
-    final messageRef = ticketRef.collection('messages').doc();
-
+    // In Supabase, we can use RPC or perform concurrent inserts
     final message = TicketMessage(
       id: '',
       senderName: senderName,
@@ -52,17 +49,16 @@ class SupportService {
       isInternal: isInternal,
     );
 
-    // 1. Add Message
-    batch.set(messageRef, message.toMap());
+    final msgData = message.toMap();
+    msgData['ticketId'] = ticketId;
 
-    // 2. Update Ticket Header
-    batch.update(ticketRef, {
+    await _supabase.from('ticket_messages').insert(msgData);
+
+    await _supabase.from('tickets').update({
       'lastMessage': content,
-      'updatedAt': FieldValue.serverTimestamp(),
-      'status': 'open', // Re-open if it was closed
-    });
-
-    await batch.commit();
+      'updatedAt': DateTime.now().toIso8601String(),
+      'status': 'open',
+    }).eq('id', ticketId);
   }
 
   /// Creates a system-generated ticket (e.g. for Low Stock).
@@ -71,9 +67,6 @@ class SupportService {
     required String snippet,
     required String content,
   }) async {
-    final ticketRef = _firestore.collection('tickets').doc();
-    final messageRef = ticketRef.collection('messages').doc();
-
     final ticket = SupportTicket(
       id: '',
       userName: 'System Monitor',
@@ -85,18 +78,22 @@ class SupportService {
       lastMessage: content.split('\n').first,
     );
 
-    await ticketRef.set(ticket.toMap());
-    
-    final message = TicketMessage(
-      id: '',
-      senderName: 'System Automator',
-      senderId: 'system',
-      role: UserRole.system,
-      content: content,
-      timestamp: DateTime.now(),
-    );
-
-    await messageRef.set(message.toMap());
+    final response = await _supabase.from('tickets').insert(ticket.toMap()).select();
+    if (response.isNotEmpty) {
+      final ticketId = response.first['id'].toString();
+      
+      final message = TicketMessage(
+        id: '',
+        senderName: 'System Automator',
+        senderId: 'system',
+        role: UserRole.system,
+        content: content,
+        timestamp: DateTime.now(),
+      );
+      
+      final msgData = message.toMap();
+      msgData['ticketId'] = ticketId;
+      await _supabase.from('ticket_messages').insert(msgData);
+    }
   }
 }
-

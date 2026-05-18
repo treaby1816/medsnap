@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdModel {
   final String id;
   final String imageUrl;
   final String title;
   final String linkUrl;
-  final int priority; // Added for sorting
+  final int priority;
 
   AdModel({
     required this.id, 
@@ -15,10 +15,9 @@ class AdModel {
     this.priority = 0,
   });
 
-  factory AdModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
+  factory AdModel.fromMap(Map<String, dynamic> data, String id) {
     return AdModel(
-      id: doc.id,
+      id: id,
       imageUrl: data['imageUrl'] ?? "",
       title: data['title'] ?? "Special Offer",
       linkUrl: data['linkUrl'] ?? "",
@@ -33,7 +32,7 @@ class JobModel {
   final String pharmacyName;
   final String salary;
   final String location;
-  final String contactEmail; // Crucial for the Apply button
+  final String contactEmail;
 
   JobModel({
     required this.id, 
@@ -44,13 +43,12 @@ class JobModel {
     required this.contactEmail,
   });
 
-  factory JobModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
+  factory JobModel.fromMap(Map<String, dynamic> data, String id) {
     return JobModel(
-      id: doc.id,
+      id: id,
       role: data['role'] ?? "Pharmacist",
       pharmacyName: data['pharmacyName'] ?? "Vail Pharmacy",
-      salary: data['salaryRange'] ?? data['salary'] ?? "Negotiable", // Handles both field names
+      salary: data['salaryRange'] ?? data['salary'] ?? "Negotiable",
       location: data['location'] ?? "Lagos",
       contactEmail: data['contactEmail'] ?? "",
     );
@@ -58,40 +56,36 @@ class JobModel {
 }
 
 class PublicService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
 
-  // Stream for Ads - Now sorted by Priority
   Stream<List<AdModel>> getAds() {
-    return _db
-        .collection('advertisements') // Matching your collection name
-        .orderBy('priority', descending: false)
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => AdModel.fromFirestore(doc)).toList());
+    return _supabase
+        .from('advertisements')
+        .stream(primaryKey: ['id'])
+        .order('priority', ascending: true)
+        .map((maps) => maps.map((doc) => AdModel.fromMap(doc, doc['id'].toString())).toList());
   }
 
-  // Stream for Jobs - Sorted by newest first
   Stream<List<JobModel>> getJobs() {
-    return _db
-        .collection('jobs')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => JobModel.fromFirestore(doc)).toList());
+    return _supabase
+        .from('jobs')
+        .stream(primaryKey: ['id'])
+        .order('createdAt', ascending: false)
+        .map((maps) => maps.map((doc) => JobModel.fromMap(doc, doc['id'].toString())).toList());
   }
 
-  // Global Med Search (Connects Pharmacy Data to Patients)
-  Stream<QuerySnapshot> searchMedications(String query) {
+  Stream<List<Map<String, dynamic>>> searchMedications(String query) {
     if (query.isEmpty) {
-      return _db.collection('products').limit(15).snapshots();
+      return _supabase.from('products').stream(primaryKey: ['id']).limit(15);
     }
     
     String searchKey = query.toLowerCase().trim();
     
-    return _db.collection('products')
-        .where('nameLower', isGreaterThanOrEqualTo: searchKey)
-        .where('nameLower', isLessThanOrEqualTo: '$searchKey\uf8ff')
-        .snapshots();
+    return _supabase.from('products').stream(primaryKey: ['id']).map((list) {
+      return list.where((p) {
+        final name = (p['name'] as String? ?? '').toLowerCase();
+        return name.contains(searchKey);
+      }).toList();
+    });
   }
 }
-

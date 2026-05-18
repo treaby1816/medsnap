@@ -5,6 +5,7 @@ class VailMedsScaffold extends StatelessWidget {
   final String? title;
   final List<Widget>? actions;
   final Widget? floatingActionButton;
+  final Widget? leading;
   final bool showAppBar;
   final bool resizeToAvoidBottomInset;
   final ScrollPhysics physics;
@@ -16,6 +17,7 @@ class VailMedsScaffold extends StatelessWidget {
     this.title,
     this.actions,
     this.floatingActionButton,
+    this.leading,
     this.showAppBar = true,
     this.resizeToAvoidBottomInset = true,
     this.physics = const ClampingScrollPhysics(),
@@ -42,6 +44,7 @@ class VailMedsScaffold extends StatelessWidget {
       appBar: showAppBar
           ? AppBar(
               title: title != null ? Text(title!) : null,
+              leading: leading,
               actions: actions,
               backgroundColor: Colors.transparent,
               elevation: 0,

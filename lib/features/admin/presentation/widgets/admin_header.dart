@@ -47,9 +47,10 @@ class _AdminHeaderState extends State<AdminHeader> {
             children: [
               // ── Search Bar ──
               if (MediaQuery.of(context).size.width >= 600)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: _isSearchFocused ? 420 : 350,
+                Flexible(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: _isSearchFocused ? 420 : 350,
                   height: 48,
                   decoration: BoxDecoration(
                     color: _isSearchFocused ? Colors.white : AppTheme.backgroundColor.withValues(alpha: 0.8),
@@ -129,6 +130,7 @@ class _AdminHeaderState extends State<AdminHeader> {
                       ),
                     ],
                   ),
+                ),
                 ),
 
               const Spacer(),

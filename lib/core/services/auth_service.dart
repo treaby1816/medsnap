@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -15,26 +14,22 @@ class AuthResult {
 }
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
   final _secureStorage = const FlutterSecureStorage();
   
-  // FIXED: serverClientId is mandatory for Android to receive an idToken for Firebase.
-  // This must match the "Web Client ID" in your Firebase Google Auth settings.
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: kIsWeb ? '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com' : null,
     serverClientId: '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com',
     scopes: ['email', 'openid'],
   );
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-  User? get currentUser => _auth.currentUser;
+  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+  User? get currentUser => _supabase.auth.currentUser;
 
-  /// Securely stores PII on the device's hardware keystore/keychain.
   Future<void> _securelyStorePII(User user, String role) async {
     if (kIsWeb) return; 
     try {
-      await _secureStorage.write(key: 'user_uid', value: user.uid);
+      await _secureStorage.write(key: 'user_uid', value: user.id);
       await _secureStorage.write(key: 'user_email', value: user.email);
       await _secureStorage.write(key: 'user_role', value: role);
       developer.log('PII secured successfully', name: 'VailMedsAuth');
@@ -53,83 +48,62 @@ class AuthService {
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      // ERROR GUARD: Verify tokens exist before hitting Firebase
       if (googleAuth.idToken == null && googleAuth.accessToken == null) {
         throw Exception("Failed to retrieve Auth Tokens from Google.");
       }
 
-      final AuthCredential credential = GoogleAuthProvider.credential(
+      final AuthResponse response = await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: googleAuth.idToken!,
         accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
       );
-
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
       
-      if (userCredential.user != null) {
-        final doc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
+      if (response.user != null) {
+        final doc = await _supabase.from('users').select().eq('id', response.user!.id).maybeSingle();
         String finalRole = role;
         
-        if (!doc.exists) {
-          // Auto-assign Admin based on corporate email domain
-          finalRole = (userCredential.user!.email?.endsWith('@vailmeds.com') ?? false) 
-              ? 'admin' 
-              : role;
+        if (doc == null) {
+          finalRole = (response.user!.email?.endsWith('@vailmeds.com') ?? false) ? 'admin' : role;
 
           final profile = UserProfile(
-            uid: userCredential.user!.uid,
-            email: userCredential.user!.email ?? '',
-            name: userCredential.user!.displayName ?? 'New User',
-            phone: userCredential.user!.phoneNumber,
+            uid: response.user!.id,
+            email: response.user!.email ?? '',
+            name: response.user!.userMetadata?['full_name'] ?? 'New User',
+            phone: response.user!.phone ?? '',
             role: finalRole,
             isVerified: finalRole == 'patient' || finalRole == 'admin',
           );
           await createUserProfile(profile);
-          await _securelyStorePII(userCredential.user!, finalRole);
-          return AuthResult(user: userCredential.user, isNewUser: true);
+          await _securelyStorePII(response.user!, finalRole);
+          return AuthResult(user: response.user, isNewUser: true);
         } else {
-          finalRole = doc.data()?['role'] ?? 'patient';
-          await _securelyStorePII(userCredential.user!, finalRole);
-          return AuthResult(user: userCredential.user, isNewUser: false);
+          finalRole = doc['role'] ?? 'patient';
+          await _securelyStorePII(response.user!, finalRole);
+          return AuthResult(user: response.user, isNewUser: false);
         }
       }
       
-      return AuthResult(user: userCredential.user, isNewUser: false);
+      return AuthResult(user: response.user, isNewUser: false);
     } catch (e) {
       developer.log('Google Auth Error: $e', name: 'VailMedsAuth');
-      
-      // FRIENDLY ERROR HANDLING: Prevents abrupt crashes
-      String errorMsg = "Sign-in failed. Please try again.";
-      final String eStr = e.toString();
-      
-      if (eStr.contains('10') || eStr.contains('DEVELOPER_ERROR')) {
-        errorMsg = "Security Signature Mismatch (Api10). Please ensure your SHA-1 fingerprint is registered in Firebase Console.";
-      } else if (eStr.contains('redirect_uri_mismatch')) {
-        errorMsg = "Auth Configuration Error: Redirect URI Mismatch. Check Google Cloud Console Authorized URIs.";
-      } else if (eStr.contains('network_error')) {
-        errorMsg = "Network error. Please check your internet connection.";
-      } else if (eStr.contains('popup_closed_by_user')) {
-        errorMsg = "Sign-in cancelled.";
-      }
-      
-      throw Exception(errorMsg);
+      throw Exception("Sign-in failed. Please try again.");
     }
   }
 
   Future<AuthResult> signInWithEmail(String email, String password) async {
     try {
-      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
       
-      if (userCredential.user != null) {
-        final profile = await getUserProfile(userCredential.user!.uid);
+      if (response.user != null) {
+        final profile = await getUserProfile(response.user!.id);
         if (profile != null) {
-          await _securelyStorePII(userCredential.user!, profile.role);
+          await _securelyStorePII(response.user!, profile.role);
         }
       }
-      return AuthResult(user: userCredential.user, isNewUser: false);
+      return AuthResult(user: response.user, isNewUser: false);
     } catch (e) {
       developer.log('Email Sign-In Error: $e', name: 'VailMedsAuth');
       rethrow;
@@ -138,17 +112,17 @@ class AuthService {
 
   Future<AuthResult> registerWithEmail(String email, String password, String name, String phone, String role) async {
     try {
-      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      final response = await _supabase.auth.signUp(
         email: email,
         password: password,
+        data: {'full_name': name},
       );
       
-      if (userCredential.user != null) {
-        await userCredential.user!.updateDisplayName(name);
+      if (response.user != null) {
         final String finalRole = (email.endsWith('@vailmeds.com')) ? 'admin' : role;
 
         final profile = UserProfile(
-          uid: userCredential.user!.uid,
+          uid: response.user!.id,
           email: email,
           name: name,
           phone: phone,
@@ -156,11 +130,20 @@ class AuthService {
           isVerified: finalRole == 'patient' || finalRole == 'admin',
         );
         await createUserProfile(profile);
-        await _securelyStorePII(userCredential.user!, finalRole);
+        await _securelyStorePII(response.user!, finalRole);
       }
-      return AuthResult(user: userCredential.user, isNewUser: true);
+      return AuthResult(user: response.user, isNewUser: true);
     } catch (e) {
       developer.log('Email Registration Error: $e', name: 'VailMedsAuth');
+      rethrow;
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _supabase.auth.resetPasswordForEmail(email);
+    } catch (e) {
+      developer.log('Password Reset Error: $e', name: 'VailMedsAuth');
       rethrow;
     }
   }
@@ -168,21 +151,19 @@ class AuthService {
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
-      await _auth.signOut();
-      await _secureStorage.deleteAll(); // Mandatory: Clear PII on Logout
+      await _supabase.auth.signOut();
+      await _secureStorage.deleteAll(); 
       developer.log('Sign-out successful and PII purged.', name: 'VailMedsAuth');
     } catch (e) {
       developer.log('Sign-out Error: $e', name: 'VailMedsAuth');
     }
   }
 
-  // --- Firestore Profile Management ---
-
   Future<UserProfile?> getUserProfile(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists && doc.data() != null) {
-        return UserProfile.fromMap(doc.data()!);
+      final doc = await _supabase.from('users').select().eq('id', uid).maybeSingle();
+      if (doc != null) {
+        return UserProfile.fromMap(doc, uid);
       }
     } catch (e) {
       developer.log('Profile Fetch Error: $e', name: 'VailMedsAuth');
@@ -192,7 +173,9 @@ class AuthService {
 
   Future<void> createUserProfile(UserProfile profile) async {
     try {
-      await _firestore.collection('users').doc(profile.uid).set(profile.toMap());
+      final data = profile.toMap();
+      data['id'] = profile.uid; // Supabase requires matching primary key
+      await _supabase.from('users').upsert(data);
     } catch (e) {
       developer.log('Profile Creation Error: $e', name: 'VailMedsAuth');
     }
@@ -200,7 +183,7 @@ class AuthService {
 
   Future<void> updateProfile(String uid, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection('users').doc(uid).update(data);
+      await _supabase.from('users').update(data).eq('id', uid);
     } catch (e) {
       developer.log('Profile Update Error: $e', name: 'VailMedsAuth');
       rethrow;
@@ -217,49 +200,44 @@ class AuthService {
         'verificationStatus': 'pending', 
         'isAdminApproved': false,       
         'isVerified': false,            
-        'submittedAt': FieldValue.serverTimestamp(),
       };
       
       if (storeName != null) updateData['storeName'] = storeName;
       if (npiNumber != null) updateData['npiNumber'] = npiNumber;
       if (licensePhotoUrl != null) updateData['licensePhotoUrl'] = licensePhotoUrl;
 
-      await _firestore.collection('users').doc(uid).update(updateData);
+      await updateProfile(uid, updateData);
     } catch (e) {
       developer.log('Verification Request Error: $e', name: 'VailMedsAuth');
       rethrow;
     }
   }
 
-  // Admin Methods
-
   Stream<List<UserProfile>> getPendingPharmacies() {
-    return _firestore
-        .collection('users')
-        .where('role', isEqualTo: 'pharmacy')
-        .where('verificationStatus', isEqualTo: 'pending')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => UserProfile.fromMap(doc.data(), doc.id))
+    return _supabase
+        .from('users')
+        .stream(primaryKey: ['id'])
+        .eq('role', 'pharmacy')
+        .map((maps) => maps
+            .where((m) => m['verificationStatus'] == 'pending')
+            .map((map) => UserProfile.fromMap(map, map['id']?.toString() ?? map['uid']?.toString()))
             .toList());
   }
 
   Future<void> adminApprovePharmacy(String uid) async {
     try {
-      await _firestore.collection('users').doc(uid).update({
+      await _supabase.from('users').update({
         'isAdminApproved': true,
         'isVerified': true,
         'verificationStatus': 'approved',
-        'approvedAt': FieldValue.serverTimestamp(),
-        'approvedBy': _auth.currentUser?.uid,
-      });
+        'approvedBy': currentUser?.id,
+      }).eq('id', uid);
       
-      // Log the event for security audit
       final pharmacyProfile = await getUserProfile(uid);
       await AuditLogger.logPharmacyApproval(
         licenseNumber: pharmacyProfile?.licenseNumber ?? 'N/A',
-        adminName: _auth.currentUser?.displayName ?? 'Admin',
-        adminUid: _auth.currentUser!.uid,
+        adminName: currentUser?.userMetadata?['full_name'] ?? 'Admin',
+        adminUid: currentUser!.id,
         pharmacyUid: uid,
       );
     } catch (e) {
@@ -270,13 +248,12 @@ class AuthService {
 
   Future<void> adminRejectPharmacy(String uid, String reason) async {
     try {
-      await _firestore.collection('users').doc(uid).update({
+      await _supabase.from('users').update({
         'isAdminApproved': false,
         'isVerified': false,
         'verificationStatus': 'rejected',
         'rejectionReason': reason,
-        'rejectedAt': FieldValue.serverTimestamp(),
-      });
+      }).eq('id', uid);
     } catch (e) {
       developer.log('Admin Rejection Error: $e', name: 'VailMedsAuth');
       rethrow;
@@ -285,14 +262,13 @@ class AuthService {
 
   Future<String?> getAdminMasterKey() async {
     try {
-      final doc = await _firestore.collection('app_settings').doc('admin_config').get();
-      if (doc.exists) {
-        return doc.data()?['master_access_code'] as String?;
+      final doc = await _supabase.from('app_settings').select('master_access_code').eq('id', 'admin_config').maybeSingle();
+      if (doc != null) {
+        return doc['master_access_code'] as String?;
       }
     } catch (e) {
       developer.log('Error fetching Admin Master Key: $e', name: 'VailMedsAuth');
     }
-    // FALLBACK: Ensure the developer can always access the dashboard via the emergency bypass
     return 'VM-2026-NGR'.trim();
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
@@ -43,12 +43,12 @@ class _PatientSearchScreenState extends State<PatientSearchScreen> {
     setState(() => _isBooking = true);
 
     try {
-      await FirebaseFirestore.instance.collection('orders').add({
+      await Supabase.instance.client.from('orders').insert({
         'medicationId': medId,
         'medicationName': medName,
         'price': price,
         'status': 'Pending',
-        'orderDate': FieldValue.serverTimestamp(),
+        'orderDate': DateTime.now().toIso8601String(),
         'customerName': 'Guest User',
       });
 
@@ -349,8 +349,8 @@ class _PatientSearchScreenState extends State<PatientSearchScreen> {
   // ── 5. Results List (Firestore-powered) ──────────────────────────────────
   Widget _buildResultsList(bool isDark) {
     return SliverToBoxAdapter(
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('medications').snapshots(),
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: Supabase.instance.client.from('medications').stream(primaryKey: ['id']),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Padding(
@@ -367,8 +367,7 @@ class _PatientSearchScreenState extends State<PatientSearchScreen> {
             );
           }
 
-          final docs = snapshot.data!.docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>? ?? {};
+          final docs = snapshot.data!.where((data) {
             final name = (data['name'] ?? '').toString().toLowerCase();
             final brand = (data['brand'] ?? '').toString().toLowerCase();
             final category = data['category'] ?? '';
@@ -391,8 +390,8 @@ class _PatientSearchScreenState extends State<PatientSearchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: docs.length,
             itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>? ?? {};
-              final String medId = docs[index].id;
+              final data = docs[index];
+              final String medId = data['id'].toString();
               return _ProductCard(
                 medId: medId,
                 name: data['name'] ?? 'Unknown Drug',

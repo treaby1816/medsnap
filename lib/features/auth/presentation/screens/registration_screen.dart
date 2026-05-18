@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
@@ -81,12 +81,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           ),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('already registered')) {
         _showExistingUserPrompt(messenger);
       } else {
         messenger.showSnackBar(
-          SnackBar(content: Text('Registration failed: ${e.message ?? e.code}')),
+          SnackBar(content: Text('Registration failed: ${e.message}')),
         );
       }
     } catch (e) {
@@ -131,7 +131,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
       if (authResult.user != null) {
         // Fetch role to ensure proper routing
-        final profile = await authService.getUserProfile(authResult.user!.uid);
+        final profile = await authService.getUserProfile(authResult.user!.id);
         if (profile != null) {
           ref.read(userRoleProvider.notifier).setRole(profile.role);
           final route = profile.role == 'pharmacy' ? '/pharmacy-dashboard' : '/main';
@@ -141,8 +141,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           navigator.pushNamedAndRemoveUntil(route, (r) => false);
         }
       }
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'invalid-credential') {
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('invalid login credentials')) {
         messenger.showSnackBar(
           const SnackBar(content: Text('Incorrect password. Please try again.')),
         );
@@ -255,150 +255,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // --- BEFORE YOU CONTINUE BLOCK (Hidden if consented globally) ---
-                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderColor, width: 1.5),
-                    color: Colors.transparent,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'BEFORE YOU CONTINUE',
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: AppTheme.textSecondaryColor),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: _agreedToTerms,
-                              onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
-                              activeColor: AppTheme.primaryColor,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
-                          GestureDetector(
-                            onTap: () => Navigator.pushNamed(context, '/terms'),
-                            child: Text(
-                              'Terms of Use',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: _agreedToPrivacy,
-                              onChanged: (val) => setState(() => _agreedToPrivacy = val ?? false),
-                              activeColor: AppTheme.primaryColor,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text('I agree to the ', style: GoogleFonts.inter(color: AppTheme.textSecondaryColor)),
-                          GestureDetector(
-                            onTap: () => Navigator.pushNamed(context, '/privacy'),
-                            child: Text(
-                              'Privacy Policy',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: AppTheme.textPrimaryColor),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
-                const SizedBox(height: 24),
 
-                // --- SOCIAL LOGIN GRID ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildSquareSocialBtn(
-                      iconWidget: const Text(
-                        'G',
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
-                      ),
-                      label: 'Google',
-                      onTap: _isLoading ? null : () async {
-                        final isConsented = ref.read(agreedToTermsProvider) && ref.read(agreedToPrivacyProvider);
-                        if (!isConsented && (!_agreedToTerms || !_agreedToPrivacy)) {
-                          _showAgreementWarning();
-                          return;
-                        }
-                        final messenger = ScaffoldMessenger.of(context);
-                        final navigator = Navigator.of(context);
-                        setState(() => _isLoading = true);
-                        try {
-                          final authResult = await ref.read(authServiceProvider).signInWithGoogle(role: widget.initialRole);
-                          if (authResult.user != null) {
-                            ref.read(userRoleProvider.notifier).setRole(widget.initialRole);
-                            setState(() => _isLoading = false);
-                            // ALWAYS show Success screen as requested by the user
-                            navigator.pushReplacementNamed('/success', arguments: {
-                              'role': widget.initialRole,
-                              'isReturningUser': !authResult.isNewUser,
-                            });
-                          }
-                        } catch (e) {
-                          messenger.showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
-                        } finally {
-                          if (mounted) setState(() => _isLoading = false);
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 20),
-                    _buildSquareSocialBtn(
-                      iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
-                      label: 'Apple',
-                      tagText: 'Soon',
-                      onTap: null,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
-                Center(
-                  child: Text(
-                    '↑ Accept both agreements above to enable sign-in',
-                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiaryColor),
-                  ),
-                ),
-                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
-                const SizedBox(height: 24),
-
-                // OR Divider
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Divider(color: AppTheme.borderColor),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'or continue with email',
-                        style: textTheme.bodySmall,
-                      ),
-                    ),
-                    const Expanded(
-                      child: Divider(color: AppTheme.borderColor),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
 
                 // Form Fields
                 _buildField('Full Name', Icons.person_outline,
@@ -446,6 +303,92 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 const SizedBox(height: 28),
 
+                // --- BEFORE YOU CONTINUE BLOCK ---
+                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.borderColor, width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 24, height: 24,
+                            child: Checkbox(
+                              value: _agreedToTerms,
+                              onChanged: (val) {
+                                final newVal = val ?? false;
+                                setState(() => _agreedToTerms = newVal);
+                                ref.read(agreedToTermsProvider.notifier).state = newVal;
+                              },
+                              activeColor: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => Navigator.pushNamed(context, '/terms'),
+                              child: RichText(
+                                text: TextSpan(
+                                  text: 'I agree to the ',
+                                  style: GoogleFonts.inter(color: AppTheme.textSecondaryColor, fontSize: 13),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Terms of Use',
+                                      style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 24, height: 24,
+                            child: Checkbox(
+                              value: _agreedToPrivacy,
+                              onChanged: (val) {
+                                final newVal = val ?? false;
+                                setState(() => _agreedToPrivacy = newVal);
+                                ref.read(agreedToPrivacyProvider.notifier).state = newVal;
+                              },
+                              activeColor: AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => Navigator.pushNamed(context, '/privacy'),
+                              child: RichText(
+                                text: TextSpan(
+                                  text: 'I agree to the ',
+                                  style: GoogleFonts.inter(color: AppTheme.textSecondaryColor, fontSize: 13),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
+                const SizedBox(height: 24),
+
                 // Create Secure Account Button
                 SizedBox(
                   width: double.infinity,
@@ -468,6 +411,66 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                           )
                         : const Text('Create Secure Account'),
                   ),
+                ),
+                const SizedBox(height: 24),
+
+                // OR Divider
+                Row(
+                  children: [
+                    const Expanded(child: Divider(color: AppTheme.borderColor)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('or sign in with', style: textTheme.bodySmall),
+                    ),
+                    const Expanded(child: Divider(color: AppTheme.borderColor)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // --- SOCIAL LOGIN GRID ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildSquareSocialBtn(
+                      iconWidget: const Text(
+                        'G',
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
+                      ),
+                      label: 'Google',
+                      onTap: _isLoading ? null : () async {
+                        final isConsented = ref.read(agreedToTermsProvider) && ref.read(agreedToPrivacyProvider);
+                        if (!isConsented && (!_agreedToTerms || !_agreedToPrivacy)) {
+                          _showAgreementWarning();
+                          return;
+                        }
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(context);
+                        setState(() => _isLoading = true);
+                        try {
+                          final authResult = await ref.read(authServiceProvider).signInWithGoogle(role: widget.initialRole);
+                          if (authResult.user != null) {
+                            ref.read(userRoleProvider.notifier).setRole(widget.initialRole);
+                            setState(() => _isLoading = false);
+                            navigator.pushReplacementNamed('/success', arguments: {
+                              'role': widget.initialRole,
+                              'isReturningUser': !authResult.isNewUser,
+                            });
+                          }
+                        } catch (e) {
+                          messenger.showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
+                        } finally {
+                          if (mounted) setState(() => _isLoading = false);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 20),
+                    _buildSquareSocialBtn(
+                      iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
+                      label: 'Apple',
+                      tagText: 'Soon',
+                      onTap: null,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
 

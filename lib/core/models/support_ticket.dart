@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+// Supabase returns timestamps as strings
 enum TicketStatus { open, closed }
 enum TicketPriority { low, normal, urgent }
 enum UserRole { patient, pharmacy, admin, system }
@@ -39,7 +38,7 @@ class SupportTicket {
       snippet: map['snippet'] ?? '',
       status: map['status'] == 'closed' ? TicketStatus.closed : TicketStatus.open,
       priority: _parsePriority(map['priority']),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: map['updatedAt'] != null ? (map['updatedAt'] is String ? DateTime.parse(map['updatedAt']) : map['updatedAt'] as DateTime) : DateTime.now(),
       lastMessage: map['lastMessage'],
     );
   }
@@ -53,7 +52,7 @@ class SupportTicket {
       'snippet': snippet,
       'status': status == TicketStatus.closed ? 'closed' : 'open',
       'priority': priority.name,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedAt': DateTime.now().toIso8601String(),
       'lastMessage': lastMessage,
     };
   }
@@ -91,7 +90,7 @@ class TicketMessage {
       senderId: map['senderId'] ?? '',
       role: _parseRole(map['role']),
       content: map['content'] ?? '',
-      timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      timestamp: map['timestamp'] != null ? (map['timestamp'] is String ? DateTime.parse(map['timestamp']) : map['timestamp'] as DateTime) : DateTime.now(),
       isInternal: map['isInternal'] ?? false,
     );
   }
@@ -102,7 +101,7 @@ class TicketMessage {
       'senderId': senderId,
       'role': role.name,
       'content': content,
-      'timestamp': FieldValue.serverTimestamp(),
+      'timestamp': DateTime.now().toIso8601String(),
       'isInternal': isInternal,
     };
   }

@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+// Supabase returns timestamps as strings
 class JobModel {
   final String id;
   final String pharmacyId;
@@ -30,7 +29,7 @@ class JobModel {
       description: map['description'] ?? '',
       location: map['location'] ?? '',
       salary: (map['salary'] as num?)?.toDouble() ?? 0.0,
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime) : DateTime.now(),
     );
   }
 
@@ -42,7 +41,7 @@ class JobModel {
       'description': description,
       'location': location,
       'salary': salary,
-      'createdAt': createdAt,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

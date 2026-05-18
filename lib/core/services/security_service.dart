@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 // import 'package:root_checker_plus/root_checker_plus.dart';
 // import 'package:screen_protector/screen_protector.dart';
-import 'package:flutter/material.dart' show Color;
+
 import 'dart:developer' as developer;
 
 class SecurityService {

@@ -48,9 +48,9 @@ class _FloatingChatPanelState extends ConsumerState<FloatingChatPanel> {
     final currentUser = ref.read(authProvider);
     if (currentUser != null) {
       final chatService = ref.read(chatServiceProvider);
-      final ids = [currentUser.uid, userId]..sort();
+      final ids = [currentUser.id, userId]..sort();
       final chatId = ids.join('_');
-      chatService.markAsRead(chatId, currentUser.uid);
+      chatService.markAsRead(chatId, currentUser.id);
     }
   }
 
@@ -133,7 +133,7 @@ class _FloatingChatPanelState extends ConsumerState<FloatingChatPanel> {
         // Conversations
         Expanded(
           child: StreamBuilder<List<ChatConversation>>(
-            stream: ref.watch(chatServiceProvider).getConversations(user.uid),
+            stream: ref.watch(chatServiceProvider).getConversations(user.id),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
@@ -522,7 +522,7 @@ class _ActiveChatViewState extends ConsumerState<_ActiveChatView> {
     final userProfile = ref.read(userProfileProvider).value;
 
     ref.read(chatServiceProvider).sendMessage(
-      user.uid,
+      user.id,
       widget.receiverId,
       text,
       senderName: userProfile?.displayName ?? userProfile?.name,
@@ -548,7 +548,7 @@ class _ActiveChatViewState extends ConsumerState<_ActiveChatView> {
     }
 
     final messagesStream =
-        ref.watch(chatServiceProvider).getMessages(user.uid, widget.receiverId);
+        ref.watch(chatServiceProvider).getMessages(user.id, widget.receiverId);
 
     return Column(
       children: [
@@ -580,7 +580,7 @@ class _ActiveChatViewState extends ConsumerState<_ActiveChatView> {
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final message = messages[index];
-                  final isMe = message.senderId == user.uid;
+                  final isMe = message.senderId == user.id;
                   return _buildMessageBubble(message, isMe);
                 },
               );

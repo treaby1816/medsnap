@@ -175,7 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final authResult = await ref.read(authServiceProvider).signInWithEmail(email, password);
       if (authResult.user != null) {
-        final profile = await ref.read(authServiceProvider).getUserProfile(authResult.user!.uid);
+        final profile = await ref.read(authServiceProvider).getUserProfile(authResult.user!.id);
         if (profile != null) {
           final targetRole = role == UserType.pharmacy ? 'pharmacy' : 'patient';
           if (profile.role != targetRole) {
@@ -208,7 +208,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final authResult = await ref.read(authServiceProvider).signInWithGoogle();
       if (authResult.user != null) {
-        final profile = await ref.read(authServiceProvider).getUserProfile(authResult.user!.uid);
+        final profile = await ref.read(authServiceProvider).getUserProfile(authResult.user!.id);
         
         if (profile != null && profile.role != targetRole) {
           await ref.read(authServiceProvider).signOut();
@@ -252,6 +252,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return VailMedsScaffold(
       showAppBar: true,
+      title: '', // Empty title
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.textPrimaryColor, size: 20),
+        onPressed: () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            Navigator.of(context).pushReplacementNamed('/gateway');
+          }
+        },
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(

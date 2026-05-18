@@ -1,13 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class JobService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
 
   // STREAM: Get all jobs for the Patient Dashboard / Job Board
-  Stream<QuerySnapshot> getJobsStream() {
-    return _db.collection('jobs')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+  Stream<List<Map<String, dynamic>>> getJobsStream() {
+    return _supabase.from('jobs')
+        .stream(primaryKey: ['id'])
+        .order('createdAt', ascending: false);
   }
 
   // ACTION: Post a new job (For Pharmacy side)
@@ -18,13 +18,13 @@ class JobService {
     required String salaryRange,
     required String contactEmail,
   }) async {
-    await _db.collection('jobs').add({
+    await _supabase.from('jobs').insert({
       'pharmacyName': pharmacyName,
       'role': role,
       'location': location,
       'salaryRange': salaryRange,
       'contactEmail': contactEmail,
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': DateTime.now().toIso8601String(),
     });
   }
 }

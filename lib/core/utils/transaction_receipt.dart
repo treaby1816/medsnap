@@ -1,6 +1,5 @@
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -258,17 +257,16 @@ class TransactionReceipt {
     return pdf.save();
   }
 
-  /// Generates the PDF and uploads to Firebase Storage.
+  /// Generates the PDF and uploads to Supabase Storage.
   Future<String?> generateAndStore() async {
     try {
       final pdfBytes = await generatePdf();
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('receipts')
-          .child('$orderId.pdf');
+      final path = '$orderId.pdf';
+      await Supabase.instance.client.storage
+          .from('receipts')
+          .uploadBinary(path, pdfBytes, fileOptions: const FileOptions(upsert: true, contentType: 'application/pdf'));
 
-      await ref.putData(pdfBytes, SettableMetadata(contentType: 'application/pdf'));
-      final url = await ref.getDownloadURL();
+      final url = Supabase.instance.client.storage.from('receipts').getPublicUrl(path);
       debugPrint('Receipt stored: $url');
       return url;
     } catch (e) {
@@ -277,10 +275,9 @@ class TransactionReceipt {
     }
   }
 
-  /// Creates a TransactionReceipt from a Firestore order document.
-  static Future<TransactionReceipt?> fromOrderDoc(DocumentSnapshot doc) async {
+  /// Creates a TransactionReceipt from a Supabase order map.
+  static Future<TransactionReceipt?> fromOrderDoc(Map<String, dynamic> data) async {
     try {
-      final data = doc.data() as Map<String, dynamic>? ?? {};
       if (data.isEmpty) return null;
 
       final itemsList = (data['items'] as List<dynamic>?)?.map((item) {
@@ -294,8 +291,8 @@ class TransactionReceipt {
       }).toList() ?? [];
 
       return TransactionReceipt(
-        orderId: doc.id,
-        timestamp: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        orderId: data['id'].toString(),
+        timestamp: data['createdAt'] != null ? DateTime.tryParse(data['createdAt']) ?? DateTime.now() : DateTime.now(),
         items: itemsList,
         totalAmount: (data['totalAmount'] ?? 0).toDouble(),
         patientName: data['patientName'] ?? 'Patient',

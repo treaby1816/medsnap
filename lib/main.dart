@@ -6,6 +6,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 // VailMeds Core Imports
 import 'firebase_options.dart';
 import 'core/theme.dart';
@@ -18,6 +21,15 @@ import 'core/services/notification_service.dart';
 void main() {
   runZonedGuarded(() async {
     WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+    
+    // Load environment variables
+    await dotenv.load(fileName: '.env');
+
+    // Initialize Supabase (Primary Database + Auth)
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL']!,
+      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    );
     
     if (!kIsWeb) {
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -96,16 +108,6 @@ class _BootstrapAppState extends State<BootstrapApp> {
       // On mobile, the native splash is already visible via FlutterNativeSplash.preserve()
       return const SizedBox.shrink();
     }
-    
-    if (!_initialized && kIsWeb) {
-      // On web, show a minimal themed loading state while Firebase boots
-      return Container(
-        color: const Color(0xFFEC5B13),
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
-      );
-    }
 
     return const VailMedsApp();
   }
@@ -128,7 +130,17 @@ class VailMedsApp extends ConsumerWidget {
       initialRoute: AppRouter.splash,
       onGenerateRoute: AppRouter.onGenerateRoute,
       builder: (context, child) {
-        return GlobalFloatingChatbot(child: child ?? const SizedBox.shrink());
+        return Overlay(
+          initialEntries: [
+            OverlayEntry(builder: (context) => child ?? const SizedBox.shrink()),
+            OverlayEntry(
+              builder: (context) => Directionality(
+                textDirection: TextDirection.ltr,
+                child: GlobalFloatingChatbot(child: const SizedBox.shrink()),
+              ),
+            ),
+          ],
+        );
       },
     );
   }

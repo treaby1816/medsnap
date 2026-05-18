@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import 'package:intl/intl.dart';
 
@@ -16,25 +16,24 @@ class OrderHistoryScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        // Assuming your OrderService saves to 'orders' collection
-        stream: FirebaseFirestore.instance
-            .collection('orders')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: Supabase.instance.client
+            .from('orders')
+            .stream(primaryKey: ['id'])
+            .order('createdAt', ascending: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return _buildEmptyHistory();
           }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: snapshot.data!.docs.length,
+            itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
-              final order = snapshot.data!.docs[index].data() as Map<String, dynamic>? ?? {};
+              final order = snapshot.data![index];
               return _buildOrderCard(context, order);
             },
           );
@@ -44,7 +43,7 @@ class OrderHistoryScreen extends StatelessWidget {
   }
 
   Widget _buildOrderCard(BuildContext context, Map<String, dynamic> order) {
-    final DateTime date = (order['createdAt'] as Timestamp).toDate();
+    final DateTime date = order['createdAt'] != null ? DateTime.parse(order['createdAt']) : DateTime.now();
     final String status = order['status'] ?? 'Processing';
 
     return Container(
@@ -67,10 +66,10 @@ class OrderHistoryScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text("Order ID: #${order['orderId'] ?? '...'}", 
+          Text("Order ID: #${order['id'] ?? order['orderId'] ?? '...'}", 
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 4),
-          Text("${order['items']?.length ?? 0} Items", 
+          Text("${(order['items'] as List?)?.length ?? 0} Items", 
             style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           const Divider(height: 24),
           Row(
@@ -117,4 +116,3 @@ class OrderHistoryScreen extends StatelessWidget {
     );
   }
 }
-

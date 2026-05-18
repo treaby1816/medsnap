@@ -34,6 +34,18 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     },
   ];
 
+  final List<String> _mobileImages = [
+    'assets/images/mobile1.jpg',
+    'assets/images/mobile2.jpg',
+    'assets/images/mobile3.jpg',
+  ];
+
+  final List<String> _desktopImages = [
+    'assets/images/pharmacist_patient2.jpg',
+    'assets/images/desktop2.jpg',
+    'assets/images/desktop3.jpg',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -184,16 +196,40 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/pharmacist_patient2.jpg',
-              fit: BoxFit.cover,
-              color: Colors.black.withValues(alpha: 0.6),
-              colorBlendMode: BlendMode.darken,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: const Color(0xFF1E293B),
-                  child: const Center(
-                    child: Icon(Icons.image_not_supported, color: Colors.white24, size: 50),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth >= 800;
+                final images = isDesktop ? _desktopImages : _mobileImages;
+                
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 1000),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  child: Image.asset(
+                    images[_currentPage],
+                    key: ValueKey<String>(images[_currentPage]),
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.black.withValues(alpha: 0.4), // Darkened for better text contrast
+                    colorBlendMode: BlendMode.darken,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        key: ValueKey<String>('error_${images[_currentPage]}'),
+                        color: const Color(0xFF1E293B),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.image_not_supported, color: Colors.white24, size: 50),
+                              const SizedBox(height: 8),
+                              Text('Missing: ${images[_currentPage].split('/').last}', style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
@@ -206,9 +242,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.2),
-                    Colors.black.withValues(alpha: 0.7),
-                    Colors.black.withValues(alpha: 0.95),
+                    Colors.black.withValues(alpha: 0.1),
+                    Colors.black.withValues(alpha: 0.5),
+                    Colors.black.withValues(alpha: 0.85),
                   ],
                   stops: const [0.0, 0.5, 1.0],
                 ),
@@ -222,9 +258,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   physics: const ClampingScrollPhysics(),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
                         // Top: Logo
                         Padding(
                           padding: const EdgeInsets.only(top: 24),
@@ -255,6 +291,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                             ],
                           ),
                         ),
+
+                        const Spacer(), // Pushes the following content lower
 
                         // Middle: Value Props + Dots
                         Column(
@@ -324,67 +362,73 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
                         // Bottom: Buttons + Version
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  HapticFeedback.lightImpact();
-                                  ref.read(onboardingStageProvider.notifier).state = 'auth';
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryColor,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 18),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  'Get Started',
-                                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextButton(
-                                onPressed: () {
-                                  HapticFeedback.lightImpact();
-                                  ref.read(onboardingStageProvider.notifier).state = 'auth';
-                                  Navigator.of(context).pushNamed('/login');
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: const BorderSide(color: Colors.white24, width: 1.5),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Sign In',
-                                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Center(
-                                child: GestureDetector(
-                                  onTap: _handleSecretTap,
-                                  child: Text(
-                                    'v2.0.1+8',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      color: Colors.white38,
-                                      fontWeight: FontWeight.w600,
+                          padding: const EdgeInsets.fromLTRB(40, 24, 40, 16),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      HapticFeedback.lightImpact();
+                                      ref.read(onboardingStageProvider.notifier).state = 'auth';
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryColor,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: Text(
+                                      'Get Started',
+                                      style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800),
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(height: 12),
+                                  TextButton(
+                                    onPressed: () {
+                                      HapticFeedback.lightImpact();
+                                      ref.read(onboardingStageProvider.notifier).state = 'auth';
+                                      Navigator.of(context).pushNamed('/login');
+                                    },
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        side: const BorderSide(color: Colors.white24, width: 1.5),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Sign In',
+                                      style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Center(
+                                    child: GestureDetector(
+                                      onTap: _handleSecretTap,
+                                      child: Text(
+                                        'v2.0.1+8',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: Colors.white38,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
                               ),
-                              const SizedBox(height: 8),
-                            ],
+                            ),
                           ),
                         ),
                       ],
+                    ),
                     ),
                   ),
                 );

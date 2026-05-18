@@ -18,8 +18,8 @@ class AdminStatsGrid extends ConsumerWidget {
       data: (stats) => LayoutBuilder(
         builder: (context, constraints) {
           final cardWidth = constraints.maxWidth < 600 
-            ? (constraints.maxWidth - 16) / 2 // 2 columns for mobile
-            : (constraints.maxWidth - 48) / 4; // 4 columns for desktop
+            ? ((constraints.maxWidth - 16) / 2) - 1 // 2 columns for mobile
+            : ((constraints.maxWidth - 48) / 4) - 1; // 4 columns for desktop
             
           return Wrap(
             spacing: 16,
@@ -78,7 +78,11 @@ class AdminStatsGrid extends ConsumerWidget {
   }
 
   String _formatNumber(int n) {
-    if (n >= 1000) {
+    if (n >= 1000000000) {
+      return '${(n / 1000000000).toStringAsFixed(1)}B';
+    } else if (n >= 1000000) {
+      return '${(n / 1000000).toStringAsFixed(1)}M';
+    } else if (n >= 1000) {
       return '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k';
     }
     return n.toString();

@@ -5,8 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vail_meds_v2/core/providers.dart';
 
 // 2. Auth Feature Screens 
-// UPDATED: Added /presentation/screens/ to the paths to match Flutter structure
-import 'package:vail_meds_v2/features/auth/presentation/screens/splash_screen.dart';
 import 'package:vail_meds_v2/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:vail_meds_v2/features/auth/presentation/screens/gateway_screen.dart';  
 import 'package:vail_meds_v2/core/theme.dart';
@@ -57,18 +55,15 @@ class AuthGate extends ConsumerWidget {
 
         // --- STAGE 2: ONBOARDING FLOW (Only if NOT authenticated) ---
         final stage = ref.watch(onboardingStageProvider);
-        if (stage == 'splash') return const SplashScreen();
-        if (stage == 'welcome') return const WelcomeScreen();
+        if (stage == 'welcome' || stage == 'splash') return const WelcomeScreen();
 
         // --- STAGE 3: LOGIN/GATEWAY ---
         return const GatewayScreen();
       },
       loading: () => const Scaffold(
+        backgroundColor: Colors.white,
         body: Center(
-          child: CircularProgressIndicator(
-            color: Colors.blueAccent,
-            strokeWidth: 3,
-          ),
+          child: CircularProgressIndicator(color: AppTheme.primaryColor),
         ),
       ),
       error: (error, stack) => Scaffold(

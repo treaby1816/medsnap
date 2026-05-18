@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers.dart';
 import '../../../../widgets/glass_app_bar.dart';
@@ -12,9 +12,9 @@ class PharmacyOrdersScreen extends ConsumerWidget {
 
   void _updateOrderStatus(BuildContext context, String orderId, String newStatus) async {
     try {
-      await FirebaseFirestore.instance.collection('orders').doc(orderId).update({
+      await Supabase.instance.client.from('orders').update({
         'status': newStatus,
-      });
+      }).eq('id', orderId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Order marked as $newStatus')),
@@ -57,15 +57,15 @@ class PharmacyOrdersScreen extends ConsumerWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('orders')
-            .where('globalPharmacyId', isEqualTo: user.uid)
-            .snapshots(),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: Supabase.instance.client
+            .from('orders')
+            .stream(primaryKey: ['id'])
+            .eq('globalPharmacyId', user.id),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           
-          final orders = snapshot.data!.docs;
+          final orders = snapshot.data!;
           if (orders.isEmpty) {
             return Center(
               child: Column(
@@ -92,8 +92,8 @@ class PharmacyOrdersScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppTheme.pagePadding),
             itemCount: orders.length,
             itemBuilder: (context, index) {
-              final order = orders[index].data() as Map<String, dynamic>? ?? {};
-              final orderId = orders[index].id;
+              final order = orders[index];
+              final orderId = order['id'].toString();
               final status = order['status'] ?? 'Pending';
               final total = order['totalAmount'] ?? 0.0;
               final items = order['items'] as List<dynamic>? ?? [];

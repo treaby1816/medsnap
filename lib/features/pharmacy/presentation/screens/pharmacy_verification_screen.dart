@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../core/theme.dart';
@@ -238,17 +238,14 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
   Future<String?> _uploadImage(String uid) async {
     if (_licenseImage == null) return null;
     try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('pharmacy_licenses')
-          .child('$uid.jpg');
+      final path = 'pharmacy_licenses/$uid.jpg';
       if (kIsWeb) {
         final bytes = await _licenseImage!.readAsBytes();
-        await storageRef.putData(bytes);
+        await Supabase.instance.client.storage.from('pharmacy_documents').uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true));
       } else {
-        await storageRef.putFile(File(_licenseImage!.path));
+        await Supabase.instance.client.storage.from('pharmacy_documents').upload(path, File(_licenseImage!.path), fileOptions: const FileOptions(upsert: true));
       }
-      return await storageRef.getDownloadURL();
+      return Supabase.instance.client.storage.from('pharmacy_documents').getPublicUrl(path);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -290,12 +287,12 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
       final user = authService.currentUser;
       if (user == null) throw Exception('User session not found. Please log in again.');
 
-      final downloadUrl = await _uploadImage(user.uid);
+      final downloadUrl = await _uploadImage(user.id);
       if (downloadUrl == null) throw Exception('License upload failed.');
 
       // Submit high-fidelity verification request
       await authService.submitVerificationRequest(
-        user.uid,
+        user.id,
         licenseNumber,
         token, // Used as accessToken for terminal sync
         storeName: brandName,
@@ -303,7 +300,7 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
       );
 
       // Also update displayName to pharmacist name
-      await authService.updateProfile(user.uid, {
+      await authService.updateProfile(user.id, {
         'displayName': pharmacistName,
       });
 
@@ -334,7 +331,7 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
 
     setState(() => _isLoading = true);
     try {
-      await authService.adminApprovePharmacy(user.uid);
+      await authService.adminApprovePharmacy(user.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('DEBUG: Application Approved!')),
