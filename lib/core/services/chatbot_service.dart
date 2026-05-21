@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:developer' as developer;
 
 class ChatbotMessage {
@@ -47,7 +48,8 @@ CONSTRAINTS:
 - If you don't know something about VailMeds, offer to connect them to a human agent.
 """;
 
-  void initialize(String apiKey) {
+  void initialize() {
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
     if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY') {
       developer.log('ChatbotService: No API key provided (GEMINI_API_KEY environment variable is empty). Running in Mock mode.', name: 'VailBot');
       return;
@@ -76,11 +78,12 @@ CONSTRAINTS:
     if (_chat != null) {
       try {
         final response = await _chat!.sendMessage(Content.text(text));
-        final aiText = response.text ?? "I'm sorry, I couldn't process that. Would you like to speak with a human?";
+        final aiText = response.text ?? "I'm sorry, I couldn't process that.";
         _addAiMessage(aiText);
       } catch (e) {
         developer.log('Chatbot AI Error: $e', name: 'VailBot');
-        _addAiMockResponse(text);
+        // Decode the exact error for the user to see what is failing (e.g. API key invalid, quota exceeded)
+        _addAiMessage("API Error Encountered:\n$e\n\nPlease check your GEMINI_API_KEY or billing quota.");
       }
     } else {
       // Mock mode for local testing or missing key
@@ -106,7 +109,9 @@ CONSTRAINTS:
     }
 
     Future.delayed(const Duration(seconds: 1), () {
-      _addAiMessage(response);
+      if (mounted) {
+        _addAiMessage(response);
+      }
     });
   }
 
@@ -118,7 +123,6 @@ CONSTRAINTS:
 
 final chatbotProvider = StateNotifierProvider<ChatbotService, List<ChatbotMessage>>((ref) {
   final service = ChatbotService();
-  // HARDCODED: Initializing with the verified production key
-  service.initialize('AIzaSyB9K07Jcwfe4_3aJoAggdo_XQdal5pJZu0'); 
+  service.initialize(); 
   return service;
 });

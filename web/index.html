@@ -21,131 +21,83 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&amp;display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   
+  <!-- SUPER FAST LOADING: Preload critical assets immediately -->
   <script src="https://accounts.google.com/gsi/client" async="" defer=""></script>
   
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-  
-  
-  
-  
   <style id="splash-screen-style">
     body {
       margin: 0;
       min-height: 100vh;
-      background-color: #EC5B13;
+      background-color: #EC5B13; /* VailMeds Orange */
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
       font-family: 'Inter', sans-serif;
     }
-    .splash-container {
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #FFFFFF;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loading-text {
+      color: #FFFFFF;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+    #native-splash {
       display: flex;
       flex-direction: column;
       align-items: center;
-    }
-    .loader-wrapper {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      margin-bottom: 24px;
-    }
-    .grid-loader {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 4px;
-      width: 100%;
-      height: 100%;
-    }
-    .grid-cell {
-      background-color: #FFFFFF;
-      border-radius: 4px;
-      animation: pulse-cell 1.5s infinite ease-in-out;
-    }
-    .grid-cell:nth-child(1) { animation-delay: 0.0s; }
-    .grid-cell:nth-child(2) { animation-delay: 0.1s; }
-    .grid-cell:nth-child(3) { animation-delay: 0.2s; }
-    .grid-cell:nth-child(4) { animation-delay: 0.1s; }
-    .grid-cell:nth-child(5) { animation-delay: 0.2s; }
-    .grid-cell:nth-child(6) { animation-delay: 0.3s; }
-    .grid-cell:nth-child(7) { animation-delay: 0.2s; }
-    .grid-cell:nth-child(8) { animation-delay: 0.3s; }
-    .grid-cell:nth-child(9) { animation-delay: 0.4s; }
-
-    @keyframes pulse-cell {
-      0%, 100% { opacity: 0.3; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1); }
-    }
-
-    .logo-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 95%;
-      height: 95%;
-      object-fit: contain;
-      mix-blend-mode: darken;
-      z-index: 10;
-    }
-
-    .splash-text {
-      font-weight: 900;
-      font-size: 28px;
-      color: #FFFFFF;
-      letter-spacing: -0.5px;
-      animation: pulse-text 2s infinite ease-in-out;
-    }
-    @keyframes pulse-text {
-      0%, 100% { opacity: 0.8; }
-      50% { opacity: 1; }
+      justify-content: center;
+      position: fixed;
+      inset: 0;
+      background-color: #EC5B13;
+      z-index: 9999;
+      transition: opacity 0.4s ease-out;
     }
   </style>
-  <script id="splash-screen-script">
-    function removeSplashFromWeb() {
-      const nativeSplash = document.getElementById('native-splash');
-      if (nativeSplash) {
-        nativeSplash.style.transition = 'opacity 0.2s ease-out';
-        nativeSplash.style.opacity = '0';
-        setTimeout(() => nativeSplash.remove(), 200);
-      }
-      document.body.style.background = "transparent";
-      document.body.style.overflow = "auto";
-    }
-  </script>
-</head>
-<body>
-  
-  <div id="native-splash" class="splash-container">
-    <div class="loader-wrapper">
-      <div class="grid-loader">
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell"></div>
-      </div>
-      <img class="logo-overlay" src="assets/images/logo2.png" alt="VailMeds Logo">
-    </div>
-    <div class="splash-text">VailMeds</div>
-  </div>
 
   <script>
-
+    function removeSplashFromWeb() {
+      const splash = document.getElementById('native-splash');
+      if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(() => {
+          splash.remove();
+          // Reset body background to match app theme
+          document.body.style.backgroundColor = "#FFFFFF"; 
+        }, 400);
+      }
+    }
 
     window.addEventListener("flutter-first-frame", (event) => {
       console.log("BOOT SUCCESS: Flutter first frame rendered.");
       removeSplashFromWeb();
     });
-    
-    // Fallback: If it drastically fails, we reveal the canvas after 30 seconds
-    setTimeout(removeSplashFromWeb, 30000);
   </script>
-  <script src="flutter_bootstrap.js" async=""></script>
+</head>
+<body>
+  
+  <div id="native-splash">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">VailMeds</div>
+  </div>
 
-</body></html>
+  <script src="flutter_bootstrap.js" async=""></script>
+</body>
+</html>

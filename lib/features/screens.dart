@@ -23,11 +23,12 @@ export 'patient/presentation/screens/home_screen.dart';
 export 'patient/presentation/screens/product_screen.dart';
 export 'patient/presentation/screens/checkout_screen.dart';
 export 'patient/presentation/screens/patient_profile_screen.dart';
-export 'patient/orders_screen.dart';
-export 'patient/order_history_screen.dart';
-export 'patient/nearby_facilities_screen.dart';
+export 'patient/presentation/screens/orders_screen.dart';
+export 'patient/presentation/screens/order_history_screen.dart';
+export 'patient/presentation/screens/nearby_facilities_screen.dart';
 export 'chat/presentation/screens/chat_screen.dart';
-export 'patient/patient_search_screen.dart';
+export 'patient/presentation/screens/patient_search_screen.dart';
+export 'patient/presentation/screens/job_board_screen.dart';
 
 // --- ADMIN SCREENS ---
 export 'admin/presentation/screens/admin_dashboard_screen.dart';

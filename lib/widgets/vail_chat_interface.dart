@@ -1,9 +1,70 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/theme.dart';
 import '../core/services/chatbot_service.dart';
+
+// Custom Widget for AI Typing Animation
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  const TypewriterText({super.key, required this.text, required this.style});
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> {
+  String _displayedText = "";
+  Timer? _timer;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTyping();
+  }
+  
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _startTyping();
+    }
+  }
+
+  void _startTyping() {
+    _timer?.cancel();
+    _displayedText = "";
+    _currentIndex = 0;
+    _timer = Timer.periodic(const Duration(milliseconds: 15), (timer) {
+      if (_currentIndex < widget.text.length) {
+        if (mounted) {
+          setState(() {
+            _displayedText += widget.text[_currentIndex];
+            _currentIndex++;
+          });
+        }
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(_displayedText, style: widget.style);
+  }
+}
+
 
 class VailChatInterface extends ConsumerStatefulWidget {
   const VailChatInterface({super.key});
@@ -133,14 +194,25 @@ class _VailChatInterfaceState extends ConsumerState<VailChatInterface> {
             ),
           ],
         ),
-        child: Text(
-          msg.text,
-          style: GoogleFonts.inter(
-            color: msg.isUser ? Colors.white : AppTheme.textPrimaryColor,
-            fontSize: 14,
-            height: 1.4,
-          ),
-        ),
+        child: msg.isUser 
+          ? Text(
+              msg.text,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            )
+          : TypewriterText(
+              text: msg.text,
+              style: GoogleFonts.inter(
+                color: Colors.black87,
+                fontSize: 15,
+                fontWeight: FontWeight.w600, // Makes the text sharp, clean, and bold
+                height: 1.4,
+              ),
+            ),
       ),
     );
   }

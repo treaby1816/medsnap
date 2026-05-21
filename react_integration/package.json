@@ -1,0 +1,18 @@
+{
+  "name": "vailmeds-react-integration",
+  "version": "1.0.0",
+  "description": "React component integration and testing environment for VailMeds",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.4.5"
+  }
+}

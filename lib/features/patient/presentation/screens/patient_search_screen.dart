@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
+import '../../../../core/theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PatientSearchScreen — Drug Search & Catalog

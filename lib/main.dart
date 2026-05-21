@@ -14,13 +14,14 @@ import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'core/theme_provider.dart';
 import 'core/app_router.dart';
+import 'core/services/cache_service.dart';
 import 'widgets/global_floating_chatbot.dart';
 import 'core/services/security_service.dart';
 import 'core/services/notification_service.dart';
 
 void main() {
   runZonedGuarded(() async {
-    WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+    final WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
     
     // Load environment variables
     await dotenv.load(fileName: '.env');
@@ -29,6 +30,9 @@ void main() {
     await Supabase.initialize(
       url: dotenv.env['SUPABASE_URL']!,
       anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+      authOptions: FlutterAuthClientOptions(
+        authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce,
+      ),
     );
     
     if (!kIsWeb) {
@@ -50,12 +54,7 @@ class BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<BootstrapApp> {
-  // ignore: unused_field
   bool _initialized = false;
-  // ignore: unused_field
-  bool _error = false;
-  // ignore: unused_field
-  Object? _errorDetails;
 
   @override
   void initState() {
@@ -65,34 +64,28 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   Future<void> _bootSequence() async {
     try {
-      // 1. Firebase MUST go first — other services depend on it
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ).timeout(const Duration(seconds: 15));
+      // Firebase — only required on native platforms (FCM, Analytics, etc.)
+      if (!kIsWeb) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(const Duration(seconds: 15));
+      }
 
-      // 2. Security (Root check & Screenshot block) — already web-safe
+      // Initialize Cache
+      await CacheService.initialize();
+
+      // Security (Root check & Screenshot block) — already web-safe (no-ops)
       await SecurityService.initialize();
 
-      // 3. Notifications — skip on web (FCM push requires native)
+      // Push Notifications — skip on web (FCM push requires native)
       if (!kIsWeb) {
         await NotificationService.initialize();
       }
-
-      if (mounted) {
-        setState(() {
-          _initialized = true;
-          if (!kIsWeb) {
-            FlutterNativeSplash.remove();
-          }
-        });
-      }
     } catch (e) {
       developer.log('BOOT ERROR: $e', name: 'VailMedsGuard');
+    } finally {
       if (mounted) {
         setState(() {
-          _error = true;
-          _errorDetails = e;
-          // Still allow the app to render on error so user isn't stuck
           _initialized = true;
           if (!kIsWeb) {
             FlutterNativeSplash.remove();
@@ -104,8 +97,9 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   @override
   Widget build(BuildContext context) {
+    // On web, render the app immediately — Supabase is already initialized in main().
+    // On mobile, wait for Firebase + services before removing native splash.
     if (!_initialized && !kIsWeb) {
-      // On mobile, the native splash is already visible via FlutterNativeSplash.preserve()
       return const SizedBox.shrink();
     }
 
@@ -130,14 +124,12 @@ class VailMedsApp extends ConsumerWidget {
       initialRoute: AppRouter.splash,
       onGenerateRoute: AppRouter.onGenerateRoute,
       builder: (context, child) {
-        return Overlay(
-          initialEntries: [
-            OverlayEntry(builder: (context) => child ?? const SizedBox.shrink()),
-            OverlayEntry(
-              builder: (context) => Directionality(
-                textDirection: TextDirection.ltr,
-                child: GlobalFloatingChatbot(child: const SizedBox.shrink()),
-              ),
+        return Stack(
+          children: [
+            if (child != null) child,
+            const Directionality(
+              textDirection: TextDirection.ltr,
+              child: GlobalFloatingChatbot(child: SizedBox.shrink()),
             ),
           ],
         );

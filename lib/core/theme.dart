@@ -17,7 +17,7 @@ class AppTheme {
 
   // ── VailMeds Glassmorphism ───────────────────────────────
   static const double glassBlur = 20.0;
-  static double glassOpacity = 0.65;
+  static const double glassOpacity = 0.65;
   
   static BoxDecoration get glassDecoration => BoxDecoration(
     color: Colors.white.withValues(alpha: glassOpacity),
@@ -59,7 +59,7 @@ class AppTheme {
   // ── Light Theme ─────────────────────────────────────────────────
   static ThemeData get lightTheme {
     return ThemeData(
-      useMaterial3: false,
+      useMaterial3: true,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
       colorScheme: const ColorScheme.light(
@@ -210,7 +210,7 @@ class AppTheme {
   // ── Dark Theme ──────────────────────────────────────────────────
   static ThemeData get darkTheme {
     return ThemeData(
-      useMaterial3: false,
+      useMaterial3: true,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: darkBackgroundColor,
       colorScheme: const ColorScheme.dark(

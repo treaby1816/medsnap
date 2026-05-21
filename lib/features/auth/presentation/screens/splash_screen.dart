@@ -20,13 +20,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+  bool _precached = false;
+
   @override
   void initState() {
     super.initState();
     
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 2500), // Extended for beautiful transition
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -38,7 +40,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _pulseController = AnimationController(
         vsync: this, 
-        duration: const Duration(seconds: 2)
+        duration: const Duration(milliseconds: 2500)
     )..repeat(reverse: true);
 
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
@@ -49,12 +51,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _handleNavigation();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_precached) {
+      _precached = true;
+      // Precache all assets asynchronously to prevent transition lag
+      precacheImage(const AssetImage('assets/images/logo2.png'), context).catchError((_) {});
+      precacheImage(const AssetImage('assets/images/mobile1.jpg'), context).catchError((_) {});
+      precacheImage(const AssetImage('assets/images/mobile2.jpg'), context).catchError((_) {});
+      precacheImage(const AssetImage('assets/images/mobile3.jpg'), context).catchError((_) {});
+      precacheImage(const AssetImage('assets/images/pharmacist_patient2.jpg'), context).catchError((_) {});
+      precacheImage(const AssetImage('assets/images/desktop2.jpg'), context).catchError((_) {});
+      precacheImage(const AssetImage('assets/images/desktop3.jpg'), context).catchError((_) {});
+    }
+  }
+
   Future<void> _handleNavigation() async {
-    // 1. Show the beautiful animation without unnecessary artificial delay
+    // 1. Wait for the beautiful 2-second logo build animation to complete
     await _controller.forward();
-    
-    // Hold splash screen for 2 seconds - enough to see the animation but not feel slow
-    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 

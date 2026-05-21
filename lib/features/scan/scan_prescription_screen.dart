@@ -16,11 +16,27 @@ class ScanPrescriptionScreen extends ConsumerStatefulWidget {
   ConsumerState<ScanPrescriptionScreen> createState() => _ScanPrescriptionScreenState();
 }
 
-class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen> {
+class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen> with SingleTickerProviderStateMixin {
   XFile? _imageFile;
   bool _isProcessing = false;
   String? _extractedDrug;
   final ImagePicker _picker = ImagePicker();
+  late AnimationController _scanController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scanController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scanController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     HapticFeedback.lightImpact();
@@ -37,19 +53,23 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
   Future<void> _processPrescription() async {
     if (_imageFile == null) return;
     setState(() => _isProcessing = true);
+    _scanController.repeat(reverse: true);
 
     try {
       final ocrService = ref.read(ocrServiceProvider);
-      // Wait, ocrService might expect 'File'. If so, we pass a dynamic or convert it appropriately later. 
-      // For now passing File in native, or throwing in web.
       if (!kIsWeb) {
         final result = await ocrService.scanPrescription(File(_imageFile!.path));
-        setState(() {
-          _extractedDrug = result['drug_name'];
-        });
+        if (mounted) {
+          setState(() {
+            _extractedDrug = result['drug_name'];
+          });
+        }
       }
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        _scanController.stop();
+      }
     }
   }
 
@@ -78,37 +98,93 @@ class _ScanPrescriptionScreenState extends ConsumerState<ScanPrescriptionScreen>
           children: [
              const SizedBox(height: 20),
              // Scanner Viewport
-             Container(
-               height: 350,
-               decoration: BoxDecoration(
-                 color: Colors.white,
-                 borderRadius: BorderRadius.circular(24),
-                 border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1), width: 2),
-                 image: _imageFile != null && !kIsWeb
-                     ? DecorationImage(image: FileImage(File(_imageFile!.path)), fit: BoxFit.cover)
-                     : null,
-               ),
-               child: _imageFile == null
-                   ? Column(
-                       mainAxisAlignment: MainAxisAlignment.center,
-                       children: [
-                         Icon(Icons.document_scanner_outlined, size: 64, color: AppTheme.primaryColor.withValues(alpha: 0.5)),
-                         const SizedBox(height: 16),
-                         Text(
-                           'Align Prescription within frame',
-                           textAlign: TextAlign.center,
-                           style: GoogleFonts.inter(
-                             fontSize: 16,
-                             color: AppTheme.textSecondaryColor,
-                             fontWeight: FontWeight.w500,
-                           ),
-                         ),
-                       ],
-                     )
-                   : (_isProcessing 
-                       ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
-                       : null),
-             ),
+              Container(
+                height: 350,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1), width: 2),
+                  image: _imageFile != null && !kIsWeb
+                      ? DecorationImage(image: FileImage(File(_imageFile!.path)), fit: BoxFit.cover)
+                      : null,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (_imageFile == null)
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.document_scanner_outlined, size: 64, color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Align Prescription within frame',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                color: AppTheme.textSecondaryColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (_isProcessing)
+                        const Center(
+                          child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                        ),
+                      
+                      // Beautiful glowing scan bar overlay
+                      if (_imageFile != null && _isProcessing)
+                        AnimatedBuilder(
+                          animation: _scanController,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      AppTheme.primaryColor.withValues(alpha: 0.0),
+                                      AppTheme.primaryColor.withValues(alpha: 0.25),
+                                      AppTheme.primaryColor.withValues(alpha: 0.0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primaryColor.withValues(alpha: 0.8),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          builder: (context, child) {
+                            final double laserPosition = _scanController.value * 350;
+                            return Positioned(
+                              top: laserPosition - 10,
+                              left: 0,
+                              right: 0,
+                              child: child!,
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
              const SizedBox(height: 32),
 
              // Controls

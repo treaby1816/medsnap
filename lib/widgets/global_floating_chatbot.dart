@@ -54,13 +54,12 @@ class GlobalFloatingChatbot extends ConsumerStatefulWidget {
 }
 
 class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> with TickerProviderStateMixin {
-  Offset? _position;
+  Offset _position = const Offset(24, 100);
   bool _isHovering = false;
   late final AnimationController _hoverController;
-  late final AnimationController _blinkController;
   late final Animation<double> _hoverAnimation;
   bool _isChatOpen = false;
-  Offset? _chatPosition;
+  Offset _chatPosition = const Offset(24, 200);
 
   @override
   void initState() {
@@ -74,50 +73,30 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
     _hoverAnimation = Tween<double>(begin: -5, end: 5).animate(
       CurvedAnimation(parent: _hoverController, curve: Curves.easeInOut),
     );
-
-    _blinkController = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 150)
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      try {
-        final size = MediaQuery.of(context).size;
-        if (size.width > 0 && size.height > 0) {
-          setState(() {
-            _position = const Offset(24, 100);
-            _chatPosition = const Offset(24, 200); // Initial chat window position
-          });
-        }
-      } catch (e) {
-        developer.log('Chatbot position init error: $e', name: 'VailMeds');
-      }
-    });
-
-    _startBlinkCycle();
-  }
-
-  void _startBlinkCycle() async {
-    while (mounted) {
-      await Future.delayed(Duration(seconds: 2 + (DateTime.now().millisecond % 4)));
-      if (mounted) {
-        await _blinkController.forward();
-        await _blinkController.reverse();
-      }
-    }
   }
 
   @override
   void dispose() {
     _hoverController.dispose();
-    _blinkController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final currentRoute = ref.watch(currentRouteProvider);
+    final size = MediaQuery.of(context).size;
+
+    // Dynamically clamp positions to ensure they stay within screen bounds on resize/rotation
+    const widgetSize = 88.0;
+    final clampedX = _position.dx.clamp(24.0, (size.width - widgetSize - 24.0).clamp(24.0, double.infinity));
+    final clampedY = _position.dy.clamp(20.0, (size.height - widgetSize - 50.0).clamp(20.0, double.infinity));
+    final clampedPosition = Offset(clampedX, clampedY);
+
+    final chatWidth = size.width < 600 ? size.width - 20.0 : 350.0;
+    const chatHeight = 500.0;
+    final clampedChatX = _chatPosition.dx.clamp(10.0, (size.width - chatWidth - 10.0).clamp(10.0, double.infinity));
+    final clampedChatY = _chatPosition.dy.clamp(10.0, (size.height - chatHeight - 10.0).clamp(10.0, double.infinity));
+    final clampedChatPosition = Offset(clampedChatX, clampedChatY);
 
     final visibleRoutes = [
       '/', '/welcome', '/gateway', '/registration', '/login', '/admin-dashboard',
@@ -130,20 +109,16 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
         widget.child,
 
         if (shouldShow) ...[
-          if (_isChatOpen) _buildChatOverlay(),
+          if (_isChatOpen) _buildChatOverlay(clampedChatPosition, chatWidth),
 
           Positioned(
-            left: _position?.dx ?? 24,
-            bottom: _position?.dy ?? 100,
+            left: clampedPosition.dx,
+            bottom: clampedPosition.dy,
             child: GestureDetector(
               onPanUpdate: (details) {
-                final size = MediaQuery.of(context).size;
                 setState(() {
-                  const widgetSize = 88.0; 
                   double relLeft = details.globalPosition.dx - (widgetSize / 2);
                   double relBottom = size.height - details.globalPosition.dy - (widgetSize / 2);
-                  relLeft = relLeft.clamp(24.0, size.width - widgetSize - 24.0);
-                  relBottom = relBottom.clamp(20.0, size.height - widgetSize - 50.0);
                   _position = Offset(relLeft, relBottom);
                 });
               },
@@ -165,8 +140,8 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
                                 if (_isChatOpen) {
                                   // Reset chat position near the button
                                   _chatPosition = Offset(
-                                    (_position?.dx ?? 24) + 10,
-                                    (_position?.dy ?? 100) + 80,
+                                    clampedPosition.dx + 10,
+                                    clampedPosition.dy + 80,
                                   );
                                 }
                               });
@@ -186,18 +161,18 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
     );
   }
 
-  Widget _buildChatOverlay() {
+  Widget _buildChatOverlay(Offset clampedChatPosition, double chatWidth) {
     final size = MediaQuery.of(context).size;
     final bool isSmallScreen = size.width < 600;
 
     return Positioned(
-      left: isSmallScreen ? 10 : (_chatPosition?.dx ?? 24),
-      bottom: isSmallScreen ? null : (_chatPosition?.dy ?? 180),
+      left: isSmallScreen ? 10 : clampedChatPosition.dx,
+      bottom: isSmallScreen ? null : clampedChatPosition.dy,
       top: isSmallScreen ? 100 : null,
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: isSmallScreen ? size.width - 20 : 350,
+          width: chatWidth,
           height: 500,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -216,12 +191,9 @@ class _GlobalFloatingChatbotState extends ConsumerState<GlobalFloatingChatbot> w
             children: [
               GestureDetector(
                 onPanUpdate: (details) {
-                  final size = MediaQuery.of(context).size;
                   setState(() {
-                    double relLeft = details.globalPosition.dx - 175; // Half of chat width
+                    double relLeft = details.globalPosition.dx - (chatWidth / 2);
                     double relBottom = size.height - details.globalPosition.dy - 25; // Half of header height
-                    relLeft = relLeft.clamp(10.0, size.width - 360.0);
-                    relBottom = relBottom.clamp(10.0, size.height - 510.0);
                     _chatPosition = Offset(relLeft, relBottom);
                   });
                 },

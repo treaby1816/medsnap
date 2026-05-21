@@ -7,6 +7,7 @@ import '../../../../widgets/glass_app_bar.dart';
 import '../../../../core/providers.dart';
 import '../../../../core/models/user_profile.dart';
 import '../../../../widgets/hover_card.dart';
+import '../../../../widgets/hover_social_button.dart';
 
 class GatewayScreen extends ConsumerStatefulWidget {
   const GatewayScreen({super.key});
@@ -17,8 +18,15 @@ class GatewayScreen extends ConsumerStatefulWidget {
 
 class _GatewayScreenState extends ConsumerState<GatewayScreen> {
   bool _isLoading = false;
+  bool _agreedToTerms = false;
 
   Future<void> _handleGoogleSignIn(String role) async {
+    if (!_agreedToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please agree to the Terms of Use and Privacy Policy to continue.')),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
@@ -67,6 +75,7 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDesktop = MediaQuery.of(context).size.width >= 600;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -166,32 +175,102 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
 
 
 
-                  // Patient Portal Card
-                  _PortalCard(
-                    icon: Icons.person,
-                    iconLabel: 'Patient',
-                    title: 'Patient Portal',
-                    description:
-                        'Access prescriptions, find nearby pharmacies, and manage your health profile.',
-                    buttonLabel: 'Enter Patient Portal',
-                    onPortalPressed: () {
-                      Navigator.of(context).pushNamed('/registration');
-                    },
-                    onGooglePressed: () => _handleGoogleSignIn('patient'),
-                  ),
-                  const SizedBox(height: 20),
+                  // Responsive Portal Cards
+                  Builder(
+                    builder: (context) {
+                      final pharmacyCard = _PortalCard(
+                        icon: Icons.medication,
+                        iconLabel: 'Pharmacy',
+                        title: 'Pharmacy Portal',
+                        description: 'Manage inventory, verify prescriptions, and connect with patients.',
+                        buttonLabel: 'Enter Pharmacy Portal',
+                        onPortalPressed: () {
+                          if (!_agreedToTerms) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please agree to the Terms of Use and Privacy Policy to continue.')));
+                            return;
+                          }
+                          Navigator.of(context).pushNamed('/registration', arguments: 'pharmacy');
+                        },
+                        onGooglePressed: () => _handleGoogleSignIn('pharmacy'),
+                      );
 
-                  _PortalCard(
-                    icon: Icons.medication,
-                    iconLabel: 'Pharmacy',
-                    title: 'Pharmacy Portal',
-                    description:
-                        'Manage inventory, verify prescriptions, and connect with patients.',
-                    buttonLabel: 'Enter Pharmacy Portal',
-                    onPortalPressed: () {
-                      Navigator.of(context).pushNamed('/registration', arguments: 'pharmacy');
+                      final patientCard = _PortalCard(
+                        icon: Icons.person,
+                        iconLabel: 'Patient',
+                        title: 'Patient Portal',
+                        description: 'Access prescriptions, find nearby pharmacies, and manage your health profile.',
+                        buttonLabel: 'Enter Patient Portal',
+                        onPortalPressed: () {
+                          if (!_agreedToTerms) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please agree to the Terms of Use and Privacy Policy to continue.')));
+                            return;
+                          }
+                          Navigator.of(context).pushNamed('/registration', arguments: 'patient');
+                        },
+                        onGooglePressed: () => _handleGoogleSignIn('patient'),
+                      );
+
+                      if (isDesktop) {
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: pharmacyCard),
+                              const SizedBox(width: 20),
+                              Expanded(child: patientCard),
+                            ],
+                          ),
+                        );
+                      } else {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            pharmacyCard,
+                            const SizedBox(height: 20),
+                            patientCard,
+                          ],
+                        );
+                      }
                     },
-                    onGooglePressed: () => _handleGoogleSignIn('pharmacy'),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Global Terms Checkbox below Portals
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _agreedToTerms ? AppTheme.primaryColor : AppTheme.borderColor),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _agreedToTerms,
+                            onChanged: (val) {
+                              setState(() {
+                                _agreedToTerms = val ?? false;
+                              });
+                            },
+                            activeColor: AppTheme.primaryColor,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'I agree to the Terms of Use and Privacy Policy',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: AppTheme.textSecondaryColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 36),
 
@@ -343,92 +422,29 @@ class _PortalCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildSquareSocialBtn(
+              HoverSocialButton(
                 iconWidget: const Text(
                   'G',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
                 ),
                 label: 'Google',
+                hoverColor: const Color(0xFF4285F4),
                 onTap: onGooglePressed,
               ),
               const SizedBox(width: 20),
-              _buildSquareSocialBtn(
+              HoverSocialButton(
                 iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
                 label: 'Apple',
                 tagText: 'Soon',
+                hoverColor: const Color(0xFF0F172A),
                 onTap: null,
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'By continuing, you agree to our Terms of Use and Privacy Policy.',
-                style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiaryColor),
-                textAlign: TextAlign.center,
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSquareSocialBtn({
-    required Widget iconWidget,
-    required String label,
-    required VoidCallback? onTap,
-    String? tagText,
-  }) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 100,
-            height: 90,
-            decoration: BoxDecoration(
-              color: onTap == null ? AppTheme.backgroundColor : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor, width: 1.5),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                iconWidget,
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: onTap == null ? AppTheme.textTertiaryColor : AppTheme.textPrimaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (tagText != null)
-          Positioned(
-            top: -8,
-            right: -8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAB308),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                tagText,
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+
 }

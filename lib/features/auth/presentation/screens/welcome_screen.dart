@@ -210,10 +210,13 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     images[_currentPage],
                     key: ValueKey<String>(images[_currentPage]),
                     fit: BoxFit.cover,
+                    alignment: const Alignment(0.0, -0.7), // Fine-tuned alignment
+                    filterQuality: FilterQuality.high, // High-quality upscaling/interpolation
+                    isAntiAlias: true, // Forces anti-aliasing for cleaner edges on high-res displays
                     width: double.infinity,
                     height: double.infinity,
-                    color: Colors.black.withValues(alpha: 0.4), // Darkened for better text contrast
-                    colorBlendMode: BlendMode.darken,
+                    color: Colors.black.withValues(alpha: 0.45), // Deeper contrast for a premium cinematic look
+                    colorBlendMode: BlendMode.srcOver,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         key: ValueKey<String>('error_${images[_currentPage]}'),
@@ -302,9 +305,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                               child: PageView.builder(
                                 controller: _pageController,
                                 onPageChanged: (int page) {
-                                  setState(() {
-                                    _currentPage = page;
-                                  });
+                                  if (mounted) {
+                                    setState(() {
+                                      _currentPage = page;
+                                    });
+                                  }
                                 },
                                 itemCount: _valueProps.length,
                                 itemBuilder: (context, index) {

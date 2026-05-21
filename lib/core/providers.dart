@@ -13,7 +13,8 @@ import 'package:vail_meds_v2/core/services/payment_service.dart';
 import 'package:vail_meds_v2/core/services/location_service.dart';
 import 'package:geolocator/geolocator.dart';
 
-// --- MODELS (UNIFIED PATH) ---
+// --- MODELS & NOTIFIERS (UNIFIED PATH) ---
+import 'package:vail_meds_v2/core/models/cart_model.dart';
 // Note: Ensure you have deleted the duplicate files in lib/models/ 
 // and kept only these ones in lib/core/models/
 import 'package:vail_meds_v2/core/models/product_model.dart';
@@ -27,7 +28,6 @@ final agreedToPrivacyProvider = StateProvider<bool>((ref) => false);
 
 // --- SERVICE PROVIDERS ---
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
-final routerProvider = Provider<AppRouter>((ref) => AppRouter());
 final locationServiceProvider = Provider<LocationService>((ref) => LocationService());
 final pharmacyServiceProvider = Provider<PharmacyService>((ref) => PharmacyService());
 final ocrServiceProvider = Provider<OCRService>((ref) => OCRService());
@@ -162,110 +162,13 @@ final pendingPharmaciesProvider = StreamProvider<List<UserProfile>>((ref) {
   return ref.watch(authServiceProvider).getPendingPharmacies();
 });
 
-class CartItem {
-  final String id;
-  final String name;
-  final double price;
-  final String imageUrl;
-  final int quantity;
-  final String pharmacyId;
-  final String pharmacyName;
-
-  CartItem({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.imageUrl,
-    required this.pharmacyId,
-    required this.pharmacyName,
-    this.quantity = 1,
-  });
-
-  CartItem copyWith({int? quantity}) {
-    return CartItem(
-      id: id,
-      name: name,
-      price: price,
-      imageUrl: imageUrl,
-      pharmacyId: pharmacyId,
-      pharmacyName: pharmacyName,
-      quantity: quantity ?? this.quantity,
-    );
-  }
-}
-
-class CartNotifier extends StateNotifier<Map<String, CartItem>> {
-  CartNotifier() : super({});
-
-  void addItem(Map<String, dynamic> product) {
-    // Standardize ID from name or provided id
-    final String id = product['id']?.toString() ?? product['name'] ?? 'unknown_id';
-    
-    if (state.containsKey(id)) {
-      state = {
-        ...state,
-        id: state[id]!.copyWith(quantity: state[id]!.quantity + 1),
-      };
-    } else {
-      // Clean price string if necessary (e.g. "₦4,500" -> 4500)
-      final priceStr = product['price']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '0';
-      final price = double.tryParse(priceStr) ?? 0.0;
-
-      state = {
-        ...state,
-        id: CartItem(
-          id: id,
-          name: product['name'] ?? 'Medication',
-          price: price,
-          imageUrl: product['imageUrl'] ?? '',
-          pharmacyId: product['pharmacyId'] ?? 'unknown_store',
-          pharmacyName: product['pharmacyName'] ?? 'Verified Pharmacy',
-          quantity: 1,
-        ),
-      };
-    }
-  }
-
-  void removeItem(String id) {
-    final newState = Map<String, CartItem>.from(state);
-    newState.remove(id);
-    state = newState;
-  }
-
-  void clearCart() => state = {};
-
-  double get totalAmount => state.values.fold(0.0, (totalSum, item) => totalSum + (item.price * item.quantity));
-  
-  // Alias for compatibility
-  double get total => totalAmount;
-
-  Future<void> checkout() async {
-    if (state.isEmpty) return;
-    // Note: Actual persistence is handled in CheckoutScreen via OrderService
-    await Future.delayed(const Duration(milliseconds: 500)); 
-    clearCart();
-  }
-}
-
-final cartProvider = StateNotifierProvider<CartNotifier, Map<String, CartItem>>((ref) => CartNotifier());
+final cartProvider = NotifierProvider<CartNotifier, Map<String, CartItem>>(CartNotifier.new);
 
 // --- SEARCH & DRUG DISCOVERY ---
 final selectedCategoryProvider = StateProvider<String>((ref) => 'All Products');
 final drugSearchQueryProvider = StateProvider<String>((ref) => '');
 
-final drugDatabaseProvider = FutureProvider<List<Product>>((ref) async {
-  final maps = await Supabase.instance.client.from('inventory').select();
-  return maps.map((map) {
-    final mappedData = {
-      'id': map['id'],
-      'pharmacyId': map['pharmacy_id'],
-      'name': map['drug_name'],
-      'price': map['price'],
-      'createdAt': map['updated_at'] ?? map['created_at'],
-    };
-    return Product.fromMap(mappedData, map['id'].toString());
-  }).toList();
-});
+// Removed duplicate drugDatabaseProvider (uses allProductsProvider directly)
 
 final filteredByBrandProductsProvider = Provider<List<Product>>((ref) {
   final query = ref.watch(drugSearchQueryProvider).toLowerCase();

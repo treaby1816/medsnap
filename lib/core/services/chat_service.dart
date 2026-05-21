@@ -187,8 +187,13 @@ class ChatService {
 
   Future<void> markAsRead(String chatId, String userId) async {
     try {
-      // Will require custom RPC to update nested JSON in Supabase or separate table
-      debugPrint('Marking as read... implementation needed in RPC for jsonb update');
+      // In Supabase, if unreadCount is JSONB, we can update it this way, 
+      // or set it to 0 specifically for the user. We assume a simple RPC or direct update.
+      // E.g., setting the specific key in the jsonb object to 0
+      await _supabase.rpc('reset_unread_count', params: {
+        'p_chat_id': chatId,
+        'p_user_id': userId,
+      });
     } catch (e) {
       debugPrint('Error marking as read: $e');
     }

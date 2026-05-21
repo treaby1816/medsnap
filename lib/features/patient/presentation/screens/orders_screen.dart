@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme.dart';
-import '../../core/providers.dart';
-import '../../widgets/hover_card.dart';
+import 'package:vail_meds_v2/core/theme.dart';
+import 'package:vail_meds_v2/core/providers.dart';
+import 'package:vail_meds_v2/core/models/cart_model.dart';
+import 'package:vail_meds_v2/widgets/hover_card.dart';
 
 class OrdersScreen extends ConsumerWidget {
   const OrdersScreen({super.key});

@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  @keyframes scan {
+    0% {
+      top: 0%;
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0.3;
+    }
+  }
+
+  @keyframes cut {
+    0% {
+      clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    }
+    100% {
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+  }
+
+  .animate-scan {
+    animation: scan 6s infinite ease-in-out;
+  }
+
+  .animate-cut {
+    animation: cut 6s infinite ease-in-out;
+  }
+}

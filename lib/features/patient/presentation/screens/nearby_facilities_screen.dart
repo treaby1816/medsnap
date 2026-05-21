@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme.dart';
-import '../../widgets/glass_app_bar.dart';
+import '../../../../core/theme.dart';
+import '../../../../widgets/glass_app_bar.dart';
 
 class NearbyFacilitiesScreen extends StatefulWidget {
   const NearbyFacilitiesScreen({super.key});

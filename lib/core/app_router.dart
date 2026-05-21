@@ -44,6 +44,7 @@ class AppRouter {
   static const String chat = '/chat';
   static const String checkout = '/checkout';
   static const String healthNews = '/health-news';
+  static const String jobBoard = '/job-board';
 
   // --- PHARMACY ROUTES ---
   static const String pharmacyDashboard = '/pharmacy-dashboard';
@@ -138,6 +139,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const CheckoutScreen(), settings: settings);
       case healthNews:
         return MaterialPageRoute(builder: (_) => const HealthNewsScreen(), settings: settings);
+      case jobBoard:
+        return MaterialPageRoute(builder: (_) => const JobBoardScreen(), settings: settings);
       
       // --- Dynamic Routes ---
       case product:
@@ -197,6 +200,11 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const AdminSupportScreen(), settings: settings);
 
       default:
+        // Intercept Supabase OAuth Web Redirect fragments
+        if (settings.name != null && (settings.name!.contains('access_token=') || settings.name!.contains('id_token=') || settings.name!.contains('error='))) {
+          return MaterialPageRoute(builder: (_) => const AuthGate(), settings: settings);
+        }
+        
         return MaterialPageRoute(
           builder: (_) => Scaffold(
             appBar: AppBar(title: const Text("Navigation Error")),

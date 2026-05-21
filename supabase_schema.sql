@@ -23,6 +23,22 @@ CREATE TABLE IF NOT EXISTS public.users (
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
     location GEOMETRY(Point, 4326), -- PostGIS Point geometry (SRID 4326 for WGS 84 GPS)
+    "displayName" TEXT,
+    "photoUrl" TEXT,
+    "bio" TEXT,
+    "licensePhotoUrl" TEXT,
+    "accessToken" TEXT,
+    "insuranceProvider" TEXT,
+    "insuranceID" TEXT,
+    "healthRecords" JSONB,
+    "connectedDevices" TEXT[],
+    "storeName" TEXT,
+    "storeFrontImageUrl" TEXT,
+    "storeInsideImageUrl" TEXT,
+    "npiNumber" TEXT,
+    "verificationStatus" TEXT DEFAULT 'none',
+    "rejectionReason" TEXT,
+    "approvedBy" UUID REFERENCES public.users(id),
     "createdAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -195,3 +211,5 @@ CREATE POLICY "Allow order creation" ON public.orders FOR INSERT WITH CHECK (aut
 INSERT INTO storage.buckets (id, name, public) VALUES ('receipts', 'receipts', true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('prescriptions', 'prescriptions', true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('licenses', 'licenses', false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('pharmacy_products', 'pharmacy_products', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('pharmacy_images', 'pharmacy_images', true) ON CONFLICT (id) DO NOTHING;

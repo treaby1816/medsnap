@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../widgets/glass_app_bar.dart';
+import '../../../../widgets/hover_social_button.dart';
 import '../../../../core/providers.dart';
 import 'success_screen.dart';
 
@@ -431,12 +432,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildSquareSocialBtn(
+                    HoverSocialButton(
                       iconWidget: const Text(
                         'G',
                         style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4285F4)),
                       ),
                       label: 'Google',
+                      hoverColor: const Color(0xFF4285F4),
                       onTap: _isLoading ? null : () async {
                         final isConsented = ref.read(agreedToTermsProvider) && ref.read(agreedToPrivacyProvider);
                         if (!isConsented && (!_agreedToTerms || !_agreedToPrivacy)) {
@@ -464,10 +466,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       },
                     ),
                     const SizedBox(width: 20),
-                    _buildSquareSocialBtn(
+                    HoverSocialButton(
                       iconWidget: const Icon(Icons.apple, size: 30, color: AppTheme.textPrimaryColor),
                       label: 'Apple',
                       tagText: 'Soon',
+                      hoverColor: const Color(0xFF0F172A),
                       onTap: null,
                     ),
                   ],
@@ -569,59 +572,5 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     );
   }
 
-  Widget _buildSquareSocialBtn({
-    required Widget iconWidget,
-    required String label,
-    required VoidCallback? onTap,
-    String? tagText,
-  }) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 100,
-            height: 90,
-            decoration: BoxDecoration(
-              color: onTap == null ? AppTheme.backgroundColor : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderColor, width: 1.5),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                iconWidget,
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: onTap == null ? AppTheme.textTertiaryColor : AppTheme.textPrimaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (tagText != null)
-          Positioned(
-            top: -8,
-            right: -8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAB308),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                tagText,
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+
 }

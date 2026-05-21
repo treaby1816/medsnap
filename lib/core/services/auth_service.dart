@@ -4,8 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/user_profile.dart';
 import '../utils/audit_logger.dart';
+import '../utils/web_storage.dart';
 
 class AuthResult {
   final User? user;
@@ -17,15 +19,49 @@ class AuthService {
   final _supabase = Supabase.instance.client;
   final _secureStorage = const FlutterSecureStorage();
   
+  /// Web-safe in-memory pending role (survives OAuth redirect via localStorage).
+  static String? _webPendingRole;
+  
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com' : null,
-    serverClientId: '870868324526-vegf2ge7ruvq3vtbdheohqgadisto6u9.apps.googleusercontent.com',
+    clientId: kIsWeb ? dotenv.env['GOOGLE_CLIENT_ID_WEB'] : null,
+    serverClientId: dotenv.env['GOOGLE_CLIENT_ID_SERVER'],
     scopes: ['email', 'openid'],
   );
 
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
   User? get currentUser => _supabase.auth.currentUser;
 
+  // --- Web-safe pending role storage ---
+  // On web, FlutterSecureStorage can be unreliable across redirects.
+  // We use localStorage directly which persists across the OAuth redirect.
+  
+  void saveWebPendingRole(String role) {
+    _webPendingRole = role;
+    try {
+      WebStorage.savePendingRole(role);
+    } catch (_) {
+      // localStorage may not be available in some contexts
+    }
+  }
+
+  String? getWebPendingRole() {
+    if (_webPendingRole != null) return _webPendingRole;
+    try {
+      return WebStorage.getPendingRole();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void clearWebPendingRole() {
+    _webPendingRole = null;
+    try {
+      WebStorage.clearPendingRole();
+    } catch (_) {}
+  }
+
+  // --- Mobile secure storage ---
+  
   Future<void> _securelyStorePII(User user, String role) async {
     if (kIsWeb) return; 
     try {
@@ -38,9 +74,32 @@ class AuthService {
     }
   }
 
+  Future<void> savePendingRole(String role) async {
+    await _secureStorage.write(key: 'pending_google_role', value: role);
+  }
+
+  Future<String?> getPendingRole() async {
+    return await _secureStorage.read(key: 'pending_google_role');
+  }
+
+  Future<void> clearPendingRole() async {
+    await _secureStorage.delete(key: 'pending_google_role');
+  }
+
   Future<AuthResult> signInWithGoogle({String role = 'patient'}) async {
     try {
       developer.log('Google Sign-In initiated...', name: 'VailMedsAuth');
+      
+      if (kIsWeb) {
+        developer.log('Web detected: Initiating Supabase OAuth Redirect Flow...', name: 'VailMedsAuth');
+        saveWebPendingRole(role);
+        
+        await _supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: Uri.base.origin,
+        );
+        return AuthResult(user: null);
+      }
       
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -85,8 +144,8 @@ class AuthService {
       
       return AuthResult(user: response.user, isNewUser: false);
     } catch (e) {
-      developer.log('Google Auth Error: $e', name: 'VailMedsAuth');
-      throw Exception("Sign-in failed. Please try again.");
+      developer.log('Google Auth Error: $e', name: 'VailMedsAuth', error: e);
+      throw Exception("Sign-in failed: $e\n\nEnsure SHA-1 fingerprint is registered in Google Cloud Console & Supabase.");
     }
   }
 
@@ -269,6 +328,6 @@ class AuthService {
     } catch (e) {
       developer.log('Error fetching Admin Master Key: $e', name: 'VailMedsAuth');
     }
-    return 'VM-2026-NGR'.trim();
+    return null;
   }
 }

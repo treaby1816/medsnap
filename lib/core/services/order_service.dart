@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
-import '../providers.dart';
-
+import '../models/cart_model.dart';
 class OrderService {
   final _supabase = Supabase.instance.client;
 
@@ -20,13 +19,13 @@ class OrderService {
     final orderData = {
       'patient_id': user.id,
       'pharmacy_id': items.isNotEmpty ? items[0].pharmacyId : null,
-      'drug_name': items.map((e) => e.name).join(', '),
+      'drug_name': items.map((e) => '${e.name} (x${e.quantity})').join(', '),
       'quantity': items.fold<int>(0, (sum, item) => sum + item.quantity),
       'total_amount': totalAmount,
       'status': 'pending',
       'fulfillment_type': 'delivery',
       'payment_status': 'unpaid',
-      // Store additional items data in a metadata field if we added one, otherwise this satisfies the prompt's SQL schema.
+      'items': items.map((e) => e.toMap()).toList(),
     };
 
     await _supabase.from('orders').insert(orderData);
