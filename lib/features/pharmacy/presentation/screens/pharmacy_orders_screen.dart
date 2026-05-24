@@ -61,7 +61,7 @@ class PharmacyOrdersScreen extends ConsumerWidget {
         stream: Supabase.instance.client
             .from('orders')
             .stream(primaryKey: ['id'])
-            .eq('globalPharmacyId', user.id),
+            .eq('pharmacy_id', user.id),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           

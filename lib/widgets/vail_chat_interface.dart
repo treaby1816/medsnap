@@ -208,9 +208,9 @@ class _VailChatInterfaceState extends ConsumerState<VailChatInterface> {
               text: msg.text,
               style: GoogleFonts.inter(
                 color: Colors.black87,
-                fontSize: 15,
-                fontWeight: FontWeight.w600, // Makes the text sharp, clean, and bold
-                height: 1.4,
+                fontSize: 16,
+                fontWeight: FontWeight.w800, // Extra bold for maximum legibility
+                height: 1.5,
               ),
             ),
       ),

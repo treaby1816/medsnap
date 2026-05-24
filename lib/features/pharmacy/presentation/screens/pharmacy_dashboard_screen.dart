@@ -133,7 +133,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
               stream: Supabase.instance.client
                   .from('orders')
                   .stream(primaryKey: ['id'])
-                  .eq('globalPharmacyId', ref.watch(authProvider)?.id ?? ''),
+                  .eq('pharmacy_id', ref.watch(authProvider)?.id ?? ''),
               builder: (context, orderSnap) {
                 return StreamBuilder<List<Map<String, dynamic>>>(
                   stream: Supabase.instance.client
@@ -147,8 +147,9 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
                     
                     if (orderSnap.hasData) {
                       for (var data in orderSnap.data!) {
-                        if (data['status'] == 'Pending') pending++;
-                        if (data['status'] == 'Ready') pickups++;
+                        final status = data['status']?.toString().toLowerCase();
+                        if (status == 'pending') pending++;
+                        if (status == 'processing' || status == 'ready') pickups++;
                       }
                     }
 
@@ -315,7 +316,7 @@ class _PharmacyDashboardScreenState extends ConsumerState<PharmacyDashboardScree
               stream: Supabase.instance.client
                   .from('orders')
                   .stream(primaryKey: ['id'])
-                  .eq('globalPharmacyId', ref.watch(authProvider)?.id ?? ''),
+                  .eq('pharmacy_id', ref.watch(authProvider)?.id ?? ''),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Container(

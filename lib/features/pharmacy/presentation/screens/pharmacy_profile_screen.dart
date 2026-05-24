@@ -145,9 +145,38 @@ class PharmacyProfileScreen extends ConsumerWidget {
                 _buildProfileOption(
                   icon: Icons.storefront_outlined,
                   title: 'Pharmacy Name',
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Pharmacy information can be updated via Support.')),
-                  ),
+                  onTap: () {
+                    final ctrl = TextEditingController(text: profile.name);
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: AppTheme.backgroundColor,
+                        title: Text('Edit Pharmacy Name', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                        content: TextField(
+                          controller: ctrl,
+                          decoration: const InputDecoration(labelText: 'Store Name'),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final newName = ctrl.text.trim();
+                              if (newName.isNotEmpty) {
+                                final authServ = ref.read(authServiceProvider);
+                                await authServ.updateProfile(ref.read(authProvider)!.id, {'storeName': newName, 'name': newName});
+                                if (ctx.mounted) Navigator.pop(ctx);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                            child: const Text('Save', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 _ImageUploadTile(
                   title: 'Store Front Image',

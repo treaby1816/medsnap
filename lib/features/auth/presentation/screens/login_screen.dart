@@ -217,10 +217,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
         
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/success', arguments: {
-          'role': targetRole,
-          'isReturningUser': !authResult.isNewUser,
-        });
+        if (targetRole == 'pharmacy' && authResult.isNewUser) {
+          Navigator.pushReplacementNamed(context, '/pharmacy-verification');
+        } else {
+          Navigator.pushReplacementNamed(context, '/success', arguments: {
+            'role': targetRole,
+            'isReturningUser': !authResult.isNewUser,
+          });
+        }
       }
     } catch (e) {
       _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));

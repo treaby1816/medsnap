@@ -3,14 +3,30 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/app_router.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/constants/enums.dart';
 
+/// SuccessScreen — shown after every successful signup or login.
+///
+/// Displays a branded confirmation with an animated checkmark and progress bar,
+/// then auto-redirects to the correct dashboard after [_kAutoRedirectDuration].
+///
+/// Routing matrix:
+///   • Patient (new)       → MainNavigationScreen (/main)
+///   • Patient (returning) → MainNavigationScreen (/main)
+///   • Pharmacy (new)      → PharmacyVerificationScreen (/pharmacy-verification)
+///   • Pharmacy (returning)→ PharmacyDashboard (/pharmacy-dashboard)
+///   • Admin               → AdminDashboardScreen (/admin-dashboard)
 class SuccessScreen extends ConsumerStatefulWidget {
   final UserType userType;
   final bool isReturningUser;
 
-  const SuccessScreen({super.key, required this.userType, this.isReturningUser = false});
+  const SuccessScreen({
+    super.key,
+    required this.userType,
+    this.isReturningUser = false,
+  });
 
   @override
   ConsumerState<SuccessScreen> createState() => _SuccessScreenState();
@@ -18,16 +34,28 @@ class SuccessScreen extends ConsumerStatefulWidget {
 
 class _SuccessScreenState extends ConsumerState<SuccessScreen>
     with TickerProviderStateMixin {
-  late AnimationController _progressController;
-  late AnimationController _checkController;
-  late Animation<double> _progressAnimation;
-  late Animation<double> _checkAnimation;
-  Timer? _timer;
+  /// Duration before auto-redirect fires.
+  static const _kAutoRedirectDuration = Duration(seconds: 3);
+
+  /// Duration for the fade-out transition before navigation.
+  static const _kFadeOutDuration = Duration(milliseconds: 400);
+
+  late final AnimationController _progressController;
+  late final AnimationController _checkController;
+  late final AnimationController _fadeOutController;
+
+  late final Animation<double> _progressAnimation;
+  late final Animation<double> _checkAnimation;
+  late final Animation<double> _fadeOutAnimation;
+
+  Timer? _redirectTimer;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
     super.initState();
 
+    // Checkmark draw animation
     _checkController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -37,15 +65,26 @@ class _SuccessScreenState extends ConsumerState<SuccessScreen>
       curve: Curves.easeOutCirc,
     );
 
+    // Progress bar animation
     _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: _kAutoRedirectDuration,
     );
     _progressAnimation = Tween<double>(begin: 0.1, end: 1.0).animate(
       CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
     );
 
-    _timer = Timer(const Duration(seconds: 3), _navigateToDashboard);
+    // Fade-out animation (fires just before navigation)
+    _fadeOutController = AnimationController(
+      vsync: this,
+      duration: _kFadeOutDuration,
+    );
+    _fadeOutAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _fadeOutController, curve: Curves.easeIn),
+    );
+
+    // Schedule the auto-redirect
+    _redirectTimer = Timer(_kAutoRedirectDuration, _beginFadeAndNavigate);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkController.forward();
@@ -53,213 +92,310 @@ class _SuccessScreenState extends ConsumerState<SuccessScreen>
     });
   }
 
-  void _navigateToDashboard() async {
-    if (!mounted) return;
+  /// Resolves the target route based on [userType] and [isReturningUser].
+  String _resolveTargetRoute() {
+    switch (widget.userType) {
+      case UserType.admin:
+      case UserType.super_admin:
+        return AppRouter.adminDashboard;
 
-    if (widget.userType == UserType.patient) {
-      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
-    } else {
-      // FORCE verification gate for pharmacies at the finish line
-      Navigator.pushNamedAndRemoveUntil(context, '/pharmacy-verification', (route) => false);
+      case UserType.pharmacy:
+        // New pharmacies must go through verification first.
+        // Returning (already-verified) pharmacies go straight to dashboard.
+        return widget.isReturningUser
+            ? AppRouter.pharmacyDashboard
+            : AppRouter.pharmacyVerification;
+
+      case UserType.patient:
+        return AppRouter.mainNav;
     }
+  }
+
+  /// Plays a quick fade-out, then navigates.
+  void _beginFadeAndNavigate() {
+    if (!mounted || _hasNavigated) return;
+
+    _fadeOutController.forward().then((_) {
+      _navigateToDashboard();
+    });
+  }
+
+  /// Performs the actual navigation, clearing the entire back stack.
+  void _navigateToDashboard() {
+    if (!mounted || _hasNavigated) return;
+    _hasNavigated = true;
+
+    final targetRoute = _resolveTargetRoute();
+    Navigator.pushNamedAndRemoveUntil(context, targetRoute, (route) => false);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _redirectTimer?.cancel();
     _progressController.dispose();
     _checkController.dispose();
+    _fadeOutController.dispose();
     super.dispose();
   }
 
+  // ─── Headline / Subtext Helpers ────────────────────────────────────
+
+  String get _headline {
+    final isReturning = widget.isReturningUser;
+
+    switch (widget.userType) {
+      case UserType.admin:
+      case UserType.super_admin:
+        return isReturning ? 'Welcome Back, Admin!' : 'Admin Access Granted!';
+
+      case UserType.pharmacy:
+        return isReturning ? 'Welcome Back!' : 'Application Received!';
+
+      case UserType.patient:
+        return isReturning ? 'Welcome Back!' : 'Account Created!';
+    }
+  }
+
+  String get _subtext {
+    final isReturning = widget.isReturningUser;
+
+    switch (widget.userType) {
+      case UserType.admin:
+      case UserType.super_admin:
+        return 'Loading the command center…';
+
+      case UserType.pharmacy:
+        return isReturning
+            ? 'Syncing your pharmacy data and loading your command center…'
+            : 'Redirecting to the verification portal. Our team will review your credentials shortly.';
+
+      case UserType.patient:
+        return isReturning
+            ? 'Great to see you again! Loading your health dashboard…'
+            : 'Your secure health portal is ready. Preparing your dashboard…';
+    }
+  }
+
+  String get _progressLabel {
+    switch (widget.userType) {
+      case UserType.admin:
+      case UserType.super_admin:
+        return 'Loading Admin Console…';
+      case UserType.pharmacy:
+        return widget.isReturningUser ? 'Syncing Live Orders…' : 'Submitting Application…';
+      case UserType.patient:
+        return 'Preparing Dashboard…';
+    }
+  }
+
+  String get _heroAssetPath {
+    switch (widget.userType) {
+      case UserType.admin:
+      case UserType.super_admin:
+        return 'assets/images/patient_success.jpg'; // Reuse for admin
+      case UserType.pharmacy:
+        return 'assets/images/pharmacy_success.jpg';
+      case UserType.patient:
+        return 'assets/images/patient_success.jpg';
+    }
+  }
+
+  // ─── BUILD ─────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final isPatient = widget.userType == UserType.patient;
-    final isReturning = widget.isReturningUser;
-    
-    final headline = isPatient
-        ? (isReturning ? 'Welcome Back!' : 'Account Created!')
-        : (isReturning ? 'Welcome Back!' : 'Application Received!');
-    final subtext = isPatient 
-      ? (isReturning 
-          ? 'Great to see you again! Loading your health dashboard...'
-          : 'Your secure health portal is ready. Preparing your dashboard...')
-      : (isReturning
-          ? 'Syncing your pharmacy data and loading your command center...'
-          : 'Redirecting to the verification portal. Our team will review your credentials shortly.');
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -60,
-            right: -60,
-            child: _buildRadialGlow(),
-          ),
-          Positioned(
-            bottom: -60,
-            left: -60,
-            child: _buildRadialGlow(),
-          ),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minHeight: constraints.maxHeight),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.pagePadding,
-                        vertical: AppTheme.pagePadding,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 48),
+      body: FadeTransition(
+        opacity: _fadeOutAnimation.value == 1.0
+            ? const AlwaysStoppedAnimation(1.0)
+            : _fadeOutAnimation,
+        child: Stack(
+          children: [
+            Positioned(top: -60, right: -60, child: _buildRadialGlow()),
+            Positioned(bottom: -60, left: -60, child: _buildRadialGlow()),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.pagePadding,
+                          vertical: AppTheme.pagePadding,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 48),
 
-                          // Custom Animated Checkmark
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryColor.withValues(alpha: 0.15),
-                                  blurRadius: 40,
-                                  spreadRadius: 10,
-                                ),
-                              ],
-                            ),
-                            child: AnimatedBuilder(
-                              animation: _checkAnimation,
-                              builder: (context, child) {
-                                return CustomPaint(
-                                  painter: _CheckmarkPainter(
-                                    progress: _checkAnimation.value,
-                                    color: AppTheme.primaryColor,
+                            // ── Animated Checkmark ──
+                            Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                                    blurRadius: 40,
+                                    spreadRadius: 10,
                                   ),
-                                );
-                              },
+                                ],
+                              ),
+                              child: AnimatedBuilder(
+                                animation: _checkAnimation,
+                                builder: (context, child) {
+                                  return CustomPaint(
+                                    painter: _CheckmarkPainter(
+                                      progress: _checkAnimation.value,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 40),
+                            const SizedBox(height: 40),
 
-                          Text(
-                            headline,
-                            style: GoogleFonts.inter(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimaryColor,
-                              letterSpacing: -0.5,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              subtext,
+                            // ── Headline ──
+                            Text(
+                              _headline,
                               style: GoogleFonts.inter(
-                                fontSize: 16,
-                                color: AppTheme.textSecondaryColor,
-                                height: 1.5,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimaryColor,
+                                letterSpacing: -0.5,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                          ),
-                          const SizedBox(height: 48),
+                            const SizedBox(height: 16),
 
-                          // Image
-                          Container(
-                            height: 220,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24),
-                              color: Colors.white,
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 20,
-                                  offset: Offset(0, 10),
+                            // ── Subtext ──
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                _subtext,
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  color: AppTheme.textSecondaryColor,
+                                  height: 1.5,
                                 ),
-                              ],
+                                textAlign: TextAlign.center,
+                              ),
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.asset(
-                                    isPatient
-                                        ? 'assets/images/patient_success.jpg'
-                                        : 'assets/images/pharmacy_success.jpg',
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                           Colors.white.withValues(alpha: 0.1),
-                                           AppTheme.primaryColor.withValues(alpha: 0.2),
-                                        ],
-                                      ),
-                                    ),
+                            const SizedBox(height: 48),
+
+                            // ── Hero Image ──
+                            Container(
+                              height: 220,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(24),
+                                color: Colors.white,
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 20,
+                                    offset: Offset(0, 10),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 60),
-
-                          // Progress indicator
-                          AnimatedBuilder(
-                            animation: _progressAnimation,
-                            builder: (context, child) {
-                              return Column(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: _progressAnimation.value,
-                                      minHeight: 6,
-                                       backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                                      valueColor: const AlwaysStoppedAnimation<Color>(
-                                        AppTheme.primaryColor,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.asset(
+                                      _heroAssetPath,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.check_circle_outline_rounded,
+                                            size: 64,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    isPatient ? 'Preparing Dashboard... ${(_progressAnimation.value * 100).toInt()}%' : 'Syncing Live Orders...',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.primaryColor,
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.white.withValues(alpha: 0.1),
+                                            AppTheme.primaryColor.withValues(alpha: 0.2),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                        ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 60),
+
+                            // ── Progress Indicator ──
+                            AnimatedBuilder(
+                              animation: _progressAnimation,
+                              builder: (context, child) {
+                                return Column(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: LinearProgressIndicator(
+                                        value: _progressAnimation.value,
+                                        minHeight: 6,
+                                        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                                        valueColor: const AlwaysStoppedAnimation<Color>(
+                                          AppTheme.primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      '$_progressLabel ${(_progressAnimation.value * 100).toInt()}%',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 32),
+
+                            // ── Fallback Manual Continue ──
+                            // Safety net: if auto-redirect fails or user wants to skip.
+                            TextButton(
+                              onPressed: _hasNavigated ? null : _navigateToDashboard,
+                              child: Text(
+                                'Continue to Dashboard →',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primaryColor.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -280,6 +416,8 @@ class _SuccessScreenState extends ConsumerState<SuccessScreen>
   }
 }
 
+// ─── Custom Checkmark Painter ────────────────────────────────────────
+
 class _CheckmarkPainter extends CustomPainter {
   final double progress;
   final Color color;
@@ -298,7 +436,7 @@ class _CheckmarkPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final Path path = Path();
-    
+
     // Starting point
     final p1 = Offset(size.width * 0.25, size.height * 0.55);
     // Bottom point
@@ -315,7 +453,6 @@ class _CheckmarkPainter extends CustomPainter {
     final double currentLength = totalLength * progress;
 
     if (currentLength <= firstSegmentLength) {
-      // Draw first segment
       final double ratio = currentLength / firstSegmentLength;
       final Offset endPoint = Offset(
         p1.dx + (p2.dx - p1.dx) * ratio,
@@ -323,9 +460,7 @@ class _CheckmarkPainter extends CustomPainter {
       );
       path.lineTo(endPoint.dx, endPoint.dy);
     } else {
-      // First segment is complete
       path.lineTo(p2.dx, p2.dy);
-      // Draw second segment
       final double remainingLength = currentLength - firstSegmentLength;
       final double ratio = remainingLength / secondSegmentLength;
       final Offset endPoint = Offset(

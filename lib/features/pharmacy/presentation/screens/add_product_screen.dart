@@ -5,10 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/providers.dart';
+import '../../../../core/models/product_model.dart';
 import '../../../../widgets/glass_app_bar.dart';
 
 class AddProductScreen extends ConsumerStatefulWidget {
-  const AddProductScreen({super.key});
+  final Product? existingProduct;
+  const AddProductScreen({super.key, this.existingProduct});
 
   @override
   ConsumerState<AddProductScreen> createState() => _AddProductScreenState();
@@ -24,6 +26,21 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   Uint8List? _imageBytes;
   String _imageExt = 'jpg';
   bool _isUploading = false;
+
+  String? _existingImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingProduct != null) {
+      final p = widget.existingProduct!;
+      _nameController.text = p.name;
+      _priceController.text = p.price.toString();
+      _stockController.text = '100'; // Default, we aren't loading it yet
+      _maxStockController.text = '100'; // Default
+      _existingImageUrl = p.imageUrl;
+    }
+  }
 
   final ImagePicker _picker = ImagePicker();
 
@@ -42,7 +59,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageBytes == null) {
+    if (_imageBytes == null && _existingImageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please upload a product photo')),
       );
@@ -56,28 +73,34 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
 
       final pharmacyService = ref.read(pharmacyServiceProvider);
       
-      // 1. Upload Image via Bytes
-      final imageUrl = await pharmacyService.uploadProductImageBytes(_imageBytes!, user.id, _imageExt);
+      // 1. Upload Image via Bytes if new image selected
+      String? imageUrl = _existingImageUrl;
+      if (_imageBytes != null) {
+        imageUrl = await pharmacyService.uploadProductImageBytes(_imageBytes!, user.id, _imageExt);
+      }
 
-      // 2. Save Product to Firestore
+      // 2. Save Product to Firestore/Supabase
       final userProfile = ref.read(userProfileProvider).value;
       final storeName = userProfile?.storeName ?? 'Verified Pharmacy';
 
-      await pharmacyService.addProduct({
+      final pData = {
         'name': _nameController.text.trim(),
-        'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
         'stockCount': int.parse(_stockController.text.trim()),
-        'maxStock': int.parse(_maxStockController.text.trim()),
         'imageUrl': imageUrl,
         'pharmacyId': user.id,
-        'pharmacyName': storeName,
-      });
+      };
+
+      if (widget.existingProduct != null) {
+        await pharmacyService.updateProduct(widget.existingProduct!.id, pData);
+      } else {
+        await pharmacyService.addProduct(pData);
+      }
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product added successfully!')),
+          SnackBar(content: Text(widget.existingProduct != null ? 'Product updated successfully!' : 'Product added successfully!')),
         );
       }
     } catch (e) {

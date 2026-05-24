@@ -73,21 +73,24 @@ class _VerificationScreenState extends State<VerificationScreen> {
               Text('Verification Token', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimaryColor)),
               const SizedBox(height: 16),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (i) => SizedBox(
-                  width: 48, height: 56,
-                  child: TextField(
-                    controller: _tokenControllers[i], focusNode: _tokenFocusNodes[i],
-                    textAlign: TextAlign.center, keyboardType: TextInputType.number, maxLength: 1,
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 20, color: AppTheme.textPrimaryColor),
-                    decoration: const InputDecoration(counterText: '', contentPadding: EdgeInsets.symmetric(vertical: 12)),
-                    onChanged: (v) {
-                      if (v.isNotEmpty && i < 5) {
-                        _tokenFocusNodes[i + 1].requestFocus();
-                      } else if (v.isEmpty && i > 0) {
-                        _tokenFocusNodes[i - 1].requestFocus();
-                      }
-                    },
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(6, (i) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: SizedBox(
+                    width: 48, height: 56,
+                    child: TextField(
+                      controller: _tokenControllers[i], focusNode: _tokenFocusNodes[i],
+                      textAlign: TextAlign.center, keyboardType: TextInputType.number, maxLength: 1,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 20, color: AppTheme.textPrimaryColor),
+                      decoration: const InputDecoration(counterText: '', contentPadding: EdgeInsets.symmetric(vertical: 12)),
+                      onChanged: (v) {
+                        if (v.isNotEmpty && i < 5) {
+                          _tokenFocusNodes[i + 1].requestFocus();
+                        } else if (v.isEmpty && i > 0) {
+                          _tokenFocusNodes[i - 1].requestFocus();
+                        }
+                      },
+                    ),
                   ),
                 )),
               ),

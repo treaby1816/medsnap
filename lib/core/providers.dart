@@ -41,8 +41,12 @@ final healthNewsProvider = FutureProvider<List<HealthArticle>>((ref) async {
 });
 
 // --- AUTH & ROLE MANAGEMENT ---
-final authStateProvider = StreamProvider<User?>((ref) {
-  return ref.watch(authServiceProvider).authStateChanges.map((state) => state.session?.user);
+final authStateProvider = StreamProvider<User?>((ref) async* {
+  final authService = ref.watch(authServiceProvider);
+  yield authService.currentUser;
+  await for (final state in authService.authStateChanges) {
+    yield state.session?.user;
+  }
 });
 
 final authProvider = Provider<User?>((ref) {

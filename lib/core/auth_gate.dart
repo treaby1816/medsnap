@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // 1. Core Providers
 import 'package:vail_meds_v2/core/providers.dart';
+import 'package:vail_meds_v2/core/app_router.dart';
 
 // 2. Auth Feature Screens 
 import 'package:vail_meds_v2/features/auth/presentation/screens/splash_screen.dart';
@@ -19,6 +20,13 @@ import 'package:vail_meds_v2/features/home/presentation/screens/main_navigation_
 import 'package:vail_meds_v2/features/pharmacy/presentation/screens/pharmacy_main_screen.dart';
 import 'package:vail_meds_v2/features/pharmacy/presentation/screens/pharmacy_verification_screen.dart';
 import 'package:vail_meds_v2/features/admin/presentation/screens/admin_dashboard_screen.dart';
+
+// ─────────────────────────────────────────────────────────────────────
+// Provider: tracks whether the success screen has already been shown
+// in this session. Prevents the success screen from re-appearing on
+// every AuthGate rebuild after initial login/registration.
+// ─────────────────────────────────────────────────────────────────────
+final _hasShownSuccessProvider = StateProvider<bool>((ref) => false);
 
 /// AuthGate is the root routing widget. It reactively watches auth + profile state
 /// and renders the correct screen. No imperative Navigator calls are used here —
@@ -45,8 +53,8 @@ class AuthGate extends ConsumerWidget {
             data: (profile) {
               if (profile == null) {
                 // Profile doesn't exist yet (e.g. first OAuth login on web).
-                // Show ProfileSetupGate which will create it, then the stream
-                // will emit the new profile and this .when() reruns automatically.
+                // Show ProfileSetupGate which will create it, then route
+                // through the success screen before landing on the dashboard.
                 return ProfileSetupGate(user: user);
               }
               if (profile.role == 'admin' || localRole == 'admin') {
@@ -102,9 +110,9 @@ class AuthGate extends ConsumerWidget {
 /// ProfileSetupGate handles the one-time profile creation for users who
 /// authenticate via OAuth redirect (e.g. Google Sign-In on Web).
 ///
-/// After the profile is created, the `userProfileProvider` stream automatically
-/// emits the new profile, which causes AuthGate to rebuild and route the user
-/// to their correct dashboard. No imperative navigation is needed.
+/// After the profile is created, it navigates to the Success Screen which
+/// then auto-redirects to the correct dashboard. This ensures every signup
+/// method (email, Google, web OAuth) gets the same polished success UX.
 class ProfileSetupGate extends ConsumerStatefulWidget {
   final User user;
   const ProfileSetupGate({super.key, required this.user});
@@ -178,8 +186,23 @@ class _ProfileSetupGateState extends ConsumerState<ProfileSetupGate> {
         'ProfileSetupGate: Profile created successfully (role: $pendingRole)',
         name: 'VailMeds',
       );
-      // No navigation needed — the userProfileProvider stream will emit
-      // the new profile and AuthGate will rebuild automatically.
+
+      // ── Navigate to Dashboard or Verification ──
+      // Instead of silently rebuilding into the dashboard, show the
+      // success screen so every auth method gets the same polished UX.
+      if (mounted && !ref.read(_hasShownSuccessProvider)) {
+        ref.read(_hasShownSuccessProvider.notifier).state = true;
+        
+        // Prevent hijacking navigation if an active auth screen (like RegistrationScreen) is on top
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRouter.success,
+          (route) => false,
+          arguments: {
+            'role': pendingRole,
+            'isReturningUser': false,
+          },
+        );
+      }
       
     } catch (e) {
       developer.log('ProfileSetupGate error: $e', name: 'VailMeds');
@@ -222,12 +245,7 @@ class _ProfileSetupGateState extends ConsumerState<ProfileSetupGate> {
                 child: const Text('Retry'),
               ),
             ] else ...[
-              const CircularProgressIndicator(color: AppTheme.primaryColor),
-              const SizedBox(height: 20),
-              Text(
-                'Setting up your profile...',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-              ),
+              const SizedBox.shrink(),
             ],
           ],
         ),

@@ -289,7 +289,7 @@ class AuthService {
         'isAdminApproved': true,
         'isVerified': true,
         'verificationStatus': 'approved',
-        'approvedBy': currentUser?.id,
+        // 'approvedBy': currentUser?.id, // Temporary fix for PGRST204 (Column not in schema cache)
       }).eq('id', uid);
       
       final pharmacyProfile = await getUserProfile(uid);

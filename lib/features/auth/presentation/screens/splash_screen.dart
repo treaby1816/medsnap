@@ -28,7 +28,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500), // Extended for beautiful transition
+      duration: const Duration(milliseconds: 1500), // Fast & snappy
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -40,7 +40,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _pulseController = AnimationController(
         vsync: this, 
-        duration: const Duration(milliseconds: 2500)
+        duration: const Duration(milliseconds: 1800)
     )..repeat(reverse: true);
 
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
@@ -144,8 +144,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         letterSpacing: -1.0,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    // Optional: Loading indicator to signal progress
+                    const SizedBox(height: 10),
+                    Text(
+                      'Premium Healthcare Delivery',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.white.withValues(alpha: 0.85),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Loading indicator
                     const SizedBox(
                       width: 40,
                       child: LinearProgressIndicator(

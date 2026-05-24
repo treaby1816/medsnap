@@ -23,22 +23,11 @@ void main() {
   runZonedGuarded(() async {
     final WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
     
-    // Load environment variables
-    await dotenv.load(fileName: '.env');
-
-    // Initialize Supabase (Primary Database + Auth)
-    await Supabase.initialize(
-      url: dotenv.env['SUPABASE_URL']!,
-      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-      authOptions: FlutterAuthClientOptions(
-        authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce,
-      ),
-    );
-    
     if (!kIsWeb) {
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
     }
 
+    // Start rendering immediately. Heavy initializations are deferred to BootstrapApp.
     runApp(const ProviderScope(child: BootstrapApp()));
     
   }, (error, stack) {
@@ -64,20 +53,32 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   Future<void> _bootSequence() async {
     try {
-      // Firebase — only required on native platforms (FCM, Analytics, etc.)
+      // 1. Load environment variables first
+      await dotenv.load(fileName: '.env');
+
+      // 2. Initialize Supabase (Primary Database + Auth)
+      await Supabase.initialize(
+        url: dotenv.env['SUPABASE_URL']!,
+        anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+        authOptions: FlutterAuthClientOptions(
+          authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce,
+        ),
+      );
+
+      // 3. Firebase — only required on native platforms (FCM, Analytics, etc.)
       if (!kIsWeb) {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         ).timeout(const Duration(seconds: 15));
       }
 
-      // Initialize Cache
+      // 4. Initialize Cache
       await CacheService.initialize();
 
-      // Security (Root check & Screenshot block) — already web-safe (no-ops)
+      // 5. Security (Root check & Screenshot block)
       await SecurityService.initialize();
 
-      // Push Notifications — skip on web (FCM push requires native)
+      // 6. Push Notifications
       if (!kIsWeb) {
         await NotificationService.initialize();
       }
@@ -97,10 +98,43 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   @override
   Widget build(BuildContext context) {
-    // On web, render the app immediately — Supabase is already initialized in main().
-    // On mobile, wait for Firebase + services before removing native splash.
-    if (!_initialized && !kIsWeb) {
-      return const SizedBox.shrink();
+    // Show a fast splash screen immediately in Flutter while the heavy init runs.
+    if (!_initialized) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color(0xFFEC5B13), // VailMeds Orange
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(color: Colors.white),
+                const SizedBox(height: 24),
+                const Text(
+                  'VailMeds',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Premium Healthcare Delivery',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    fontStyle: FontStyle.italic,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return const VailMedsApp();

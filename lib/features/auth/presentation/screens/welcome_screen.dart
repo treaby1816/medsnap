@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:vail_meds_v2/core/providers.dart';
 import 'package:vail_meds_v2/core/theme.dart';
+import 'package:vail_meds_v2/core/providers.dart';
+import 'package:vail_meds_v2/core/services/auth_service.dart';
+import 'package:vail_meds_v2/widgets/vail_chat_interface.dart'; // Contains TypewriterText
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -318,9 +320,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        Text(
-                                          _valueProps[index]['title']!,
-                                          textAlign: TextAlign.center,
+                                        TypewriterText(
+                                          text: _valueProps[index]['title']!,
                                           style: GoogleFonts.inter(
                                             fontSize: 32,
                                             fontWeight: FontWeight.w800,
@@ -378,6 +379,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                                     onPressed: () {
                                       HapticFeedback.lightImpact();
                                       ref.read(onboardingStageProvider.notifier).state = 'auth';
+                                      Navigator.of(context).pushNamed('/gateway');
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.primaryColor,

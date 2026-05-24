@@ -3,11 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
-import '../../../../core/constants/enums.dart';
 import '../../../../widgets/glass_app_bar.dart';
 import '../../../../widgets/hover_social_button.dart';
 import '../../../../core/providers.dart';
-import 'success_screen.dart';
 
 class RegistrationScreen extends ConsumerStatefulWidget {
   final String initialRole;
@@ -72,15 +70,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
       if (authResult.user != null) {
         ref.read(userRoleProvider.notifier).setRole(role);
-        final userType = role == 'pharmacy' ? UserType.pharmacy : UserType.patient;
         
         setState(() => _isLoading = false); // Hide loader before navigation
         
-        navigator.pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => SuccessScreen(userType: userType),
-          ),
-        );
+        navigator.pushReplacementNamed('/success', arguments: {
+          'role': role,
+          'isReturningUser': false,
+        });
       }
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('already registered')) {
@@ -305,7 +301,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 const SizedBox(height: 28),
 
                 // --- BEFORE YOU CONTINUE BLOCK ---
-                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -387,7 +382,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     ],
                   ),
                 ),
-                if (!ref.watch(agreedToTermsProvider) || !ref.watch(agreedToPrivacyProvider))
                 const SizedBox(height: 24),
 
                 // Create Secure Account Button

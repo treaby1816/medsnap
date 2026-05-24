@@ -4,6 +4,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/glass_app_bar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:math' as math;
 
 class NearbyFacilitiesScreen extends StatefulWidget {
   const NearbyFacilitiesScreen({super.key});
@@ -18,8 +20,8 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
   // Center of Lekki, Lagos
   final LatLng _initialCenter = const LatLng(6.4526, 3.4475);
 
-  // Mock facilities data with coordinates
-  final List<_FacilityData> _facilities = const [
+  // Mock data as fallback
+  final List<_FacilityData> _mockFacilities = const [
     _FacilityData(
       name: 'VailMeds Pharmacy - Lekki',
       address: 'Plot 14, Admiralty Way, Lekki Phase 1',
@@ -28,39 +30,40 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
       hours: 'Open until 9 PM',
       location: LatLng(6.4468, 3.4563),
     ),
-    _FacilityData(
-      name: 'Alpha Diagnostic Lab',
-      address: '22 Ozumba Mbadiwe Ave, Victoria Island',
-      type: 'lab',
-      distance: '1.2 km',
-      hours: 'Open until 6 PM',
-      location: LatLng(6.4347, 3.4244),
-    ),
-    _FacilityData(
-      name: 'City Health Pharmacy',
-      address: '5 Akin Adesola St, Victoria Island',
-      type: 'pharmacy',
-      distance: '2.1 km',
-      hours: 'Open 24h',
-      location: LatLng(6.4285, 3.4150),
-    ),
-    _FacilityData(
-      name: 'MedPlus Pharmacy',
-      address: '34 Isaac John St, Ikeja GRA',
-      type: 'pharmacy',
-      distance: '3.5 km',
-      hours: 'Open until 10 PM',
-      location: LatLng(6.5862, 3.3592),
-    ),
-    _FacilityData(
-      name: 'Reddington Hospital',
-      address: '12 Idowu Martins St, Victoria Island',
-      type: 'hospital',
-      distance: '1.8 km',
-      hours: 'Open 24h',
-      location: LatLng(6.4253, 3.4137),
-    ),
   ];
+
+  Stream<List<_FacilityData>> _getFacilitiesStream() {
+    return Supabase.instance.client
+        .from('users')
+        .stream(primaryKey: ['id'])
+        .eq('role', 'pharmacy')
+        .map((data) {
+          final distanceHelper = const Distance();
+          return data.map((user) {
+            double? lat = user['latitude'];
+            double? lng = user['longitude'];
+            
+            // Mock random location around center if missing
+            if (lat == null || lng == null) {
+              final random = math.Random(user['id'].hashCode);
+              lat = _initialCenter.latitude + (random.nextDouble() - 0.5) * 0.05;
+              lng = _initialCenter.longitude + (random.nextDouble() - 0.5) * 0.05;
+            }
+            
+            final location = LatLng(lat, lng);
+            final distKm = distanceHelper.as(LengthUnit.Kilometer, _initialCenter, location);
+
+            return _FacilityData(
+              name: user['storeName'] ?? user['name'] ?? user['displayName'] ?? 'Pharmacy',
+              address: 'Verified Pharmacy Location',
+              type: 'pharmacy',
+              distance: '${distKm.toStringAsFixed(1)} km',
+              hours: 'Open 24h',
+              location: location,
+            );
+          }).toList();
+        });
+  }
 
   void _focusFacility(_FacilityData facility) {
     _mapController.move(facility.location, 16.0);
@@ -80,88 +83,91 @@ class _NearbyFacilitiesScreenState extends State<NearbyFacilitiesScreen> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // Top Half: OpenStreetMap (flutter_map)
-          SizedBox(
-            height: MediaQuery.of(context).size.height * 0.40,
-            width: double.infinity,
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _initialCenter,
-                initialZoom: 13.5,
+      body: StreamBuilder<List<_FacilityData>>(
+        stream: _getFacilitiesStream(),
+        builder: (context, snapshot) {
+          final facilities = snapshot.data ?? _mockFacilities;
+          
+          return Column(
+            children: [
+              // Top Half: OpenStreetMap (flutter_map)
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.40,
+                width: double.infinity,
+                child: FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _initialCenter,
+                    initialZoom: 13.5,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.vailmeds.app',
+                    ),
+                    MarkerLayer(
+                      markers: facilities.map((facility) {
+                        Color markerColor;
+                        switch (facility.type) {
+                          case 'pharmacy': markerColor = AppTheme.primaryColor; break;
+                          case 'lab': markerColor = const Color(0xFF3B82F6); break;
+                          case 'hospital': markerColor = const Color(0xFF22C55E); break;
+                          default: markerColor = Colors.red;
+                        }
+
+                        return Marker(
+                          point: facility.location,
+                          width: 40,
+                          height: 40,
+                          child: GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(facility.name), duration: const Duration(seconds: 1)),
+                              );
+                            },
+                            child: Icon(
+                              Icons.location_on_rounded,
+                              color: markerColor,
+                              size: 40,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.vailmeds.app',
+
+              // Legend row
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                color: Colors.white,
+                child: Row(
+                  children: [
+                    _legendDot(AppTheme.primaryColor, 'Pharmacies'),
+                    const Spacer(),
+                    Text(
+                      '${facilities.length} found',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textTertiaryColor),
+                    ),
+                  ],
                 ),
-                MarkerLayer(
-                  markers: _facilities.map((facility) {
-                    Color markerColor;
-                    switch (facility.type) {
-                      case 'pharmacy': markerColor = AppTheme.primaryColor; break;
-                      case 'lab': markerColor = const Color(0xFF3B82F6); break;
-                      case 'hospital': markerColor = const Color(0xFF22C55E); break;
-                      default: markerColor = Colors.red;
-                    }
+              ),
 
-                    return Marker(
-                      point: facility.location,
-                      width: 40,
-                      height: 40,
-                      child: GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(facility.name), duration: const Duration(seconds: 1)),
-                          );
-                        },
-                        child: Icon(
-                          Icons.location_on_rounded,
-                          color: markerColor,
-                          size: 40,
-                        ),
-                      ),
-                    );
-                  }).toList(),
+              const Divider(height: 1),
+
+              // Facility list (Clickable to focus on Map)
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: facilities.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) => _buildFacilityCard(facilities[index]),
                 ),
-              ],
-            ),
-          ),
-
-          // Legend row
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            color: Colors.white,
-            child: Row(
-              children: [
-                _legendDot(AppTheme.primaryColor, 'Pharmacies'),
-                const SizedBox(width: 20),
-                _legendDot(const Color(0xFF3B82F6), 'Labs'),
-                const SizedBox(width: 20),
-                _legendDot(const Color(0xFF22C55E), 'Hospitals'),
-                const Spacer(),
-                Text(
-                  '${_facilities.length} found',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textTertiaryColor),
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1),
-
-          // Facility list (Clickable to focus on Map)
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _facilities.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _buildFacilityCard(_facilities[index]),
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        }
       ),
     );
   }

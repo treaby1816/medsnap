@@ -44,13 +44,28 @@ class PharmacyService {
         'pharmacy_id': productData['pharmacyId'],
         'drug_name': productData['name'],
         'price': productData['price'] ?? 0.0,
-        'quantity': 100, // Default for now
+        'quantity': productData['stockCount'] ?? 100,
         // Keep original data in a metadata column if needed, or expand schema
       };
 
       await _supabase.from('inventory').insert(insertData);
     } catch (e) {
       debugPrint('Error adding product: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateProduct(String productId, Map<String, dynamic> productData) async {
+    try {
+      final updateData = {
+        'drug_name': productData['name'],
+        'price': productData['price'] ?? 0.0,
+        'quantity': productData['stockCount'] ?? 100,
+      };
+
+      await _supabase.from('inventory').update(updateData).eq('id', productId);
+    } catch (e) {
+      debugPrint('Error updating product: $e');
       rethrow;
     }
   }

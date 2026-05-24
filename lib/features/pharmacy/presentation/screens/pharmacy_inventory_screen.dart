@@ -129,6 +129,16 @@ class PharmacyInventoryScreen extends ConsumerWidget {
         content: Text('Are you sure you want to delete ${product.name}? This action cannot be undone.'),
         actions: [
           TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AddProductScreen(existingProduct: product)),
+              );
+            },
+            child: const Text('Edit', style: TextStyle(color: Colors.blue)),
+          ),
+          TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
