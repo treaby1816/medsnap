@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../core/theme.dart';
+import '../../../../core/app_router.dart';
 import '../../../../widgets/glass_app_bar.dart';
 import '../../../../core/providers.dart';
 
@@ -28,6 +29,7 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
       List.generate(6, (_) => FocusNode());
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _hasNavigated = false;
   XFile? _licenseImage;
   final _picker = ImagePicker();
 
@@ -42,19 +44,49 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
     super.dispose();
   }
 
+  /// Navigates to the Success screen which shows a polished approval
+  /// confirmation and then auto-redirects to the pharmacy dashboard.
+  void _navigateToApprovalSuccess() {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRouter.success,
+      (route) => false,
+      arguments: {
+        'role': 'pharmacy',
+        'isReturningUser': true, // Already verified → success → dashboard
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProfile = ref.watch(userProfileProvider).value;
 
+    // Listen for realtime approval status changes from admin
     ref.listen(userProfileProvider, (previous, next) {
-      if (next.value?.isAdminApproved ?? false) {
-        Navigator.pushReplacementNamed(context, '/pharmacy-dashboard');
+      final wasApproved = previous?.value?.isAdminApproved ?? false;
+      final isNowApproved = next.value?.isAdminApproved ?? false;
+
+      if (!wasApproved && isNowApproved) {
+        _navigateToApprovalSuccess();
       }
     });
 
-    // If already approved, show loading while redirecting (handled by ref.listen above)
+    // If already approved on initial load, redirect immediately
     if (userProfile?.isAdminApproved ?? false) {
-       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Schedule navigation post-frame to avoid build-during-build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigateToApprovalSuccess();
+      });
+      return Scaffold(
+        backgroundColor: AppTheme.primaryColor,
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
     }
 
     // If pending review
@@ -357,7 +389,9 @@ class _PharmacyVerificationScreenState extends ConsumerState<PharmacyVerificatio
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('DEBUG: Application Approved!')),
       );
+      // Invalidate so the profile provider refreshes, then navigate
       ref.invalidate(userProfileProvider);
+      _navigateToApprovalSuccess();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
