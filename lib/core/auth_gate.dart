@@ -68,8 +68,8 @@ class AuthGate extends ConsumerWidget {
               return const MainNavigationScreen();
             },
             loading: () => const Scaffold(
-              backgroundColor: Colors.white,
-              body: Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+              backgroundColor: AppTheme.primaryColor,
+              body: Center(child: CircularProgressIndicator(color: Colors.white)),
             ),
             error: (err, stack) => Scaffold(
               body: Center(child: Text('Profile Sync Error: $err')),
@@ -86,9 +86,9 @@ class AuthGate extends ConsumerWidget {
         return const GatewayScreen();
       },
       loading: () => const Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.primaryColor,
         body: Center(
-          child: CircularProgressIndicator(color: AppTheme.primaryColor),
+          child: CircularProgressIndicator(color: Colors.white),
         ),
       ),
       error: (error, stack) => Scaffold(

@@ -71,6 +71,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // 1. Wait for the beautiful 2-second logo build animation to complete
     await _controller.forward();
 
+    // Add a pause to let the user admire the splash screen before transitioning
+    await Future.delayed(const Duration(seconds: 2));
+
     if (!mounted) return;
 
     // 2. STATE TRANSITION: We update the onboarding stage to 'welcome'.

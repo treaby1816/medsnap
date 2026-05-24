@@ -65,23 +65,15 @@ class _BootstrapAppState extends State<BootstrapApp> {
         ),
       );
 
-      // 3. Firebase — only required on native platforms (FCM, Analytics, etc.)
-      if (!kIsWeb) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        ).timeout(const Duration(seconds: 15));
-      }
-
-      // 4. Initialize Cache
-      await CacheService.initialize();
-
-      // 5. Security (Root check & Screenshot block)
-      await SecurityService.initialize();
-
-      // 6. Push Notifications
-      if (!kIsWeb) {
-        await NotificationService.initialize();
-      }
+      // 3. Run other initializations concurrently to speed up the boot process
+      await Future.wait([
+        CacheService.initialize(),
+        SecurityService.initialize(),
+        if (!kIsWeb)
+          Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          ).timeout(const Duration(seconds: 15)).then((_) => NotificationService.initialize()),
+      ]);
     } catch (e) {
       developer.log('BOOT ERROR: $e', name: 'VailMedsGuard');
     } finally {
