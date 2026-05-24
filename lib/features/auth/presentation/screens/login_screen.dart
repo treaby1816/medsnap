@@ -178,11 +178,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (authResult.user != null) {
         final profile = await ref.read(authServiceProvider).getUserProfile(authResult.user!.id);
         if (profile != null) {
-          final targetRole = role == UserType.pharmacy ? 'pharmacy' : 'patient';
-          if (profile.role != targetRole) {
-            await ref.read(authServiceProvider).signOut();
-            throw Exception('Account Role Mismatch. Please use the ${profile.role} portal.');
-          }
           ref.read(userRoleProvider.notifier).setRole(profile.role);
           if (mounted) {
             // Route through Success screen which handles per-role navigation
@@ -211,17 +206,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (authResult.user != null) {
         final profile = await ref.read(authServiceProvider).getUserProfile(authResult.user!.id);
         
-        if (profile != null && profile.role != targetRole) {
-          await ref.read(authServiceProvider).signOut();
-          throw Exception('Google Account Mismatch. Use the ${profile.role} portal.');
-        }
+        final finalRole = profile?.role ?? targetRole;
         
         if (!mounted) return;
-        if (targetRole == 'pharmacy' && authResult.isNewUser) {
+        if (finalRole == 'pharmacy' && authResult.isNewUser) {
           Navigator.pushReplacementNamed(context, '/pharmacy-verification');
         } else {
           Navigator.pushReplacementNamed(context, '/success', arguments: {
-            'role': targetRole,
+            'role': finalRole,
             'isReturningUser': !authResult.isNewUser,
           });
         }
