@@ -147,7 +147,7 @@ class VailMedsApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       navigatorObservers: [AppRouteObserver(ref)],
-      initialRoute: AppRouter.splash,
+      initialRoute: AppRouter.welcome,
       onGenerateRoute: AppRouter.onGenerateRoute,
       builder: (context, child) {
         return Stack(
