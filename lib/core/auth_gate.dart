@@ -57,15 +57,39 @@ class AuthGate extends ConsumerWidget {
                 // through the success screen before landing on the dashboard.
                 return ProfileSetupGate(user: user);
               }
+              Widget destination;
+              String routeName;
               if (profile.role == 'admin' || localRole == 'admin') {
-                return const AdminDashboardScreen();
-              }
-              if (profile.role == 'pharmacy') {
-                return !profile.isAdminApproved 
+                destination = const AdminDashboardScreen();
+                routeName = AppRouter.adminDashboard;
+              } else if (profile.role == 'pharmacy') {
+                destination = !profile.isAdminApproved 
                     ? const PharmacyVerificationScreen() 
                     : const PharmacyMainScreen();
+                routeName = !profile.isAdminApproved 
+                    ? AppRouter.pharmacyVerification 
+                    : AppRouter.pharmacyDashboard;
+              } else {
+                destination = const MainNavigationScreen();
+                routeName = AppRouter.mainNav;
               }
-              return const MainNavigationScreen();
+
+              // Check if we are currently stuck on an ugly OAuth deep link URL
+              final currentRoute = ModalRoute.of(context)?.settings.name;
+              if (currentRoute != null && currentRoute.contains('access_token=')) {
+                // Schedule a clean redirect to wipe the hash from the browser address bar
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil(routeName, (r) => false);
+                  }
+                });
+                return const Scaffold(
+                  backgroundColor: AppTheme.primaryColor,
+                  body: Center(child: CircularProgressIndicator(color: Colors.white)),
+                );
+              }
+
+              return destination;
             },
             loading: () => const Scaffold(
               backgroundColor: AppTheme.primaryColor,
