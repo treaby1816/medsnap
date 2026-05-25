@@ -4,7 +4,7 @@ import 'package:vail_meds_v2/core/models/user_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 // 1. Core Providers
 import 'package:vail_meds_v2/core/providers.dart';
 import 'package:vail_meds_v2/core/app_router.dart';
