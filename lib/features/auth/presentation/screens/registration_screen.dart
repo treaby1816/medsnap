@@ -310,24 +310,30 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 24, height: 24,
-                            child: Checkbox(
-                              value: _agreedToTerms,
-                              onChanged: (val) {
-                                final newVal = val ?? false;
-                                setState(() => _agreedToTerms = newVal);
-                                ref.read(agreedToTermsProvider.notifier).state = newVal;
-                              },
-                              activeColor: AppTheme.primaryColor,
+                      GestureDetector(
+                        onTap: () {
+                          final newVal = !_agreedToTerms;
+                          setState(() => _agreedToTerms = newVal);
+                          ref.read(agreedToTermsProvider.notifier).state = newVal;
+                        },
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 24, height: 24,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                onChanged: (val) {
+                                  final newVal = val ?? false;
+                                  setState(() => _agreedToTerms = newVal);
+                                  ref.read(agreedToTermsProvider.notifier).state = newVal;
+                                },
+                                activeColor: AppTheme.primaryColor,
+                                side: const BorderSide(color: Colors.grey, width: 2), // explicitly visible border
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, '/terms'),
+                            const SizedBox(width: 10),
+                            Expanded(
                               child: RichText(
                                 text: TextSpan(
                                   text: 'I agree to the ',
@@ -336,33 +342,42 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                     TextSpan(
                                       text: 'Terms of Use',
                                       style: GoogleFonts.inter(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                      // Note: Tap gesture recognizer normally needed here if we want just the text to route, 
+                                      // but we're letting the whole row check the box now. If user clicks text, it checks the box.
+                                      // Added a separate button for terms if needed.
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 24, height: 24,
-                            child: Checkbox(
-                              value: _agreedToPrivacy,
-                              onChanged: (val) {
-                                final newVal = val ?? false;
-                                setState(() => _agreedToPrivacy = newVal);
-                                ref.read(agreedToPrivacyProvider.notifier).state = newVal;
-                              },
-                              activeColor: AppTheme.primaryColor,
+                      GestureDetector(
+                        onTap: () {
+                          final newVal = !_agreedToPrivacy;
+                          setState(() => _agreedToPrivacy = newVal);
+                          ref.read(agreedToPrivacyProvider.notifier).state = newVal;
+                        },
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 24, height: 24,
+                              child: Checkbox(
+                                value: _agreedToPrivacy,
+                                onChanged: (val) {
+                                  final newVal = val ?? false;
+                                  setState(() => _agreedToPrivacy = newVal);
+                                  ref.read(agreedToPrivacyProvider.notifier).state = newVal;
+                                },
+                                activeColor: AppTheme.primaryColor,
+                                side: const BorderSide(color: Colors.grey, width: 2), // explicitly visible border
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, '/privacy'),
+                            const SizedBox(width: 10),
+                            Expanded(
                               child: RichText(
                                 text: TextSpan(
                                   text: 'I agree to the ',
@@ -376,8 +391,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),

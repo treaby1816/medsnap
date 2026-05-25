@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/theme_provider.dart';
 import '../../../../core/app_router.dart';
 import '../../../../core/providers.dart';
 import '../../../../core/models/user_profile.dart';
@@ -109,19 +110,14 @@ class PatientProfileScreen extends ConsumerWidget {
                 Navigator.pushNamed(context, AppRouter.support);
               },
             ),
+            _buildThemeToggleTile(context, ref),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-              onTap: () async {
+              onTap: () {
                 Navigator.pop(context);
-                await ref.read(authServiceProvider).signOut();
-                if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    AppRouter.welcome,
-                    (route) => false,
-                  );
-                }
+                _showLogoutConfirmation(context, ref);
               },
             ),
           ],
@@ -342,10 +338,7 @@ class PatientProfileScreen extends ConsumerWidget {
     return SizedBox(
       width: double.infinity,
       child: TextButton.icon(
-        onPressed: () async {
-          await ref.read(authServiceProvider).signOut();
-          if (context.mounted) Navigator.pushReplacementNamed(context, AppRouter.gateway);
-        },
+        onPressed: () => _showLogoutConfirmation(context, ref),
         icon: const Icon(Icons.logout, color: Colors.red),
         label: Text('Logout', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.red)),
         style: TextButton.styleFrom(
@@ -353,6 +346,55 @@ class PatientProfileScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Sign Out', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to sign out of your account?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(context); // close dialog
+              await ref.read(authServiceProvider).signOut();
+              // AuthGate will automatically handle routing when authState changes
+            },
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeToggleTile(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
+    return ListTile(
+      leading: Icon(
+        isDark ? Icons.dark_mode : Icons.light_mode,
+        color: isDark ? Colors.amber : AppTheme.primaryColor,
+      ),
+      title: const Text('Dark Mode'),
+      trailing: Switch(
+        value: isDark,
+        onChanged: (val) {
+          ref.read(themeModeProvider.notifier).toggleTheme();
+        },
+        activeColor: AppTheme.primaryColor,
       ),
     );
   }

@@ -237,38 +237,56 @@ class _GatewayScreenState extends ConsumerState<GatewayScreen> {
 
                   // Global Terms Checkbox below Portals
                   Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.backgroundColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _agreedToTerms ? AppTheme.primaryColor : AppTheme.borderColor),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Checkbox(
-                            value: _agreedToTerms,
-                            onChanged: (val) {
-                              setState(() {
-                                _agreedToTerms = val ?? false;
-                              });
-                            },
-                            activeColor: AppTheme.primaryColor,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _agreedToTerms = !_agreedToTerms;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _agreedToTerms
+                              ? AppTheme.primaryColor.withValues(alpha: 0.05)
+                              : AppTheme.backgroundColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _agreedToTerms ? AppTheme.primaryColor : Colors.grey,
+                            width: 1.5,
                           ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              'I agree to the Terms of Use and Privacy Policy',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                color: AppTheme.textSecondaryColor,
-                                fontWeight: FontWeight.w500,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Checkbox(
+                              value: _agreedToTerms,
+                              onChanged: (val) {
+                                setState(() {
+                                  _agreedToTerms = val ?? false;
+                                });
+                              },
+                              activeColor: AppTheme.primaryColor,
+                              side: BorderSide(
+                                color: _agreedToTerms ? AppTheme.primaryColor : Colors.grey,
+                                width: 2,
+                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'I agree to the Terms of Use and Privacy Policy',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: _agreedToTerms
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.textSecondaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

@@ -194,9 +194,8 @@ class _ProfileSetupGateState extends ConsumerState<ProfileSetupGate> {
         ref.read(_hasShownSuccessProvider.notifier).state = true;
         
         // Prevent hijacking navigation if an active auth screen (like RegistrationScreen) is on top
-        Navigator.of(context).pushNamedAndRemoveUntil(
+        Navigator.of(context).pushNamed(
           AppRouter.success,
-          (route) => false,
           arguments: {
             'role': pendingRole,
             'isReturningUser': false,

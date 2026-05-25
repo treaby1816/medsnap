@@ -61,12 +61,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   setState(() => _selectedIndex = i);
                   if (!isDesktop) Navigator.pop(context); // Close drawer on mobile
                 },
-                onLogout: () async {
-                  await ref.read(authServiceProvider).signOut();
-                  if (context.mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                  }
-                },
+                onLogout: () => _showLogoutConfirmation(context, ref),
                 onExportPdf: () => ComplianceReportExporter.generateAndPreview(context),
               );
 
@@ -200,6 +195,37 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────
+  // LOGOUT CONFIRMATION
+  // ─────────────────────────────────────────────────────────────────────
+  void _showLogoutConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Sign Out', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to sign out of the Admin Console?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(authServiceProvider).signOut();
+            },
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
   // PROFILE DIALOG
   // ─────────────────────────────────────────────────────────────────────
   void _showProfileDialog(BuildContext context) {
@@ -265,12 +291,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () async {
+                      onPressed: () {
                         Navigator.pop(ctx);
-                        await ref.read(authServiceProvider).signOut();
-                        if (context.mounted) {
-                          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                        }
+                        _showLogoutConfirmation(context, ref);
                       },
                       icon: const Icon(Icons.logout_rounded, size: 18),
                       label: Text('Sign Out', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),

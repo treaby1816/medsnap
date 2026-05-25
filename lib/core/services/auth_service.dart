@@ -96,7 +96,8 @@ class AuthService {
         
         await _supabase.auth.signInWithOAuth(
           OAuthProvider.google,
-          redirectTo: Uri.base.origin,
+          // Let Supabase automatically handle the redirect URL on Web to prevent bad_oauth_state errors
+          redirectTo: kIsWeb ? null : 'vailmeds://callback',
         );
         return AuthResult(user: null);
       }

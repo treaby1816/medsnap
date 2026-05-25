@@ -120,13 +120,13 @@ class _SuccessScreenState extends ConsumerState<SuccessScreen>
     });
   }
 
-  /// Performs the actual navigation, clearing the entire back stack.
   void _navigateToDashboard() {
     if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
 
-    final targetRoute = _resolveTargetRoute();
-    Navigator.pushNamedAndRemoveUntil(context, targetRoute, (route) => false);
+    // Pop everything until we reach the root (AuthGate), which will 
+    // automatically render the correct dashboard based on the updated auth state.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override

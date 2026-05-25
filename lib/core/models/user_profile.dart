@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 // Supabase returns timestamps as strings
 class UserProfile {
   final String uid;
@@ -80,10 +82,8 @@ class UserProfile {
       createdAt: map['createdAt'] != null ? (map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime?) : null,
       insuranceProvider: map['insuranceProvider'],
       insuranceID: map['insuranceID'],
-      healthRecords: map['healthRecords'],
-      connectedDevices: map['connectedDevices'] != null 
-          ? List<String>.from(map['connectedDevices']) 
-          : null,
+      healthRecords: _parseMap(map['healthRecords']),
+      connectedDevices: _parseList(map['connectedDevices']),
       storeName: map['storeName'],
       storeFrontImageUrl: map['storeFrontImageUrl'],
       storeInsideImageUrl: map['storeInsideImageUrl'],
@@ -93,6 +93,30 @@ class UserProfile {
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
     );
+  }
+
+  static Map<String, dynamic>? _parseMap(dynamic data) {
+    if (data == null) return null;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is String) {
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  static List<String>? _parseList(dynamic data) {
+    if (data == null) return null;
+    if (data is List) return List<String>.from(data);
+    if (data is String) {
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is List) return List<String>.from(decoded);
+      } catch (_) {}
+    }
+    return null;
   }
 
   Map<String, dynamic> toMap() {
