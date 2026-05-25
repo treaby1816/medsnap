@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:vail_meds_v2/core/theme.dart';
 import 'package:vail_meds_v2/core/providers.dart';
 import 'package:vail_meds_v2/core/services/auth_service.dart';
-import 'package:vail_meds_v2/widgets/vail_chat_interface.dart'; // Contains TypewriterText
+import 'package:animated_text_kit/animated_text_kit.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -320,14 +320,23 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        TypewriterText(
-                                          text: _valueProps[index]['title']!,
+                                        DefaultTextStyle(
                                           style: GoogleFonts.inter(
                                             fontSize: 32,
                                             fontWeight: FontWeight.w800,
                                             color: Colors.white,
                                             height: 1.2,
                                             letterSpacing: -0.5,
+                                          ),
+                                          child: AnimatedTextKit(
+                                            key: ValueKey<int>(_currentPage), // Force re-render on page change
+                                            animatedTexts: [
+                                              TypewriterAnimatedText(
+                                                _valueProps[index]['title']!,
+                                                speed: const Duration(milliseconds: 60),
+                                              ),
+                                            ],
+                                            isRepeatingAnimation: false,
                                           ),
                                         ),
                                         const SizedBox(height: 12),
