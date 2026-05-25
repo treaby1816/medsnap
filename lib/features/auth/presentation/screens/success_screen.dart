@@ -124,9 +124,16 @@ class _SuccessScreenState extends ConsumerState<SuccessScreen>
     if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
 
-    // Pop everything until we reach the root (AuthGate), which will 
-    // automatically render the correct dashboard based on the updated auth state.
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    // Pop everything and explicitly push the correct route to clear any
+    // deep link fragments (like /#access_token=...) from the browser URL.
+    String route = AppRouter.mainNav;
+    if (widget.userType == UserType.admin || widget.userType == UserType.super_admin) {
+      route = AppRouter.adminDashboard;
+    } else if (widget.userType == UserType.pharmacy) {
+      route = widget.isReturningUser ? AppRouter.pharmacyDashboard : AppRouter.pharmacyVerification;
+    }
+    
+    Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => false);
   }
 
   @override

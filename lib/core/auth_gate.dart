@@ -239,7 +239,16 @@ class _ProfileSetupGateState extends ConsumerState<ProfileSetupGate> {
                 child: const Text('Retry'),
               ),
             ] else ...[
-              const SizedBox.shrink(),
+              const CircularProgressIndicator(color: AppTheme.primaryColor),
+              const SizedBox(height: 24),
+              Text(
+                'Setting up your secure profile...',
+                style: GoogleFonts.inter(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
             ],
           ],
         ),
