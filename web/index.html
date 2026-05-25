@@ -81,7 +81,7 @@
       inset: 0;
       background-color: #EC5B13;
       z-index: 9999;
-      transition: opacity 0.4s ease-out;
+      transition: none;
     }
   </style>
 
@@ -89,12 +89,9 @@
     function removeSplashFromWeb() {
       const splash = document.getElementById('native-splash');
       if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(() => {
-          splash.remove();
-          // Reset body background to match app theme
-          document.body.style.backgroundColor = "#FFFFFF"; 
-        }, 400);
+        splash.style.display = 'none';
+        splash.remove();
+        document.body.style.backgroundColor = "#FFFFFF"; 
       }
     }
 

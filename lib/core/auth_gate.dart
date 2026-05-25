@@ -85,12 +85,7 @@ class AuthGate extends ConsumerWidget {
         // --- STAGE 3: LOGIN/GATEWAY ---
         return const GatewayScreen();
       },
-      loading: () => const Scaffold(
-        backgroundColor: AppTheme.primaryColor,
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
-      ),
+      loading: () => const SplashScreen(),
       error: (error, stack) => Scaffold(
         body: Center(
           child: Padding(
